@@ -50,6 +50,21 @@ enclave {
     from "TrustedLibrary/Libcxx.edl" import ecall_exception, ecall_map;
     from "TrustedLibrary/Thread.edl" import *;
 
+	include "../Include/hot_calls.h"
+    include "../Include/common.h"
+    trusted {
+    	public void EcallStartResponder( [user_check] HotCall* fastEcall );
+
+      public void EcallMeasureHotOcallsPerformance([user_check] uint64_t*     performanceCounters,
+                                                                uint64_t      numRepeats,
+                                                   [user_check] HotCall*      hotOcall );
+
+      public void MyCustomEcall( [user_check] void* data );
+
+      public void EcallMeasureSDKOcallsPerformance([user_check] uint64_t*     performanceCounters,
+                                                                uint64_t      numRepeats,
+                                                   [user_check] OcallParams*  ocallParams );
+    };
     /* 
      * ocall_print_string - invokes OCALL to display string buffer inside the enclave.
      *  [in]: copy the string buffer to App outside.
@@ -57,6 +72,7 @@ enclave {
      */
     untrusted {
         void ocall_print_string([in, string] const char *str);
+        void MyCustomOcall( [user_check] void* data );
     };
 
 };

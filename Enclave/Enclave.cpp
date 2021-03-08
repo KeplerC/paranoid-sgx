@@ -34,6 +34,74 @@
 #include <stdarg.h>
 #include <stdio.h> /* vsnprintf */
 #include <string.h>
+#include <hot_calls.h>
+
+
+#include "../Include/common.h"
+
+
+void MyCustomEcall( void* data )
+{
+    int *counter = (int*)data;
+    *counter += 1;
+}
+
+void EcallStartResponder( HotCall* hotEcall )
+{
+    void (*callbacks[1])(void*);
+    callbacks[0] = MyCustomEcall;
+
+    HotCallTable callTable;
+    callTable.numEntries = 1;
+    callTable.callbacks  = callbacks;
+
+    HotCall_waitForCall( hotEcall, &callTable );
+}
+
+void EcallMeasureHotOcallsPerformance( uint64_t*     performanceCounters,
+                                       uint64_t      numRepeats,
+                                       HotCall*      hotOcall )
+{
+    printf( "Running %s\n", __func__ );
+
+    int         expectedData = 1;
+    OcallParams *ocallParams = (OcallParams *)hotOcall->data;
+    ocallParams->cyclesCount = &performanceCounters[ 0 ];
+
+    const uint16_t requestedCallID = 0;
+    HotCall_requestCall( hotOcall, requestedCallID, ocallParams ); //Setup startTime to current rdtscp()
+    for( uint64_t i=0; i < numRepeats; ++i ) {
+        ocallParams->cyclesCount = &performanceCounters[ i ];
+        HotCall_requestCall( hotOcall, requestedCallID, ocallParams );
+
+        expectedData++;
+        if( ocallParams->counter != expectedData ){
+            printf( "Error! ocallParams->counter is different than expected: %d != %d\n", ocallParams->counter, expectedData );
+        }
+    }
+}
+
+void EcallMeasureSDKOcallsPerformance( uint64_t*     performanceCounters,
+                                       uint64_t      numRepeats,
+                                       OcallParams*  ocallParams )
+{
+    printf( "Running %s\n", __func__ );
+
+    int         expectedData = 1;
+    ocallParams->cyclesCount = &performanceCounters[ 0 ];
+
+    const uint16_t requestedCallID = 0;
+    MyCustomOcall( ocallParams ); //Setup startTime to current rdtscp()
+    for( uint64_t i=0; i < numRepeats; ++i ) {
+        ocallParams->cyclesCount = &performanceCounters[ i ];
+        MyCustomOcall( ocallParams );
+
+        expectedData++;
+        if( ocallParams->counter != expectedData ){
+            printf( "Error! ocallParams->counter is different than expected: %d != %d\n", ocallParams->counter, expectedData );
+        }
+    }
+}
 
 /* 
  * printf: 
