@@ -51,6 +51,7 @@ enclave {
     from "TrustedLibrary/Thread.edl" import *;
 
 	include "../Include/hot_calls.h"
+	include "../Include/hot_capsule.h"
     include "../Include/common.h"
     trusted {
     	public void EcallStartResponder( [user_check] HotCall* fastEcall );

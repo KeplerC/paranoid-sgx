@@ -51,6 +51,7 @@
 #include <iostream>
 #include <sstream>
 #include <fstream>
+#include "hot_capsule.h"
 #include "../Include/common.h"
 
 sgx_enclave_id_t globalEnclaveID;
@@ -274,6 +275,8 @@ public:
 
         TestSDKEcalls();
         TestSDKOcalls();
+
+        TestHotCapsuleSend();
     }
 
     void TestHotEcalls()
@@ -311,6 +314,43 @@ public:
                                  (uint64_t*)performaceMeasurements,
                                  PERFORMANCE_MEASUREMENT_NUM_REPEATS ) ;
     }
+
+    void TestHotCapsuleSend()
+    {
+        uint64_t performaceMeasurements[ PERFORMANCE_MEASUREMENT_NUM_REPEATS ]= {0};
+
+        uint64_t    startTime       = 0;
+        uint64_t    endTime         = 0;
+        int         data            = 0;
+        int         expectedData    = 0;
+        HotCapsule     hotEcall        = HOTCALL_INITIALIZER;
+        hotEcall.data               = &data;
+
+        globalEnclaveID = m_enclaveID;
+        pthread_create(&hotEcall.responderThread, NULL, EnclaveResponderThread, (void*)&hotEcall);
+
+        const uint16_t requestedCallID = 0;
+        for( uint64_t i=0; i < PERFORMANCE_MEASUREMENT_NUM_REPEATS; ++i ) {
+            startTime = rdtscp();
+            Capsule_send_to_enclave( &hotEcall, requestedCallID, &data );
+            endTime   = rdtscp();
+
+            performaceMeasurements[ i ] = endTime       - startTime;
+
+            expectedData++;
+            if( data != expectedData ){
+                printf( "Error! Data is different than expected: %d != %d\n", data, expectedData );
+            }
+        }
+
+        StopResponder( &hotEcall );
+        ostringstream filename;
+        filename <<  "HotCapsule_latencies_in_cycles.csv";
+        WriteMeasurementsToFile( filename.str(),
+                                 (uint64_t*)performaceMeasurements,
+                                 PERFORMANCE_MEASUREMENT_NUM_REPEATS ) ;
+    }
+
 
     void TestSDKEcalls()
     {
