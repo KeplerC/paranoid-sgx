@@ -283,10 +283,11 @@ public:
         TestHotEcalls();
         //TestHotOcalls();
 
-        TestSDKEcalls();
+        //TestSDKEcalls();
         //TestSDKOcalls();
 
         TestHotMsgPass();
+
     }
 
     void TestHotEcalls()
@@ -304,18 +305,15 @@ public:
         pthread_create(&hotEcall.responderThread, NULL, EnclaveResponderThread, (void*)&hotEcall);
 
         const uint16_t requestedCallID = 0;
+        startTime = rdtscp();
         for( uint64_t i=0; i < PERFORMANCE_MEASUREMENT_NUM_REPEATS; ++i ) {
-            startTime = rdtscp();
+
             HotCall_requestCall( &hotEcall, requestedCallID, &data );
-            endTime   = rdtscp();
 
-            performaceMeasurements[ i ] = endTime       - startTime;
-
-            expectedData++;
-            if( data != expectedData ){
-                printf( "Error! Data is different than expected: %d != %d\n", data, expectedData );
-            }
         }
+        endTime   = rdtscp();
+
+        performaceMeasurements[ 0 ] = endTime       - startTime;
 
         StopResponder( &hotEcall );
         ostringstream filename;
@@ -338,25 +336,21 @@ public:
         HotData hotData = HOTDATA_INITIALIZER;
         hotData.data               = &data;
         HotMsg     hotMsg        = HOTMSG_INITIALIZER;
-        hotMsg.MsgQueue = &hotData;
+        HotMsg_init(&hotMsg);
+        //hotMsg.MsgQueue = &hotData;
         globalEnclaveID = m_enclaveID;
         pthread_create(&hotMsg.responderThread, NULL, EnclaveKVSThread, (void*)&hotMsg);
 
 
         const uint16_t requestedCallID = 0;
+        startTime = rdtscp();
         for( uint64_t i=0; i < PERFORMANCE_MEASUREMENT_NUM_REPEATS; ++i ) {
-            startTime = rdtscp();
 
             HotMsg_requestCall( &hotMsg, requestedCallID, &data );
-            endTime   = rdtscp();
 
-            performaceMeasurements[ i ] = endTime       - startTime;
-
-            //expectedData++;
-            if( data != expectedData ){
-                printf( "Error! Data is different than expected: %d != %d\n", data, expectedData );
-            }
         }
+        endTime   = rdtscp();
+        performaceMeasurements[ 0 ] = endTime       - startTime;
 
         StopMsgResponder( &hotMsg );
         ostringstream filename;
