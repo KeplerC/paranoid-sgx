@@ -606,8 +606,7 @@ int SGX_CDECL main(int argc, char *argv[])
     
     printf("Info: SampleEnclave successfully returned.\n");
 
-    printf("Enter a character before exit ...\n");
-    getchar();
+    printf("exiting ...\n");
     return 0;
 }
 

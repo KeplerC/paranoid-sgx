@@ -44,7 +44,6 @@ typedef struct {
     sgx_spinlock_t  spinlock;
     bool            isRead;
     void*           data;
-    int             position;
 } HotData;
 
 
@@ -56,7 +55,7 @@ typedef struct {
 
 
 #define HOTMSG_INITIALIZER  {0, true, nullptr}
-#define HOTDATA_INITIALIZER  {SGX_SPINLOCK_INITIALIZER, 0, 0, 0}
+#define HOTDATA_INITIALIZER  {SGX_SPINLOCK_INITIALIZER, 0, 0}
 static void HotMsg_init( HotMsg* hotMsg )
 {
     hotMsg->responderThread    = 0;
@@ -66,7 +65,6 @@ static void HotMsg_init( HotMsg* hotMsg )
         HotData* hd = (HotData*) malloc(sizeof(HotData));
         hd -> spinlock = SGX_SPINLOCK_INITIALIZER;
         hd -> isRead = 0;
-        hd -> position = i;
         (hotMsg->MsgQueue)[i] = hd;
     }
 }
