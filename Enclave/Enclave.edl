@@ -51,10 +51,11 @@ enclave {
     from "TrustedLibrary/Thread.edl" import *;
 
 	include "../Include/hot_calls.h"
+	include "../Include/hot_msg_pass.h"
     include "../Include/common.h"
     trusted {
     	public void EcallStartResponder( [user_check] HotCall* fastEcall );
-
+        public void EnclaveMsgStartResponder( [user_check] HotMsg* hotMsg );
       public void EcallMeasureHotOcallsPerformance([user_check] uint64_t*     performanceCounters,
                                                                 uint64_t      numRepeats,
                                                    [user_check] HotCall*      hotOcall );

@@ -23,19 +23,22 @@
 
 
 
-#ifndef __FAST_SGX_CALLS_H
-#define __FAST_SGX_CALLS_H
+#ifndef __FAST_SGX_MSG_PASS_H
+#define __FAST_SGX_MSG_PASS_H
+
 
 
 // #include <stdlib.h>
 #include <sgx_spinlock.h>
 #include <stdbool.h>
+#include "hot_msg_pass.h"
 // #include "utils.h"
 
 
 #pragma GCC diagnostic ignored "-Wunused-function"
 
 typedef unsigned long int pthread_t;
+
 
 typedef struct {
     pthread_t       responderThread;
@@ -46,56 +49,56 @@ typedef struct {
     bool            runFunction;
     bool            isDone;
     bool            busy;
-} HotCall;
+} HotMsg;
 
 typedef struct
 {
     uint16_t numEntries;
     void (**callbacks)(void*);
-} HotCallTable;
+} HotMsgTable;
 
-#define HOTCALL_INITIALIZER  {0, SGX_SPINLOCK_INITIALIZER, NULL, 0, true, false, false, false }
+#define HOTMSG_INITIALIZER  {0, SGX_SPINLOCK_INITIALIZER, NULL, 0, true, false, false, false }
 
-static void HotCall_init( HotCall* hotCall )
+static void HotMsg_init( HotMsg* hotMsg )
 {
-    hotCall->responderThread    = 0;
-    hotCall->spinlock           = SGX_SPINLOCK_INITIALIZER;
-    hotCall->data               = NULL;
-    hotCall->callID             = 0;
-    hotCall->keepPolling        = true;
-    hotCall->runFunction        = false;
-    hotCall->isDone             = false;
-    hotCall->busy               = false;
+    hotMsg->responderThread    = 0;
+    hotMsg->spinlock           = SGX_SPINLOCK_INITIALIZER;
+    hotMsg->data               = NULL;
+    hotMsg->callID             = 0;
+    hotMsg->keepPolling        = true;
+    hotMsg->runFunction        = false;
+    hotMsg->isDone             = false;
+    hotMsg->busy               = false;
 }
 
-static inline void _mm_pause(void) __attribute__((always_inline));
-static inline void _mm_pause(void)
-{
-    __asm __volatile(
-    "pause"
-    );
-}
+//static inline void _mm_pause(void) __attribute__((always_inline));
+//static inline void _mm_pause(void)
+//{
+//    __asm __volatile(
+//        "pause"
+//    );
+//}
 
 
-static inline int HotCall_requestCall( HotCall* hotCall, uint16_t callID, void *data )
+static inline int HotMsg_requestCall( HotMsg* hotMsg, uint16_t callID, void *data )
 {
     int i = 0;
     const uint32_t MAX_RETRIES = 10;
     uint32_t numRetries = 0;
     //REquest call
     while( true ) {
-        sgx_spin_lock( &hotCall->spinlock );
-        if( hotCall->busy == false ) {
-            hotCall->busy        = true;
-            hotCall->isDone      = false;
-            hotCall->runFunction = true;
-            hotCall->callID      = callID;
-            hotCall->data        = data;
-            sgx_spin_unlock( &hotCall->spinlock );
+        sgx_spin_lock( &hotMsg->spinlock );
+        if( hotMsg->busy == false ) {
+            hotMsg->busy        = true;
+            hotMsg->isDone      = false;
+            hotMsg->runFunction = true;
+            hotMsg->callID      = callID;
+            hotMsg->data        = data;
+            sgx_spin_unlock( &hotMsg->spinlock );
             break;
         }
         //else:
-        sgx_spin_unlock( &hotCall->spinlock );
+        sgx_spin_unlock( &hotMsg->spinlock );
 
         numRetries++;
         if( numRetries > MAX_RETRIES )
@@ -108,14 +111,14 @@ static inline int HotCall_requestCall( HotCall* hotCall, uint16_t callID, void *
     //wait for answer
     while( true )
     {
-        sgx_spin_lock( &hotCall->spinlock );
-        if( hotCall->isDone == true ){
-            hotCall->busy = false;
-            sgx_spin_unlock( &hotCall->spinlock );
+        sgx_spin_lock( &hotMsg->spinlock );
+        if( hotMsg->isDone == true ){
+            hotMsg->busy = false;
+            sgx_spin_unlock( &hotMsg->spinlock );
             break;
         }
 
-        sgx_spin_unlock( &hotCall->spinlock );
+        sgx_spin_unlock( &hotMsg->spinlock );
         for( i = 0; i<3; ++i)
             _mm_pause();
     }
@@ -123,24 +126,24 @@ static inline int HotCall_requestCall( HotCall* hotCall, uint16_t callID, void *
     return numRetries;
 }
 
-static inline void HotCall_waitForCall( HotCall *hotCall, HotCallTable* callTable )  __attribute__((always_inline));
-static inline void HotCall_waitForCall( HotCall *hotCall, HotCallTable* callTable )
+static inline void HotMsg_waitForCall( HotMsg *hotMsg, HotCallTable* callTable )  __attribute__((always_inline));
+static inline void HotMsg_waitForCall( HotMsg *hotMsg, HotCallTable* callTable )
 {
     static int i;
     // volatile void *data;
     while( true )
     {
-        sgx_spin_lock( &hotCall->spinlock );
-        if( hotCall->keepPolling != true ) {
-            sgx_spin_unlock( &hotCall->spinlock );
+        sgx_spin_lock( &hotMsg->spinlock );
+        if( hotMsg->keepPolling != true ) {
+            sgx_spin_unlock( &hotMsg->spinlock );
             break;
         }
 
-        if( hotCall->runFunction )
+        if( hotMsg->runFunction )
         {
-            volatile uint16_t callID = hotCall->callID;
-            void *data = hotCall->data;
-            sgx_spin_unlock( &hotCall->spinlock );
+            volatile uint16_t callID = hotMsg->callID;
+            void *data = hotMsg->data;
+            sgx_spin_unlock( &hotMsg->spinlock );
             if( callID < callTable->numEntries ) {
                 // printf( "Calling callback %d\n", callID );
                 callTable->callbacks[ callID ]( data );
@@ -153,12 +156,12 @@ static inline void HotCall_waitForCall( HotCall *hotCall, HotCallTable* callTabl
             // data = (int*)hotCall->data;
             // printf( "Enclave: Data is at %p\n", data );
             // *data += 1;
-            sgx_spin_lock( &hotCall->spinlock );
-            hotCall->isDone      = true;
-            hotCall->runFunction = false;
+            sgx_spin_lock( &hotMsg->spinlock );
+            hotMsg->isDone      = true;
+            hotMsg->runFunction = false;
         }
 
-        sgx_spin_unlock( &hotCall->spinlock );
+        sgx_spin_unlock( &hotMsg->spinlock );
         for( i = 0; i<3; ++i)
             _mm_pause();
 
@@ -168,12 +171,13 @@ static inline void HotCall_waitForCall( HotCall *hotCall, HotCallTable* callTabl
     }
 
 }
-static inline void StopResponder( HotCall *hotCall );
-static inline void StopResponder( HotCall *hotCall )
+static inline void StopMsgResponder( HotMsg *hotMsg );
+static inline void StopMsgResponder( HotMsg *hotMsg )
 {
-    sgx_spin_lock( &hotCall->spinlock );
-    hotCall->keepPolling = false;
-    sgx_spin_unlock( &hotCall->spinlock );
+    sgx_spin_lock( &hotMsg->spinlock );
+    hotMsg->keepPolling = false;
+    sgx_spin_unlock( &hotMsg->spinlock );
 }
+
 
 #endif
