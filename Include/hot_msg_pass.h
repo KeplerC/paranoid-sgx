@@ -32,42 +32,41 @@
 #include <sgx_spinlock.h>
 #include <stdbool.h>
 #include "hot_msg_pass.h"
-// #include "utils.h"
 
+// #include "utils.h"
 
 #pragma GCC diagnostic ignored "-Wunused-function"
 
 typedef unsigned long int pthread_t;
 
+typedef struct {
+    bool            isRead;
+    void*           data;
+} HotData;
+
 
 typedef struct {
     pthread_t       responderThread;
     sgx_spinlock_t  spinlock;
-    void*           data;
     uint16_t        callID;
     bool            keepPolling;
-    bool            isRead;
     bool            busy;
+    HotData*    MsgQueue;
 } HotMsg;
 
-typedef struct
-{
-    uint16_t numEntries;
-    void (**callbacks)(void*);
-} HotMsgTable;
 
-#define HOTMSG_INITIALIZER  {0, SGX_SPINLOCK_INITIALIZER, NULL, 0, true, false, false }
-
-static void HotMsg_init( HotMsg* hotMsg )
-{
-    hotMsg->responderThread    = 0;
-    hotMsg->spinlock           = SGX_SPINLOCK_INITIALIZER;
-    hotMsg->data               = NULL;
-    hotMsg->callID             = 0;
-    hotMsg->keepPolling        = true;
-    hotMsg->isRead             = false;
-    hotMsg->busy               = false;
-}
+#define HOTMSG_INITIALIZER  {0, SGX_SPINLOCK_INITIALIZER, 0, true, false, nullptr}
+#define HOTDATA_INITIALIZER  {0, 0}
+//static void HotMsg_init( HotMsg* hotMsg )
+//{
+//    hotMsg->responderThread    = 0;
+//    hotMsg->spinlock           = SGX_SPINLOCK_INITIALIZER;
+//    hotMsg->data               = NULL;
+//    hotMsg->callID             = 0;
+//    hotMsg->keepPolling        = true;
+//    hotMsg->isRead             = false;
+//    hotMsg->busy               = false;
+//}
 
 //static inline void _mm_pause(void) __attribute__((always_inline));
 //static inline void _mm_pause(void)
@@ -83,14 +82,14 @@ static inline int HotMsg_requestCall( HotMsg* hotMsg, uint16_t callID, void *dat
     int i = 0;
     const uint32_t MAX_RETRIES = 10;
     uint32_t numRetries = 0;
-    //REquest call
+    //Request call
     while( true ) {
         sgx_spin_lock( &hotMsg->spinlock );
         if( hotMsg->busy == false ) {
             hotMsg->busy        = true;
-            hotMsg->isRead      = false;
             hotMsg->callID      = callID;
-            hotMsg->data        = data;
+            hotMsg->MsgQueue->isRead      = false;
+            hotMsg->MsgQueue->data        = data;
             sgx_spin_unlock( &hotMsg->spinlock );
             break;
         }
@@ -109,7 +108,7 @@ static inline int HotMsg_requestCall( HotMsg* hotMsg, uint16_t callID, void *dat
     while( true )
     {
         sgx_spin_lock( &hotMsg->spinlock );
-        if( hotMsg->isRead == true ){
+        if( hotMsg->MsgQueue->isRead == true ){
             hotMsg->busy = false;
             sgx_spin_unlock( &hotMsg->spinlock );
             break;
@@ -137,13 +136,13 @@ static inline void HotMsg_waitForCall( HotMsg *hotMsg )
         }
 
         //volatile uint16_t callID = hotMsg->callID;
-        //void *data = hotMsg->data;
-        // sgx_spin_unlock( &hotMsg->spinlock );
+        void *data = hotMsg->MsgQueue->data;
+        sgx_spin_unlock( &hotMsg->spinlock );
         // data = (int*)hotCall->data;
         // printf( "Enclave: Data is at %p\n", data );
         // *data += 1;
         // sgx_spin_lock( &hotMsg->spinlock );
-        hotMsg->isRead      = true;
+        hotMsg->MsgQueue->isRead      = true;
 
         sgx_spin_unlock( &hotMsg->spinlock );
         for( i = 0; i<3; ++i)

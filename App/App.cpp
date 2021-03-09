@@ -332,12 +332,13 @@ public:
 
         uint64_t    startTime       = 0;
         uint64_t    endTime         = 0;
-        int         data            = 0;
+        int  queueLength = 10;
         int         expectedData    = 0;
-
+        int data = 0;
+        HotData hotData = HOTDATA_INITIALIZER;
+        hotData.data               = &data;
         HotMsg     hotMsg        = HOTMSG_INITIALIZER;
-        hotMsg.data               = &data;
-
+        hotMsg.MsgQueue = &hotData;
         globalEnclaveID = m_enclaveID;
         pthread_create(&hotMsg.responderThread, NULL, EnclaveKVSThread, (void*)&hotMsg);
 
