@@ -58,7 +58,7 @@ sgx_enclave_id_t globalEnclaveID;
 
 typedef sgx_status_t (*EcallFunction)(sgx_enclave_id_t, void* );
 
-#define PERFORMANCE_MEASUREMENT_NUM_REPEATS 10000
+#define PERFORMANCE_MEASUREMENT_NUM_REPEATS 100000
 #define MEASUREMENTS_ROOT_DIR               "measurments"
 
 using namespace std;
@@ -280,10 +280,10 @@ public:
     }
 
     void Run( void ) {
-        //TestHotEcalls();
+        TestHotEcalls();
         //TestHotOcalls();
 
-        //TestSDKEcalls();
+        TestSDKEcalls();
         //TestSDKOcalls();
 
         TestHotMsgPass();
@@ -339,7 +339,7 @@ public:
         hotMsg.data               = &data;
 
         globalEnclaveID = m_enclaveID;
-        pthread_create(&hotMsg.responderThread, NULL, EnclaveResponderThread, (void*)&hotMsg);
+        pthread_create(&hotMsg.responderThread, NULL, EnclaveKVSThread, (void*)&hotMsg);
 
 
         const uint16_t requestedCallID = 0;
@@ -351,7 +351,7 @@ public:
 
             performaceMeasurements[ i ] = endTime       - startTime;
 
-            expectedData++;
+            //expectedData++;
             if( data != expectedData ){
                 printf( "Error! Data is different than expected: %d != %d\n", data, expectedData );
             }
@@ -359,7 +359,7 @@ public:
 
         StopMsgResponder( &hotMsg );
         ostringstream filename;
-        filename <<  "HotEcall_latencies_in_cycles.csv";
+        filename <<  "HotMsgPass_latencies_in_cycles.csv";
         WriteMeasurementsToFile( filename.str(),
                                  (uint64_t*)performaceMeasurements,
                                  PERFORMANCE_MEASUREMENT_NUM_REPEATS ) ;
