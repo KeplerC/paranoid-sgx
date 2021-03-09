@@ -333,8 +333,6 @@ public:
         int  queueLength = 10;
         int         expectedData    = 0;
         int data = 0;
-        HotData hotData = HOTDATA_INITIALIZER;
-        hotData.data               = &data;
         HotMsg     hotMsg        = HOTMSG_INITIALIZER;
         HotMsg_init(&hotMsg);
         //hotMsg.MsgQueue = &hotData;
@@ -342,12 +340,9 @@ public:
         pthread_create(&hotMsg.responderThread, NULL, EnclaveKVSThread, (void*)&hotMsg);
 
 
-        const uint16_t requestedCallID = 0;
         startTime = rdtscp();
         for( uint64_t i=0; i < PERFORMANCE_MEASUREMENT_NUM_REPEATS; ++i ) {
-
-            HotMsg_requestCall( &hotMsg, requestedCallID, &data );
-
+            HotMsg_requestCall( &hotMsg, &data );
         }
         endTime   = rdtscp();
         performaceMeasurements[ 0 ] = endTime       - startTime;
