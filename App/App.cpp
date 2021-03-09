@@ -216,6 +216,16 @@ void* EnclaveResponderThread( void* hotEcallAsVoidP )
     return NULL;
 }
 
+void* EnclaveKVSThread( void* hotMsgAsVoidP )
+{
+    //To be started in a new thread
+    HotMsg *hotMsg = (HotMsg*)hotMsgAsVoidP;
+    EnclaveMsgStartResponder( globalEnclaveID, hotMsg );
+
+    return NULL;
+}
+
+
 void MyCustomOcall( void* data )
 {
     //Because RDTSCP is not allowed inside an enclave in SGX 1.x, we have to issue it here,
@@ -270,13 +280,13 @@ public:
     }
 
     void Run( void ) {
-        TestHotEcalls();
-        TestHotOcalls();
+        //TestHotEcalls();
+        //TestHotOcalls();
 
-        TestSDKEcalls();
-        TestSDKOcalls();
+        //TestSDKEcalls();
+        //TestSDKOcalls();
 
-        TestHotCapsuleSend();
+        TestHotMsgPass();
     }
 
     void TestHotEcalls()
@@ -315,7 +325,8 @@ public:
                                  PERFORMANCE_MEASUREMENT_NUM_REPEATS ) ;
     }
 
-    void TestHotCapsuleSend()
+
+    void TestHotMsgPass()
     {
         uint64_t performaceMeasurements[ PERFORMANCE_MEASUREMENT_NUM_REPEATS ]= {0};
 
@@ -323,16 +334,19 @@ public:
         uint64_t    endTime         = 0;
         int         data            = 0;
         int         expectedData    = 0;
-        HotCapsule     hotEcall        = HOTCALL_INITIALIZER;
-        hotEcall.data               = &data;
+
+        HotMsg     hotMsg        = HOTMSG_INITIALIZER;
+        hotMsg.data               = &data;
 
         globalEnclaveID = m_enclaveID;
-        pthread_create(&hotEcall.responderThread, NULL, EnclaveResponderThread, (void*)&hotEcall);
+        pthread_create(&hotMsg.responderThread, NULL, EnclaveResponderThread, (void*)&hotMsg);
+
 
         const uint16_t requestedCallID = 0;
         for( uint64_t i=0; i < PERFORMANCE_MEASUREMENT_NUM_REPEATS; ++i ) {
             startTime = rdtscp();
-            Capsule_send_to_enclave( &hotEcall, requestedCallID, &data );
+
+            HotMsg_requestCall( &hotMsg, requestedCallID, &data );
             endTime   = rdtscp();
 
             performaceMeasurements[ i ] = endTime       - startTime;
@@ -343,13 +357,14 @@ public:
             }
         }
 
-        StopResponder( &hotEcall );
+        StopMsgResponder( &hotMsg );
         ostringstream filename;
-        filename <<  "HotCapsule_latencies_in_cycles.csv";
+        filename <<  "HotEcall_latencies_in_cycles.csv";
         WriteMeasurementsToFile( filename.str(),
                                  (uint64_t*)performaceMeasurements,
                                  PERFORMANCE_MEASUREMENT_NUM_REPEATS ) ;
     }
+
 
 
     void TestSDKEcalls()

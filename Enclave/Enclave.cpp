@@ -58,6 +58,18 @@ void EcallStartResponder( HotCall* hotEcall )
     HotCall_waitForCall( hotEcall, &callTable );
 }
 
+void EnclaveMsgStartResponder( HotMsg* hotmsg )
+{
+    void (*callbacks[1])(void*);
+    callbacks[0] = MyCustomEcall;
+
+    HotCallTable callTable;
+    callTable.numEntries = 1;
+    callTable.callbacks  = callbacks;
+
+    HotMsg_waitForCall( hotmsg, &callTable );
+}
+
 void EcallMeasureHotOcallsPerformance( uint64_t*     performanceCounters,
                                        uint64_t      numRepeats,
                                        HotCall*      hotOcall )
