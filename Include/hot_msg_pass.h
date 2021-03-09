@@ -36,102 +36,75 @@
 // #include "utils.h"
 
 #pragma GCC diagnostic ignored "-Wunused-function"
-#define MAX_QUEUE_LENGTH 100
+#define MAX_QUEUE_LENGTH 1000
 
 typedef unsigned long int pthread_t;
 
 typedef struct {
+    sgx_spinlock_t  spinlock;
     bool            isRead;
     void*           data;
+    int             position;
 } HotData;
 
 
 typedef struct {
     pthread_t       responderThread;
-    sgx_spinlock_t  spinlock;
-    uint16_t        callID;
     bool            keepPolling;
-    bool            busy;
     HotData**    MsgQueue;
-    int front, rear, size;
-    unsigned capacity;
 } HotMsg;
 
 
-#define HOTMSG_INITIALIZER  {0, SGX_SPINLOCK_INITIALIZER, 0, true, false, nullptr, 0, 0, 0, 0}
-#define HOTDATA_INITIALIZER  {0, 0}
+#define HOTMSG_INITIALIZER  {0, true, nullptr}
+#define HOTDATA_INITIALIZER  {SGX_SPINLOCK_INITIALIZER, 0, 0, 0}
 static void HotMsg_init( HotMsg* hotMsg )
 {
     hotMsg->responderThread    = 0;
-    hotMsg->spinlock           = SGX_SPINLOCK_INITIALIZER;
-    hotMsg->callID             = 0;
     hotMsg->keepPolling        = true;
-    hotMsg->busy             = false;
-    hotMsg->front = hotMsg->size = 0;
-    hotMsg->capacity = MAX_QUEUE_LENGTH;
-    hotMsg->rear = MAX_QUEUE_LENGTH - 1;
-    hotMsg->MsgQueue = (HotData**)malloc(hotMsg->capacity * sizeof(HotData*));
+    hotMsg->MsgQueue = (HotData**)malloc(MAX_QUEUE_LENGTH * sizeof(HotData*));
+    for(int i = 0; i < MAX_QUEUE_LENGTH; i++){
+        HotData* hd = (HotData*) malloc(sizeof(HotData));
+        hd -> spinlock = SGX_SPINLOCK_INITIALIZER;
+        hd -> isRead = 0;
+        hd -> position = i;
+        (hotMsg->MsgQueue)[i] = hd;
+    }
 }
 
-
-static void HotMsg_enqueue( HotMsg* queue, HotData* data)
+static inline void _mm_sleep(void) __attribute__((always_inline));
+static inline void _mm_sleep(void)
 {
-    if ( (queue->size == queue->capacity))
-        return;
-    queue->rear = (queue->rear + 1)
-                  % queue->capacity;
-    queue->MsgQueue[queue->rear] = data;
-    queue->size = queue->size + 1;
-}
-
-static HotData*  HotMsg_dequeue(HotMsg* queue)
-{
-    if ((queue->size == 0))
-        return 0;
-    HotData* item = queue->MsgQueue[queue->front];
-    queue->front = (queue->front + 1)
-                   % queue->capacity;
-    queue->size = queue->size - 1;
-    return item;
+    __asm __volatile(
+        "pause"
+    );
 }
 
 
-//static inline void _mm_pause(void) __attribute__((always_inline));
-//static inline void _mm_pause(void)
-//{
-//    __asm __volatile(
-//        "pause"
-//    );
-//}
-
-
-static inline int HotMsg_requestCall( HotMsg* hotMsg, uint16_t callID, void *data )
+static inline int HotMsg_requestCall( HotMsg* hotMsg, int dataID, void *data )
 {
     int i = 0;
     const uint32_t MAX_RETRIES = 10;
     uint32_t numRetries = 0;
+    int data_index = dataID % (MAX_QUEUE_LENGTH - 1);
     //Request call
     while( true ) {
-        sgx_spin_lock( &hotMsg->spinlock );
-        if( hotMsg->busy == false ) {
-            hotMsg->busy        = true;
-            hotMsg->callID      = callID;
-            HotData hd = HOTDATA_INITIALIZER;
-            hd.data = data;
-            hd.isRead = false;
-            HotMsg_enqueue(hotMsg, &hd);
-            sgx_spin_unlock( &hotMsg->spinlock );
+        HotData* data_ptr = (HotData*) hotMsg -> MsgQueue[data_index];
+        sgx_spin_lock( &data_ptr->spinlock );
+        if( data_ptr-> isRead == true ) {
+            data_ptr-> isRead  = false;
+            data_ptr->data = data;
+            sgx_spin_unlock( &data_ptr->spinlock );
             break;
         }
         //else:
-        sgx_spin_unlock( &hotMsg->spinlock );
+        sgx_spin_unlock( &data_ptr->spinlock );
 
         numRetries++;
         if( numRetries > MAX_RETRIES )
             return -1;
 
         for( i = 0; i<3; ++i)
-            _mm_pause();
+            _mm_sleep();
     }
 
     //wait for answer
@@ -155,42 +128,40 @@ static inline int HotMsg_requestCall( HotMsg* hotMsg, uint16_t callID, void *dat
 static inline void HotMsg_waitForCall( HotMsg *hotMsg )  __attribute__((always_inline));
 static inline void HotMsg_waitForCall( HotMsg *hotMsg )
 {
+    int dataID = 0;
+
     static int i;
     // volatile void *data;
     while( true )
     {
-        sgx_spin_lock( &hotMsg->spinlock );
+        HotData* data_ptr = (HotData*) hotMsg -> MsgQueue[dataID];
+        if (data_ptr == 0){
+            continue;
+        }
         if( hotMsg->keepPolling != true ) {
-            sgx_spin_unlock( &hotMsg->spinlock );
             break;
         }
-
+        sgx_spin_lock( &data_ptr->spinlock );
         //volatile uint16_t callID = hotMsg->callID;
-        HotData *data = (HotData*) HotMsg_dequeue(hotMsg);
+        //HotData *data = (HotData*) HotMsg_dequeue(hotMsg);
         //sgx_spin_unlock( &hotMsg->spinlock );
         // data = (int*)hotCall->data;
         // printf( "Enclave: Data is at %p\n", data );
         // *data += 1;
         // sgx_spin_lock( &hotMsg->spinlock );
-        if (data != 0)
-            data->isRead      = true;
-
-        sgx_spin_unlock( &hotMsg->spinlock );
+        //if (data != 0)
+        data_ptr->isRead      = true;
+        sgx_spin_unlock( &data_ptr->spinlock );
+        dataID = (dataID + 1) % (MAX_QUEUE_LENGTH - 1);
         for( i = 0; i<3; ++i)
             _mm_pause();
-
-        // _mm_pause();
-        //     _mm_pause();
-        // _mm_pause();
     }
 
 }
 static inline void StopMsgResponder( HotMsg *hotMsg );
 static inline void StopMsgResponder( HotMsg *hotMsg )
 {
-    sgx_spin_lock( &hotMsg->spinlock );
     hotMsg->keepPolling = false;
-    sgx_spin_unlock( &hotMsg->spinlock );
 }
 
 

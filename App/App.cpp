@@ -304,11 +304,11 @@ public:
         globalEnclaveID = m_enclaveID;
         pthread_create(&hotEcall.responderThread, NULL, EnclaveResponderThread, (void*)&hotEcall);
 
-        const uint16_t requestedCallID = 0;
+        uint16_t requestedCallID = 0;
         startTime = rdtscp();
         for( uint64_t i=0; i < PERFORMANCE_MEASUREMENT_NUM_REPEATS; ++i ) {
-
-            HotCall_requestCall( &hotEcall, requestedCallID, &data );
+            requestedCallID += 1;
+            HotCall_requestCall( &hotEcall, 0, &data );
 
         }
         endTime   = rdtscp();
@@ -342,10 +342,10 @@ public:
         pthread_create(&hotMsg.responderThread, NULL, EnclaveKVSThread, (void*)&hotMsg);
 
 
-        const uint16_t requestedCallID = 0;
+        int requestedCallID = 0;
         startTime = rdtscp();
         for( uint64_t i=0; i < PERFORMANCE_MEASUREMENT_NUM_REPEATS; ++i ) {
-
+            requestedCallID += 1;
             HotMsg_requestCall( &hotMsg, requestedCallID, &data );
 
         }
