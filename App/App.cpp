@@ -304,11 +304,11 @@ public:
         globalEnclaveID = m_enclaveID;
         pthread_create(&hotEcall.responderThread, NULL, EnclaveResponderThread, (void*)&hotEcall);
 
-        const uint16_t requestedCallID = 0;
+        uint16_t requestedCallID = 0;
         startTime = rdtscp();
         for( uint64_t i=0; i < PERFORMANCE_MEASUREMENT_NUM_REPEATS; ++i ) {
-
-            HotCall_requestCall( &hotEcall, requestedCallID, &data );
+            requestedCallID += 1;
+            HotCall_requestCall( &hotEcall, 0, &data );
 
         }
         endTime   = rdtscp();
@@ -333,6 +333,8 @@ public:
         int  queueLength = 10;
         int         expectedData    = 0;
         int data = 0;
+        HotData hotData = HOTDATA_INITIALIZER;
+        hotData.data               = &data;
         HotMsg     hotMsg        = HOTMSG_INITIALIZER;
         HotMsg_init(&hotMsg);
         //hotMsg.MsgQueue = &hotData;
@@ -340,9 +342,12 @@ public:
         pthread_create(&hotMsg.responderThread, NULL, EnclaveKVSThread, (void*)&hotMsg);
 
 
+        int requestedCallID = 0;
         startTime = rdtscp();
         for( uint64_t i=0; i < PERFORMANCE_MEASUREMENT_NUM_REPEATS; ++i ) {
-            HotMsg_requestCall( &hotMsg, &data );
+            requestedCallID += 1;
+            HotMsg_requestCall( &hotMsg, requestedCallID, &data );
+
         }
         endTime   = rdtscp();
         performaceMeasurements[ 0 ] = endTime       - startTime;
