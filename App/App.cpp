@@ -283,7 +283,7 @@ public:
         TestHotEcalls();
         //TestHotOcalls();
 
-        //TestSDKEcalls();
+        TestSDKEcalls();
         //TestSDKOcalls();
 
         TestHotMsgPass();
@@ -305,15 +305,15 @@ public:
         pthread_create(&hotEcall.responderThread, NULL, EnclaveResponderThread, (void*)&hotEcall);
 
         uint16_t requestedCallID = 0;
-        startTime = rdtscp();
+
         for( uint64_t i=0; i < PERFORMANCE_MEASUREMENT_NUM_REPEATS; ++i ) {
+            startTime = rdtscp();
             requestedCallID += 1;
             HotCall_requestCall( &hotEcall, 0, &data );
-
+            endTime   = rdtscp();
+            performaceMeasurements[ i ] = endTime       - startTime;
         }
-        endTime   = rdtscp();
 
-        performaceMeasurements[ 0 ] = endTime       - startTime;
 
         StopResponder( &hotEcall );
         ostringstream filename;
@@ -343,14 +343,14 @@ public:
 
 
         int requestedCallID = 0;
-        startTime = rdtscp();
+
         for( uint64_t i=0; i < PERFORMANCE_MEASUREMENT_NUM_REPEATS; ++i ) {
+            startTime = rdtscp();
             requestedCallID += 1;
             HotMsg_requestCall( &hotMsg, requestedCallID, &data );
-
+            endTime   = rdtscp();
+            performaceMeasurements[ i ] = endTime       - startTime;
         }
-        endTime   = rdtscp();
-        performaceMeasurements[ 0 ] = endTime       - startTime;
 
         StopMsgResponder( &hotMsg );
         ostringstream filename;
