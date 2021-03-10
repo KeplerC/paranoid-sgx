@@ -51,7 +51,8 @@
 #include <iostream>
 #include <sstream>
 #include <fstream>
-#include "../Include/common.h"
+
+#include <zmq.hpp>
 
 sgx_enclave_id_t globalEnclaveID;
 
@@ -609,6 +610,22 @@ private:
     }
 };
 
+
+
+class zmq_server {
+public:
+    zmq_server(string ip){
+        m_ip = ip;
+        zmq::context_t context(1);
+    }
+    void run(){
+
+    }
+private:
+    string m_ip;
+};
+
+
 /* Application entry */
 int SGX_CDECL main(int argc, char *argv[])
 {
@@ -622,21 +639,12 @@ int SGX_CDECL main(int argc, char *argv[])
         getchar();
         return -1; 
     }
- 
-    //    /* Utilize edger8r attributes */
-    //    edger8r_array_attributes();
-    //    edger8r_pointer_attributes();
-    //    edger8r_type_attributes();
-    //    edger8r_function_attributes();
-    //
-    //    /* Utilize trusted libraries */
-    //    ecall_libc_functions();
-    //    ecall_libcxx_functions();
-    //    ecall_thread_functions();
 
     HotCallsTester hotCallsTester;
-    hotCallsTester.Run();
+    //hotCallsTester.Run();
 
+    zmq_server zs = zmq_server("localhost");
+    zs.run();
     /* Destroy the enclave */
     sgx_destroy_enclave(global_eid);
     
