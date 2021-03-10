@@ -114,7 +114,6 @@ void EcallMeasureHotMsgPassPerformance( uint64_t*     performanceCounters,
 {
     printf( "Running %s\n", __func__ );
 
-    int         expectedData = 1;
     OcallParams *ocallParams = (OcallParams *) hotOcall->MsgQueue[0] -> data;
     ocallParams->cyclesCount = &performanceCounters[ 0 ];
 

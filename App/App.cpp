@@ -59,6 +59,7 @@ typedef sgx_status_t (*EcallFunction)(sgx_enclave_id_t, void* );
 
 #define PERFORMANCE_MEASUREMENT_NUM_REPEATS 100000
 #define MEASUREMENTS_ROOT_DIR               "measurments"
+#define MAX_QUEUE_LENGTH 1000
 
 using namespace std;
 
@@ -429,7 +430,8 @@ public:
 
         HotMsg     hotMsg        = HOTMSG_INITIALIZER;
         HotMsg_init(&hotMsg);
-        for(int i = 0; i < 1000; i++){
+        for(uint64_t i = 0; i < 1000; i++){
+            //uint64_t index = PERFORMANCE_MEASUREMENT_NUM_REPEATS % 1000;
             OcallParams* ocallParams = (OcallParams*) malloc(sizeof(OcallParams));
             ocallParams->counter     = 0;
             ocallParams->cyclesCount  = &performaceMeasurements[ i ] ;
