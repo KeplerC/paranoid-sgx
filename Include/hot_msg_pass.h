@@ -31,7 +31,7 @@
 // #include <stdlib.h>
 #include <sgx_spinlock.h>
 #include <stdbool.h>
-#include "hot_msg_pass.h"
+#include "common.h"
 
 // #include "utils.h"
 
@@ -105,21 +105,6 @@ static inline int HotMsg_requestCall( HotMsg* hotMsg, int dataID, void *data )
             _mm_sleep();
     }
 
-    //wait for answer
-//    while( true )
-//    {
-//        sgx_spin_lock( &hotMsg->spinlock );
-//        if( hotMsg->MsgQueue->isRead == true ){
-//            hotMsg->busy = false;
-//            sgx_spin_unlock( &hotMsg->spinlock );
-//            break;
-//        }
-//
-//        sgx_spin_unlock( &hotMsg->spinlock );
-//        for( i = 0; i<3; ++i)
-//            _mm_pause();
-//    }
-
     return numRetries;
 }
 
@@ -140,22 +125,51 @@ static inline void HotMsg_waitForCall( HotMsg *hotMsg )
             break;
         }
         sgx_spin_lock( &data_ptr->spinlock );
-        //volatile uint16_t callID = hotMsg->callID;
-        //HotData *data = (HotData*) HotMsg_dequeue(hotMsg);
-        //sgx_spin_unlock( &hotMsg->spinlock );
-        // data = (int*)hotCall->data;
-        // printf( "Enclave: Data is at %p\n", data );
-        // *data += 1;
-        // sgx_spin_lock( &hotMsg->spinlock );
-        //if (data != 0)
+        //do stuff
         data_ptr->isRead      = true;
         sgx_spin_unlock( &data_ptr->spinlock );
         dataID = (dataID + 1) % (MAX_QUEUE_LENGTH - 1);
         for( i = 0; i<3; ++i)
             _mm_pause();
     }
-
 }
+
+// This function is here for purely measurement purpose
+// enclave does not support rdtsp, and our msg passing does not call functions
+// we need to update the latency somewhere, and to be fair with hotcall,
+// I wrote something similar to hotcall
+static inline void HotMsg_waitForCall_Measurement( HotMsg *hotMsg, uint64_t (*rdtsp_ptr)() )  __attribute__((always_inline));
+static inline void HotMsg_waitForCall_Measurement( HotMsg *hotMsg, uint64_t (*rdtsp_ptr)() )
+{
+    int dataID = 0;
+
+    static uint64_t startTime     = 0;
+    static int i;
+    // volatile void *data;
+    while( true )
+    {
+        HotData* data_ptr = (HotData*) hotMsg -> MsgQueue[dataID];
+        if (data_ptr == 0){
+            continue;
+        }
+        if( hotMsg->keepPolling != true ) {
+            break;
+        }
+        sgx_spin_lock( &data_ptr->spinlock );
+
+        OcallParams* ocallParams = (OcallParams*)data_ptr->data;
+        data_ptr->isRead      = true;
+        sgx_spin_unlock( &data_ptr->spinlock );
+
+        *(ocallParams->cyclesCount)  = rdtsp_ptr() - startTime;
+        startTime     = rdtsp_ptr();
+
+        dataID = (dataID + 1) % (MAX_QUEUE_LENGTH - 1);
+        for( i = 0; i<3; ++i)
+            _mm_pause();
+    }
+}
+
 static inline void StopMsgResponder( HotMsg *hotMsg );
 static inline void StopMsgResponder( HotMsg *hotMsg )
 {

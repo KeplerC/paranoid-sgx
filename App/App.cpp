@@ -51,7 +51,6 @@
 #include <iostream>
 #include <sstream>
 #include <fstream>
-#include "hot_capsule.h"
 #include "../Include/common.h"
 
 sgx_enclave_id_t globalEnclaveID;
@@ -256,6 +255,13 @@ void* OcallResponderThread( void* hotCallAsVoidP )
     return NULL;
 }
 
+void* HotMsgResponderThread( void* hotMsgAsVoidP )
+{
+    HotMsg* msg = (HotMsg *)hotMsgAsVoidP;
+    HotMsg_waitForCall_Measurement(msg, rdtscp);
+    return NULL;
+}
+
 class HotCallsTesterError {};
 
 
@@ -281,13 +287,13 @@ public:
 
     void Run( void ) {
         TestHotEcalls();
-        //TestHotOcalls();
+        TestHotOcalls();
 
         TestSDKEcalls();
-        //TestSDKOcalls();
+        TestSDKOcalls();
 
-        TestHotMsgPass();
-
+        TestHotMsgPassToEnclave();
+        TestHotMsgPassFromEnclave();
     }
 
     void TestHotEcalls()
@@ -324,17 +330,15 @@ public:
     }
 
 
-    void TestHotMsgPass()
+    void TestHotMsgPassToEnclave()
     {
         uint64_t performaceMeasurements[ PERFORMANCE_MEASUREMENT_NUM_REPEATS ]= {0};
 
         uint64_t    startTime       = 0;
         uint64_t    endTime         = 0;
-        int  queueLength = 10;
-        int         expectedData    = 0;
+
         int data = 0;
-        HotData hotData = HOTDATA_INITIALIZER;
-        hotData.data               = &data;
+
         HotMsg     hotMsg        = HOTMSG_INITIALIZER;
         HotMsg_init(&hotMsg);
         //hotMsg.MsgQueue = &hotData;
@@ -354,7 +358,7 @@ public:
 
         StopMsgResponder( &hotMsg );
         ostringstream filename;
-        filename <<  "HotMsgPass_latencies_in_cycles.csv";
+        filename <<  "HotMsg_Untrusted_to_Enclave_latencies_in_cycles.csv";
         WriteMeasurementsToFile( filename.str(),
                                  (uint64_t*)performaceMeasurements,
                                  PERFORMANCE_MEASUREMENT_NUM_REPEATS ) ;
@@ -418,6 +422,36 @@ public:
                                  (uint64_t*)performaceMeasurements,
                                  PERFORMANCE_MEASUREMENT_NUM_REPEATS ) ;
     }
+
+    void TestHotMsgPassFromEnclave()
+    {
+        uint64_t performaceMeasurements[ PERFORMANCE_MEASUREMENT_NUM_REPEATS ]= {0};
+
+        HotMsg     hotMsg        = HOTMSG_INITIALIZER;
+        HotMsg_init(&hotMsg);
+        for(int i = 0; i < 1000; i++){
+            OcallParams* ocallParams = (OcallParams*) malloc(sizeof(OcallParams));
+            ocallParams->counter     = 0;
+            ocallParams->cyclesCount  = &performaceMeasurements[ i ] ;
+            hotMsg.MsgQueue[i] -> data           = ocallParams;
+        }
+
+        pthread_create( &hotMsg.responderThread, NULL, HotMsgResponderThread, (void*)&hotMsg );
+
+        EcallMeasureHotMsgPassPerformance(
+                m_enclaveID,
+                (uint64_t*)performaceMeasurements,
+                PERFORMANCE_MEASUREMENT_NUM_REPEATS,
+                &hotMsg );
+        StopMsgResponder( &hotMsg );
+
+        ostringstream filename;
+        filename <<  "HotMsg_Enclave_to_Untrusted_latencies_in_cycles.csv";
+        WriteMeasurementsToFile( filename.str(),
+                                 (uint64_t*)performaceMeasurements,
+                                 PERFORMANCE_MEASUREMENT_NUM_REPEATS ) ;
+    }
+
 
     void TestSDKOcalls()
     {

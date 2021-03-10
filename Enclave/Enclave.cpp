@@ -108,6 +108,25 @@ void EcallMeasureSDKOcallsPerformance( uint64_t*     performanceCounters,
     }
 }
 
+void EcallMeasureHotMsgPassPerformance( uint64_t*     performanceCounters,
+                                       uint64_t      numRepeats,
+                                       HotMsg*      hotOcall )
+{
+    printf( "Running %s\n", __func__ );
+
+    int         expectedData = 1;
+    OcallParams *ocallParams = (OcallParams *) hotOcall->MsgQueue[0] -> data;
+    ocallParams->cyclesCount = &performanceCounters[ 0 ];
+
+    const uint16_t requestedCallID = 0;
+    HotMsg_requestCall( hotOcall, requestedCallID, ocallParams ); //Setup startTime to current rdtscp()
+    for( uint64_t i=0; i < numRepeats; ++i ) {
+
+        HotMsg_requestCall( hotOcall, i, ocallParams );
+
+    }
+}
+
 /* 
  * printf: 
  *   Invokes OCALL to display the enclave buffer to the terminal.

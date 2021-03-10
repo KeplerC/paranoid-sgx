@@ -65,6 +65,10 @@ enclave {
       public void EcallMeasureSDKOcallsPerformance([user_check] uint64_t*     performanceCounters,
                                                                 uint64_t      numRepeats,
                                                    [user_check] OcallParams*  ocallParams );
+
+      public void EcallMeasureHotMsgPassPerformance([user_check] uint64_t*     performanceCounters,
+                                                                 uint64_t      numRepeats,
+                                                         [user_check] HotMsg*  hotMsg );
     };
     /* 
      * ocall_print_string - invokes OCALL to display string buffer inside the enclave.
