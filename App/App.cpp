@@ -611,21 +611,6 @@ private:
 };
 
 
-
-class zmq_server {
-public:
-    zmq_server(string ip){
-        m_ip = ip;
-        zmq::context_t context(1);
-    }
-    void run(){
-
-    }
-private:
-    string m_ip;
-};
-
-
 /* Application entry */
 int SGX_CDECL main(int argc, char *argv[])
 {
@@ -641,10 +626,8 @@ int SGX_CDECL main(int argc, char *argv[])
     }
 
     HotCallsTester hotCallsTester;
-    //hotCallsTester.Run();
+    hotCallsTester.Run();
 
-    zmq_server zs = zmq_server("localhost");
-    zs.run();
     /* Destroy the enclave */
     sgx_destroy_enclave(global_eid);
     
