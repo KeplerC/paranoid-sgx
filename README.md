@@ -22,6 +22,34 @@ jekyll-front-matter-->
 This guide demonstrates using Asylo to protect secret data from an attacker with
 root privileges.
 
+## How to buid
+
+To run the `hello_world` example, first use the following set of commands to
+grab the
+[`asylo-examples` repository source code](https://github.com/google/asylo-examples):
+
+```bash
+MY_PROJECT=~/asylo-examples
+git clone https://github.com/google/asylo-examples.git "${MY_PROJECT}"
+cd ~/asylo-examples
+git clone https://github.com/KeplerC/paranoid-sgx.git
+```
+
+Next, use Docker to build and run the `hello_world` application, using a
+simulated enclave backend:
+
+```bash
+NAMES="${USER}"
+docker run -it --rm \
+    -v bazel-cache:/root/.cache/bazel \
+    -v "${MY_PROJECT}":/opt/my-project \
+    -w /opt/my-project \
+    gcr.io/asylo-framework/asylo \
+    bazel run //paranoid-sgx:hello_world_sgx_sim -- --names="${NAMES}"
+```
+
+
+
 ## Introduction
 
 ### What is an enclave?
