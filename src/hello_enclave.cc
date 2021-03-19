@@ -22,7 +22,7 @@
 #include "asylo/trusted_application.h"
 #include "asylo/util/logging.h"
 #include "asylo/util/status.h"
-#include "paranoid-sgx/hello.pb.h"
+#include "src/hello.pb.h"
 
 class HelloApplication : public asylo::TrustedApplication {
  public:
