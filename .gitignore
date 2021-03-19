@@ -26,3 +26,5 @@ Enclave/Enclave_t.h
 
 # our framework
 measurments
+
+bazel-*
