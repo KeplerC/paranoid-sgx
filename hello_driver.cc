@@ -28,7 +28,7 @@
 #include "asylo/platform/primitives/sgx/loader.pb.h"
 #include "asylo/util/logging.h"
 #include "paranoid-sgx/hello.pb.h"
-
+#include <thread>
 #include <zmq.hpp>
 
 ABSL_FLAG(std::string, enclave_path, "", "Path to enclave to load");
@@ -229,6 +229,15 @@ private:
     asylo::EnclaveClient *client;
 };
 
+void thread_run_zmq_client(unsigned thread_id){
+    zmq_comm zs = zmq_comm("localhost", thread_id);
+    zs.run_client();
+}
+void thread_run_zmq_server(unsigned thread_id){
+    zmq_comm zs = zmq_comm("localhost", thread_id);
+    zs.run_server();
+}
+
 int main(int argc, char *argv[]) {
   // Part 0: Setup
   absl::ParseCommandLine(argc, argv);
@@ -236,6 +245,16 @@ int main(int argc, char *argv[]) {
   if (absl::GetFlag(FLAGS_names).empty()) {
     LOG(QFATAL) << "Must supply a non-empty list of names with --names";
   }
+
+    std::vector<std::thread> worker_threads;
+
+    for (unsigned thread_id = 1; thread_id < 5; thread_id++) {
+        worker_threads.push_back(std::thread(thread_run_zmq_client, thread_id));
+    }
+    sleep(2);
+
+    worker_threads.push_back(std::thread(thread_run_zmq_server, 0));
+    sleep(15);
 
   std::vector<std::string> names =
       absl::StrSplit(absl::GetFlag(FLAGS_names), ',');
