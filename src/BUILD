@@ -40,6 +40,7 @@ cc_proto_library(
     deps = [":hello_proto"],
 )
 
+
 cc_unsigned_enclave(
     name = "hello_enclave_unsigned.so",
     srcs = ["hello_enclave.cc"],
@@ -63,6 +64,7 @@ enclave_loader(
     backends = sgx.backend_labels,  # Has SGX loader dependencies
     enclaves = {"enclave": ":hello_enclave.so"},
     loader_args = ["--enclave_path='{enclave}'"],
+    linkopts = [ "-L/usr/local/lib", "-lzmq" ],
     deps = [
         ":hello_cc_proto",
         "@com_google_absl//absl/flags:flag",
