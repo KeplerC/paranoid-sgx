@@ -39,15 +39,14 @@ docker run -it --rm \
     -v bazel-cache:/root/.cache/bazel \
     -v "${MY_PROJECT}":/opt/my-project \
     -w /opt/my-project \
-    gcr.io/asylo-framework/asylo \
+    keplerc/paranoid-asylo:latest 
 
 ```
-After entering the docker, install zmq dependency and run the application: 
+After entering the docker, run the application: 
 ```bash
-apt install libzmq3-dev
 bazel run //src:hello_world_sgx_sim -- --names="${NAMES}"
 ```
-TODO: we can get our own docker image and dockerfile to eliminate this dependency. 
+The dockerfile for `keplerc/paranoid-asylo:latest` is located in `./docker`.  
 
 
 ## Introduction
