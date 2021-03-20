@@ -31,6 +31,12 @@
 #include <thread>
 #include <zmq.hpp>
 
+#define NET_CLIENT_BASE_PORT 5555
+#define NET_CLIENT_IP "localhost"
+#define NET_SEED_SERVER_IP "localhost"
+#define NET_SERVER_JOIN_PORT 6666
+#define NET_SERVER_MCAST_PORT 6667
+
 ABSL_FLAG(std::string, enclave_path, "", "Path to enclave to load");
 ABSL_FLAG(std::string, names, "",
           "A comma-separated list of names to pass to the enclave");
@@ -41,11 +47,11 @@ ABSL_FLAG(std::string, names, "",
 class Asylo_SGX{
 public:
     Asylo_SGX(std::string enclave_name){
+        //enclave name has to be unique
         this->m_name = enclave_name;
     }
 
     void init(){
-        // Part 1: Initialization
         asylo::EnclaveManager::Configure(asylo::EnclaveManagerOptions());
         auto manager_result = asylo::EnclaveManager::Instance();
         if (!manager_result.ok()) {
@@ -72,7 +78,7 @@ public:
             LOG(QFATAL) << "Load " << absl::GetFlag(FLAGS_enclave_path)
                         << " failed: " << status;
         }
-        std::cout << "Enclave Initialized" << std::endl;
+        std::cout << "Enclave " << this->m_name << " Initialized" << std::endl;
     }
 
     void execute(std::vector<std::string>  names){
@@ -93,7 +99,7 @@ public:
                 LOG(QFATAL) << "Enclave did not assign an ID for " << name;
             }
 
-            std::cout << "Message from enclave: "
+            std::cout << "Message from enclave " << this->m_name << ": "
                       << output.GetExtension(hello_world::enclave_output_hello)
                               .greeting_message()
                       << std::endl;
@@ -124,7 +130,7 @@ private:
 class zmq_comm {
 public:
     zmq_comm(std::string ip, unsigned thread_id){
-        m_port = std::to_string(5555 + thread_id);
+        m_port = std::to_string(NET_CLIENT_BASE_PORT + thread_id);
         m_addr = "tcp://localhost:" + m_port;
         m_thread_id = thread_id;
     }
@@ -133,10 +139,10 @@ public:
         zmq::context_t context (1);
         // socket for join requests
         zmq::socket_t socket_join (context, ZMQ_PULL);
-        socket_join.bind ("tcp://*:" + std::to_string(6666));
+        socket_join.bind ("tcp://*:" + std::to_string(NET_SERVER_JOIN_PORT));
         // socket for new mcast messages
         zmq::socket_t socket_msg (context, ZMQ_PULL);
-        socket_msg.bind ("tcp://*:" + std::to_string(6667));
+        socket_msg.bind ("tcp://*:" + std::to_string(NET_SERVER_MCAST_PORT));
 
         //poll join and mcast messages
         std::vector<zmq::pollitem_t> pollitems = {
@@ -203,9 +209,8 @@ public:
                 //Get the address
                 std::string msg = this->recv_string(&socket_from_server);
                 std::cout << "Got message " + msg << std::endl;
-                //this -> send_string(m_port + "Got the message ", socket_send);
-                std::vector<std::string> names =
-                        absl::StrSplit(absl::GetFlag(FLAGS_names), ',');
+                this -> send_string(m_port , socket_send);
+                std::vector<std::string> names = {msg};
                 sgx->execute(names);
             }
         }
@@ -215,9 +220,9 @@ public:
 private:
     std::string m_port;
     std::string m_addr;
-    std::string m_seed_server_ip = "localhost";
-    std::string m_seed_server_join_port = std::to_string(6666);
-    std::string m_seed_server_mcast_port = std::to_string(6667);
+    std::string m_seed_server_ip = NET_SEED_SERVER_IP;
+    std::string m_seed_server_join_port = std::to_string(NET_SERVER_JOIN_PORT);
+    std::string m_seed_server_mcast_port = std::to_string(NET_SERVER_MCAST_PORT);
     unsigned m_thread_id;
 
     int m_enclave_seq_number = 0;
@@ -243,11 +248,11 @@ private:
 };
 
 void thread_run_zmq_client(unsigned thread_id){
-    zmq_comm zs = zmq_comm("localhost", thread_id);
+    zmq_comm zs = zmq_comm(NET_CLIENT_IP, thread_id);
     zs.run_client();
 }
 void thread_run_zmq_server(unsigned thread_id){
-    zmq_comm zs = zmq_comm("localhost", thread_id);
+    zmq_comm zs = zmq_comm(NET_SEED_SERVER_IP, thread_id);
     zs.run_server();
 }
 
@@ -259,21 +264,24 @@ int main(int argc, char *argv[]) {
     LOG(QFATAL) << "Must supply a non-empty list of names with --names";
     }
 
-    std::vector<std::thread> worker_threads;
+    // If you just want to test a single enclave, change to false
+    bool multi_client = true;
+    if(multi_client) {
+        std::vector <std::thread> worker_threads;
+        //start clients
+        for (unsigned thread_id = 1; thread_id < 5; thread_id++) {
+            worker_threads.push_back(std::thread(thread_run_zmq_client, thread_id));
+        }
+        sleep(2);
 
-    for (unsigned thread_id = 1; thread_id < 5; thread_id++) {
-        worker_threads.push_back(std::thread(thread_run_zmq_client, thread_id));
+        //start server
+        worker_threads.push_back(std::thread(thread_run_zmq_server, 0));
+        sleep(15);
+    } else {
+        std::vector<std::string> names =
+                absl::StrSplit(absl::GetFlag(FLAGS_names), ',');
+        Asylo_SGX* sgx = new Asylo_SGX("hello_enclave");
+        sgx->run(names);
     }
-    sleep(2);
-
-    worker_threads.push_back(std::thread(thread_run_zmq_server, 0));
-    sleep(15);
-
-    std::vector<std::string> names =
-      absl::StrSplit(absl::GetFlag(FLAGS_names), ',');
-
-    Asylo_SGX* sgx = new Asylo_SGX("hello_enclave");
-    sgx->run(names);
-
     return 0;
 }
