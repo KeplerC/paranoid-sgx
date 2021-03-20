@@ -74,7 +74,7 @@ data_capsule_t *MemTable:: get(data_capsule_id id){
 
 /*
  Datacapsule is copied into memtable  
- We assume dc is provided by cliet enclave application 
+ We assume dc is provided by client enclave application 
 */
 bool MemTable:: put(data_capsule_t *dc){
   
@@ -85,7 +85,6 @@ bool MemTable:: put(data_capsule_t *dc){
     memtable[mem_idx].buckets.insert_front(dc);
   } else {
     memtable[mem_idx].buckets.insert_front(dc); 
-    printf("Inserting in index: %d!\n", mem_idx);
     curr_capacity++; 
   }
 
@@ -108,31 +107,38 @@ class HelloApplication : public asylo::TrustedApplication {
                            "Expected a HelloInput extension on input.");
     }
 
-    data_capsule_t dc;
-    data_capsule_t *ret;
-
-    dc.id = 2021; 
-    dc.payload_size = 13; 
-    memcpy(dc.payload, "Hello World!", dc.payload_size); 
-
-    memtable.put(&dc);
-
-    LOG(INFO) << dc.payload_size;
-
-    ret = memtable.get(dc.id);
-
-    if(!ret){
-      LOG(INFO) << "PUT FAILED!";
-      return asylo::Status::OkStatus();
+    //Check if DataCapsule is defined in proto-buf messsage. 
+    if (!input.HasExtension(hello_world::dc)) {
+      return asylo::Status(asylo::error::GoogleError::INVALID_ARGUMENT,
+                           "Expected a DataCapsule extension on input.");
     }
 
-    printf("ret: %p\n", ret);
+    data_capsule_t *ret;
+    data_capsule_t *dc = (data_capsule_t *) input.GetExtension(hello_world::dc).dc_ptr();
+
+    printf("Received DataCapsule is %d, should be 2021!\n", dc->id);
+
+    for(data_capsule_id i = 0; i < 300; i++){
+      dc->id = i; 
+      memtable.put(dc);
+    }
+
+    for(data_capsule_id i = 0; i < 300; i++){
+      ret = memtable.get(i);
+
+      if(!ret){
+        LOG(INFO) << "GET FAILED on DataCapsule id: " << (int) i;
+      }
+        
+    }
+
+    LOG(INFO) << "Hashmap size has size: " << memtable.getSize(); 
 
     std::string visitor =
         input.GetExtension(hello_world::enclave_input_hello).to_greet();
 
     LOG(INFO) << "Hello " << visitor;
-    LOG(INFO) << "Hashmap size: " << memtable.getSize() << " ret: id " << ret->payload_size;
+
     if (output) {
       LOG(INFO) << "Incrementing visitor count...";
       output->MutableExtension(hello_world::enclave_output_hello)

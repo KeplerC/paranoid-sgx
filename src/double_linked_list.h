@@ -23,7 +23,7 @@ public:
     void insert_front(data_capsule_t *);
     void insert_back(data_capsule_t *);
     data_capsule_t *  delete_front();
-    data_capsule_t *  delete_back();
+    void  delete_back();
     bool is_empty();
     void display();
     int length();
@@ -49,7 +49,7 @@ DoublyLinkedList::~DoublyLinkedList()
 void DoublyLinkedList::insert_front(data_capsule_t *value)
 {
     Node* temp = new Node(value);
- 
+    
     if (head == NULL)
         head = tail = temp;
     else
@@ -98,27 +98,26 @@ data_capsule_t * DoublyLinkedList::delete_front()
     return 0;
 }
  
-data_capsule_t * DoublyLinkedList::delete_back()
+void DoublyLinkedList::delete_back()
 {
     if (!is_empty())
     {
         Node* temp = tail;
         if (head == tail)
         {
-            head = NULL;
+            head = tail = NULL;
+        } else{
+            tail->prev->next = NULL;
+            tail = tail->prev;
         }
-        data_capsule_t * delValue = &temp->dc;
-        tail->next = NULL;
-        tail = tail->prev;
- 
-        // delete temp;
- 
+
+        delete temp; 
         size--;
  
-        return delValue;
+        return;
  
     }
-    return 0;
+    return;
 }
  
 bool DoublyLinkedList::is_empty()

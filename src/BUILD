@@ -61,7 +61,7 @@ debug_sign_enclave(
 
 enclave_loader(
     name = "hello_world",
-    srcs = ["hello_driver.cc"],
+    srcs = ["hello_driver.cc", "gdp.h"],
     backends = sgx.backend_labels,  # Has SGX loader dependencies
     enclaves = {"enclave": ":hello_enclave.so"},
     loader_args = ["--enclave_path='{enclave}'"],
