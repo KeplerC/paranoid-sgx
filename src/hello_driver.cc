@@ -264,7 +264,7 @@ int main(int argc, char *argv[]) {
     }
 
     // If you just want to test a single enclave, change to false
-    bool multi_client = true;
+    bool multi_client = false;
     if(multi_client) {
         std::vector <std::thread> worker_threads;
         //start clients

@@ -47,9 +47,11 @@ cc_unsigned_enclave(
     deps = [
         ":hello_cc_proto",
         "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/base:core_headers",
         "@com_google_asylo//asylo:enclave_runtime",
         "@com_google_asylo//asylo/util:logging",
         "@com_google_asylo//asylo/util:status",
+        "@com_google_asylo//asylo/crypto:aead_cryptor",
     ],
 )
 
