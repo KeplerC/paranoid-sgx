@@ -1,7 +1,7 @@
 workspace(name = "asylo_examples")
 
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
-
+load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository", "new_git_repository")
 # Download and use the Asylo SDK.
 http_archive(
     name = "com_google_asylo",
@@ -39,3 +39,10 @@ grpc_deps()
 load("@com_github_grpc_grpc//bazel:grpc_extra_deps.bzl", "grpc_extra_deps")
 
 grpc_extra_deps()
+
+
+
+local_repository(
+  name = "zmq",
+  path = "third_party/zmq",
+)
