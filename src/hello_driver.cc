@@ -36,6 +36,91 @@ ABSL_FLAG(std::string, names, "",
           "A comma-separated list of names to pass to the enclave");
 
 
+
+
+class Asylo_SGX{
+public:
+    Asylo_SGX(std::string enclave_name){
+        this->m_name = enclave_name;
+    }
+
+    void init(){
+        // Part 1: Initialization
+        asylo::EnclaveManager::Configure(asylo::EnclaveManagerOptions());
+        auto manager_result = asylo::EnclaveManager::Instance();
+        if (!manager_result.ok()) {
+            LOG(QFATAL) << "EnclaveManager unavailable: " << manager_result.status();
+        }
+        this->manager = manager_result.ValueOrDie();
+        std::cout << "Loading " << absl::GetFlag(FLAGS_enclave_path) << std::endl;
+
+        // Create an EnclaveLoadConfig object.
+        asylo::EnclaveLoadConfig load_config;
+        load_config.set_name(this->m_name);
+
+        // Create an SgxLoadConfig object.
+        asylo::SgxLoadConfig sgx_config;
+        asylo::SgxLoadConfig::FileEnclaveConfig file_enclave_config;
+        file_enclave_config.set_enclave_path(absl::GetFlag(FLAGS_enclave_path));
+        *sgx_config.mutable_file_enclave_config() = file_enclave_config;
+        sgx_config.set_debug(true);
+
+        // Set an SGX message extension to load_config.
+        *load_config.MutableExtension(asylo::sgx_load_config) = sgx_config;
+        asylo::Status status = this->manager->LoadEnclave(load_config);
+        if (!status.ok()) {
+            LOG(QFATAL) << "Load " << absl::GetFlag(FLAGS_enclave_path)
+                        << " failed: " << status;
+        }
+        std::cout << "Enclave Initialized" << std::endl;
+    }
+
+    void execute(std::vector<std::string>  names){
+        this->client = this->manager->GetClient(this->m_name);
+
+        for (const auto &name : names) {
+            asylo::EnclaveInput input;
+            input.MutableExtension(hello_world::enclave_input_hello)
+                    ->set_to_greet(name);
+
+            asylo::EnclaveOutput output;
+            asylo::Status status = this->client->EnterAndRun(input, &output);
+            if (!status.ok()) {
+                LOG(QFATAL) << "EnterAndRun failed: " << status;
+            }
+
+            if (!output.HasExtension(hello_world::enclave_output_hello)) {
+                LOG(QFATAL) << "Enclave did not assign an ID for " << name;
+            }
+
+            std::cout << "Message from enclave: "
+                      << output.GetExtension(hello_world::enclave_output_hello)
+                              .greeting_message()
+                      << std::endl;
+        }
+    }
+
+    void finalize(){
+        asylo::EnclaveFinal final_input;
+        asylo::Status status = this->manager->DestroyEnclave(this->client, final_input);
+        if (!status.ok()) {
+            LOG(QFATAL) << "Destroy " << absl::GetFlag(FLAGS_enclave_path)
+                        << " failed: " << status;
+        }
+    }
+
+    void run(std::vector<std::string>  names){
+        init();
+        execute(names);
+        finalize();
+    }
+private:
+    asylo::EnclaveManager *manager;
+    asylo::EnclaveClient *client;
+    std::string m_name;
+};
+
+
 class zmq_comm {
 public:
     zmq_comm(std::string ip, unsigned thread_id){
@@ -108,6 +193,8 @@ public:
                 { static_cast<void *>(socket_from_server), 0, ZMQ_POLLIN, 0 },
         };
 
+        Asylo_SGX* sgx = new Asylo_SGX(m_port);
+        sgx->init();
         //start enclave
         while (true) {
             zmq::poll(pollitems.data(), pollitems.size(), 0);
@@ -117,8 +204,12 @@ public:
                 std::string msg = this->recv_string(&socket_from_server);
                 std::cout << "Got message " + msg << std::endl;
                 //this -> send_string(m_port + "Got the message ", socket_send);
+                std::vector<std::string> names =
+                        absl::StrSplit(absl::GetFlag(FLAGS_names), ',');
+                sgx->execute(names);
             }
         }
+        sgx->finalize();
     }
 
 private:
@@ -151,85 +242,6 @@ private:
     }
 };
 
-
-class Asylo_SGX{
-public:
-    Asylo_SGX(){}
-
-    void init(){
-        // Part 1: Initialization
-        asylo::EnclaveManager::Configure(asylo::EnclaveManagerOptions());
-        auto manager_result = asylo::EnclaveManager::Instance();
-        if (!manager_result.ok()) {
-            LOG(QFATAL) << "EnclaveManager unavailable: " << manager_result.status();
-        }
-        this->manager = manager_result.ValueOrDie();
-        std::cout << "Loading " << absl::GetFlag(FLAGS_enclave_path) << std::endl;
-
-        // Create an EnclaveLoadConfig object.
-        asylo::EnclaveLoadConfig load_config;
-        load_config.set_name("hello_enclave");
-
-        // Create an SgxLoadConfig object.
-        asylo::SgxLoadConfig sgx_config;
-        asylo::SgxLoadConfig::FileEnclaveConfig file_enclave_config;
-        file_enclave_config.set_enclave_path(absl::GetFlag(FLAGS_enclave_path));
-        *sgx_config.mutable_file_enclave_config() = file_enclave_config;
-        sgx_config.set_debug(true);
-
-        // Set an SGX message extension to load_config.
-        *load_config.MutableExtension(asylo::sgx_load_config) = sgx_config;
-        asylo::Status status = this->manager->LoadEnclave(load_config);
-        if (!status.ok()) {
-            LOG(QFATAL) << "Load " << absl::GetFlag(FLAGS_enclave_path)
-                        << " failed: " << status;
-        }
-    }
-
-    void execute(std::vector<std::string>  names){
-        this->client = this->manager->GetClient("hello_enclave");
-
-        for (const auto &name : names) {
-            asylo::EnclaveInput input;
-            input.MutableExtension(hello_world::enclave_input_hello)
-                    ->set_to_greet(name);
-
-            asylo::EnclaveOutput output;
-            asylo::Status status = this->client->EnterAndRun(input, &output);
-            if (!status.ok()) {
-                LOG(QFATAL) << "EnterAndRun failed: " << status;
-            }
-
-            if (!output.HasExtension(hello_world::enclave_output_hello)) {
-                LOG(QFATAL) << "Enclave did not assign an ID for " << name;
-            }
-
-            std::cout << "Message from enclave: "
-                      << output.GetExtension(hello_world::enclave_output_hello)
-                              .greeting_message()
-                      << std::endl;
-        }
-    }
-
-    void finalize(){
-        asylo::EnclaveFinal final_input;
-        asylo::Status status = this->manager->DestroyEnclave(this->client, final_input);
-        if (!status.ok()) {
-            LOG(QFATAL) << "Destroy " << absl::GetFlag(FLAGS_enclave_path)
-                        << " failed: " << status;
-        }
-    }
-
-    void run(std::vector<std::string>  names){
-        init();
-        execute(names);
-        finalize();
-    }
-private:
-    asylo::EnclaveManager *manager;
-    asylo::EnclaveClient *client;
-};
-
 void thread_run_zmq_client(unsigned thread_id){
     zmq_comm zs = zmq_comm("localhost", thread_id);
     zs.run_client();
@@ -260,7 +272,7 @@ int main(int argc, char *argv[]) {
     std::vector<std::string> names =
       absl::StrSplit(absl::GetFlag(FLAGS_names), ',');
 
-    Asylo_SGX* sgx = new Asylo_SGX();
+    Asylo_SGX* sgx = new Asylo_SGX("hello_enclave");
     sgx->run(names);
 
     return 0;
