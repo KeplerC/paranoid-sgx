@@ -46,3 +46,8 @@ local_repository(
   name = "zmq",
   path = "third_party/zmq",
 )
+
+http_archive(
+  name = "com_google_absl",
+  urls = ["https://github.com/abseil/abseil-cpp/archive/refs/tags/20200923.3.zip"],
+)

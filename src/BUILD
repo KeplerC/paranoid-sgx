@@ -43,10 +43,11 @@ cc_proto_library(
 
 cc_unsigned_enclave(
     name = "hello_enclave_unsigned.so",
-    srcs = ["hello_enclave.cc"],
+    srcs = ["hello_enclave.cc", "gdp.h", "double_linked_list.h"],
     deps = [
         ":hello_cc_proto",
         "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_asylo//asylo:enclave_runtime",
         "@com_google_asylo//asylo/util:logging",
         "@com_google_asylo//asylo/util:status",

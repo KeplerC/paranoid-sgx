@@ -31,6 +31,7 @@
 #include <thread>
 #include <zmq.hpp>
 
+#define MULTI_CLIENT false
 #define NET_CLIENT_BASE_PORT 5555
 #define NET_CLIENT_IP "localhost"
 #define NET_SEED_SERVER_IP "localhost"
@@ -265,7 +266,7 @@ int main(int argc, char *argv[]) {
     }
 
     // If you just want to test a single enclave, change to false
-    bool multi_client = true;
+    bool multi_client = MULTI_CLIENT;
     if(multi_client) {
         std::vector <std::thread> worker_threads;
         //start clients
