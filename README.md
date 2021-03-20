@@ -40,9 +40,14 @@ docker run -it --rm \
     -v "${MY_PROJECT}":/opt/my-project \
     -w /opt/my-project \
     gcr.io/asylo-framework/asylo \
-    bazel run //src:hello_world_sgx_sim -- --names="${NAMES}"
-```
 
+```
+After entering the docker, install zmq dependency and run the application: 
+```bash
+apt install libzmq3-dev
+bazel run //src:hello_world_sgx_sim -- --names="${NAMES}"
+```
+TODO: we can get our own docker image and dockerfile to eliminate this dependency. 
 
 
 ## Introduction

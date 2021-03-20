@@ -155,6 +155,7 @@ private:
 class Asylo_SGX{
 public:
     Asylo_SGX(){}
+
     void init(){
         // Part 1: Initialization
         asylo::EnclaveManager::Configure(asylo::EnclaveManagerOptions());
@@ -240,11 +241,11 @@ void thread_run_zmq_server(unsigned thread_id){
 
 int main(int argc, char *argv[]) {
   // Part 0: Setup
-  absl::ParseCommandLine(argc, argv);
+    absl::ParseCommandLine(argc, argv);
 
-  if (absl::GetFlag(FLAGS_names).empty()) {
+    if (absl::GetFlag(FLAGS_names).empty()) {
     LOG(QFATAL) << "Must supply a non-empty list of names with --names";
-  }
+    }
 
     std::vector<std::thread> worker_threads;
 
@@ -256,11 +257,11 @@ int main(int argc, char *argv[]) {
     worker_threads.push_back(std::thread(thread_run_zmq_server, 0));
     sleep(15);
 
-  std::vector<std::string> names =
+    std::vector<std::string> names =
       absl::StrSplit(absl::GetFlag(FLAGS_names), ',');
 
-  Asylo_SGX* sgx = new Asylo_SGX();
-  sgx->run(names);
+    Asylo_SGX* sgx = new Asylo_SGX();
+    sgx->run(names);
 
-  return 0;
+    return 0;
 }
