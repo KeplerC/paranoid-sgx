@@ -42,8 +42,6 @@ ABSL_FLAG(std::string, names, "",
           "A comma-separated list of names to pass to the enclave");
 
 
-
-
 class Asylo_SGX{
 public:
     Asylo_SGX(std::string enclave_name){

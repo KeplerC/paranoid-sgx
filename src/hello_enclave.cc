@@ -26,7 +26,7 @@
 #include "src/hello.pb.h"
 #include "asylo/crypto/aead_cryptor.h"
 #include "asylo/util/cleansing_types.h"
-#include "asylo/crypto/ecdsa_signing_key.h"
+#include "asylo/crypto/fake_signing_key.h"
 #include "asylo/util/status_macros.h"
 #include "asylo/crypto/util/byte_container_view.h"
 
@@ -42,6 +42,25 @@ namespace asylo {
         std::string BytesToHexString(ByteContainerView bytes) {
             return absl::BytesToHexString(absl::string_view(
                     reinterpret_cast<const char *>(bytes.data()), bytes.size()));
+        }
+
+        // Encrypts a message against `kAesKey128` and returns a 12-byte nonce followed
+        // by authenticated ciphertext, encoded as a hex string.
+        const StatusOr <std::string> SignMessage(const std::string &message) {
+            std::unique_ptr <EcdsaSigningKey> signer;
+            ASYLO_ASSIGN_OR_RETURN(signer,
+                                   internal::EcdsaSigningKey::CreateFromDer(kAesKey128));
+
+            std::vector <uint8_t> additional_authenticated_data;
+            std::vector <uint8_t> nonce(cryptor->NonceSize());
+            std::vector <uint8_t> ciphertext(message.size() + cryptor->MaxSealOverhead());
+            size_t ciphertext_size;
+
+            ASYLO_RETURN_IF_ERROR(cryptor->Seal(
+                    message, additional_authenticated_data, absl::MakeSpan(nonce),
+                    absl::MakeSpan(ciphertext), &ciphertext_size));
+
+            return absl::StrCat(BytesToHexString(nonce), BytesToHexString(ciphertext));
         }
 
         // Encrypts a message against `kAesKey128` and returns a 12-byte nonce followed

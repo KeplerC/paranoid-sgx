@@ -13,7 +13,7 @@ load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository", "new_git_r
 git_repository(
     name = "com_google_asylo",
     remote = "https://github.com/KeplerC/asylo.git",
-    commit = "046ace3",
+    commit = "ae0aa02",
 )
 
 load(

@@ -52,7 +52,7 @@ cc_unsigned_enclave(
         "@com_google_asylo//asylo/util:logging",
         "@com_google_asylo//asylo/util:status",
         "@com_google_asylo//asylo/crypto:aead_cryptor",
-        "@com_google_asylo//asylo/crypto:ecdsa_signing_key",
+        "@com_google_asylo//asylo/crypto:fake_signing_key",
     ],
 )
 
