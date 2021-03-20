@@ -117,6 +117,7 @@ class HelloApplication : public asylo::TrustedApplication {
     data_capsule_t *dc = (data_capsule_t *) input.GetExtension(hello_world::dc).dc_ptr();
 
     printf("Received DataCapsule is %d, should be 2021!\n", dc->id);
+    printf("DataCapsule payload is %s, should be 'Hello World!'\n", dc->payload);
 
     for(data_capsule_id i = 0; i < 300; i++){
       dc->id = i; 
@@ -129,7 +130,6 @@ class HelloApplication : public asylo::TrustedApplication {
       if(!ret){
         LOG(INFO) << "GET FAILED on DataCapsule id: " << (int) i;
       }
-        
     }
 
     LOG(INFO) << "Hashmap size has size: " << memtable.getSize(); 
