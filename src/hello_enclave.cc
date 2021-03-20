@@ -26,6 +26,7 @@
 #include "src/hello.pb.h"
 #include "asylo/crypto/aead_cryptor.h"
 #include "asylo/util/cleansing_types.h"
+#include "asylo/crypto/ecdsa_signing_key.h"
 #include "asylo/util/status_macros.h"
 #include "asylo/crypto/util/byte_container_view.h"
 
