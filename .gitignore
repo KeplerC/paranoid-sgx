@@ -26,3 +26,8 @@ Enclave/Enclave_t.h
 
 # our framework
 measurments
+
+bazel-bin
+bazel-my-project
+bazel-out
+bazel-testlogs

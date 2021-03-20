@@ -24,18 +24,13 @@ root privileges.
 
 ## How to buid
 
-To run the `hello_world` example, first use the following set of commands to
-grab the
-[`asylo-examples` repository source code](https://github.com/google/asylo-examples):
-
+To run the `paranoid-sgx` , first use the following set of commands to
 ```bash
-MY_PROJECT=~/asylo-examples
-git clone https://github.com/google/asylo-examples.git "${MY_PROJECT}"
-cd ~/asylo-examples
-git clone https://github.com/KeplerC/paranoid-sgx.git
+MY_PROJECT=~/paranoid-sgx
+git clone https://github.com/KeplerC/paranoid-sgx.git "${MY_PROJECT}"
 ```
 
-Next, use Docker to build and run the `hello_world` application, using a
+Next, use Docker to build and run the `paranoid-sgx` application, using a
 simulated enclave backend:
 
 ```bash
@@ -45,7 +40,7 @@ docker run -it --rm \
     -v "${MY_PROJECT}":/opt/my-project \
     -w /opt/my-project \
     gcr.io/asylo-framework/asylo \
-    bazel run //paranoid-sgx:hello_world_sgx_sim -- --names="${NAMES}"
+    bazel run //src:hello_world_sgx_sim -- --names="${NAMES}"
 ```
 
 
