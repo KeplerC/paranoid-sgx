@@ -36,6 +36,7 @@ namespace asylo {
         constexpr uint8_t kAesKey128[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05,
                                           0x06, 0x07, 0x08, 0x09, 0x10, 0x11,
                                           0x12, 0x13, 0x14, 0x15};
+        constexpr char fake_key[] = "Fake Signing Key";
 
         // Helper function that adapts absl::BytesToHexString, allowing it to be used
         // with ByteContainerView.
@@ -44,23 +45,17 @@ namespace asylo {
                     reinterpret_cast<const char *>(bytes.data()), bytes.size()));
         }
 
-        // Encrypts a message against `kAesKey128` and returns a 12-byte nonce followed
-        // by authenticated ciphertext, encoded as a hex string.
-        const StatusOr <std::string> SignMessage(const std::string &message) {
-            std::unique_ptr <EcdsaSigningKey> signer;
-            ASYLO_ASSIGN_OR_RETURN(signer,
-                                   internal::EcdsaSigningKey::CreateFromDer(kAesKey128));
+        // signs the message with fake signing key
+        const std::vector<uint8_t> SignMessage(const std::string &message) {
+            FakeSigningKey signing_key(UNKNOWN_SIGNATURE_SCHEME, fake_key);
+            std::vector<uint8_t> signature;
+            signing_key.Sign(message, &signature);
+            return signature;
+        }
 
-            std::vector <uint8_t> additional_authenticated_data;
-            std::vector <uint8_t> nonce(cryptor->NonceSize());
-            std::vector <uint8_t> ciphertext(message.size() + cryptor->MaxSealOverhead());
-            size_t ciphertext_size;
-
-            ASYLO_RETURN_IF_ERROR(cryptor->Seal(
-                    message, additional_authenticated_data, absl::MakeSpan(nonce),
-                    absl::MakeSpan(ciphertext), &ciphertext_size));
-
-            return absl::StrCat(BytesToHexString(nonce), BytesToHexString(ciphertext));
+        const Status VerifyMessage(const std::string &message, std::vector<uint8_t> signature) {
+            FakeVerifyingKey verifying_key(UNKNOWN_SIGNATURE_SCHEME, fake_key);
+            return verifying_key.Verify(message, signature);
         }
 
         // Encrypts a message against `kAesKey128` and returns a 12-byte nonce followed
@@ -136,11 +131,16 @@ namespace asylo {
                         ->set_greeting_message(
                                 absl::StrCat("Hello ", visitor, "! You are visitor #",
                                              ++visitor_count_, " to this enclave."));
+
+                LOG(INFO) << "= Encryption and Decryption =";
                 std::string result;
                 ASYLO_ASSIGN_OR_RETURN(result, EncryptMessage(visitor));
                 LOG(INFO) << "encrypted: " << result;
                 ASYLO_ASSIGN_OR_RETURN(result, DecryptMessage(result));
                 LOG(INFO) << "decrypted: " << result;
+                LOG(INFO) << "= Sign and Verify =";
+                LOG(INFO) << "signed: " << reinterpret_cast<const char*>(SignMessage(visitor).data());
+                LOG(INFO) << "verified: " << VerifyMessage(visitor, SignMessage(visitor));
             }
             return asylo::Status::OkStatus();
         }
