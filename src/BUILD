@@ -43,7 +43,7 @@ cc_proto_library(
 
 cc_unsigned_enclave(
     name = "hello_enclave_unsigned.so",
-    srcs = ["hello_enclave.cc",  "memtable.cc", "double_linked_list.cc", "gdp.h", "double_linked_list.hpp", "memtable.hpp"],
+    srcs = ["kvs_enclave.cc",  "memtable.cc", "double_linked_list.cc", "gdp.h", "double_linked_list.hpp", "memtable.hpp"],
     deps = [
         ":hello_cc_proto",
         "@com_google_absl//absl/strings",

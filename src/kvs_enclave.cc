@@ -48,8 +48,8 @@ class HelloApplication : public asylo::TrustedApplication {
     data_capsule_t *ret;
     data_capsule_t *dc = (data_capsule_t *) input.GetExtension(hello_world::dc).dc_ptr();
 
-    printf("Received DataCapsule is %d, should be 2021!\n", dc->id);
-    printf("DataCapsule payload is %s, should be 'Hello World!'\n", dc->payload);
+    LOG(INFO) << "Received DataCapsule is " << (int) dc->id << ", should be 2021!";
+    LOG(INFO) << "DataCapsule payload is " << dc->payload << ", should be 'Hello World!"; 
 
     for(data_capsule_id i = 0; i < 300; i++){
       dc->id = i; 

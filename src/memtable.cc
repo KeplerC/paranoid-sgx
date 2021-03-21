@@ -15,9 +15,12 @@ data_capsule_t *MemTable:: get(data_capsule_id id){
   if(!memtable[mem_idx].buckets.length()){
     printf("Index: %d is invalid!\n", mem_idx);
     return NULL;
-  }
+  } 
 
   data_capsule_t *ret = memtable[mem_idx].buckets.search(id);
+  if(!ret){
+    //TODO: We must do an OCALL to fetch from the DataCapsule server 
+  }
   return ret; 
 }
 
