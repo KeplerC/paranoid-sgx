@@ -41,6 +41,8 @@ bool MemTable:: put(data_capsule_t *dc){
     curr_capacity++; 
   }
 
+  //TODO: We must also do an OCALL to write 
+
   return true; 
 
 }
