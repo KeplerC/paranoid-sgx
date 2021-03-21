@@ -1,40 +1,10 @@
-#include <cstdio>
-#include "gdp.h"
+#include "double_linked_list.hpp"
 
-struct Node
-{
-    data_capsule_t dc; 
-    Node* next;
-    Node* prev;
-    Node(data_capsule_t *);
-};
- 
 Node::Node(data_capsule_t *dc_arg)       //Parameterized Constructor
 {
     memcpy(&dc, dc_arg, sizeof(data_capsule_t));
     next = prev = NULL;
 }
- 
-class DoublyLinkedList
-{
-public:
-    DoublyLinkedList();
-    ~DoublyLinkedList();
-    void insert_front(data_capsule_t *);
-    void insert_back(data_capsule_t *);
-    data_capsule_t *  delete_front();
-    void  delete_back();
-    bool is_empty();
-    void display();
-    int length();
-    data_capsule_t * search(int);
- 
-private:
-    Node* head;
-    Node* tail;
-    int size;
- 
-};
  
 DoublyLinkedList::DoublyLinkedList()
 {
@@ -49,7 +19,7 @@ DoublyLinkedList::~DoublyLinkedList()
 void DoublyLinkedList::insert_front(data_capsule_t *value)
 {
     Node* temp = new Node(value);
-    
+
     if (head == NULL)
         head = tail = temp;
     else

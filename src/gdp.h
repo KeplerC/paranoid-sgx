@@ -11,7 +11,7 @@ typedef __int128_t data_capsule_id;
 typedef struct {
     data_capsule_id id; 
     char payload[DC_PAYLOAD_SZ];
-    size_t payload_size; 
+    int payload_size; 
 } data_capsule_t;
 
 #endif 

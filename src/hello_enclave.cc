@@ -26,75 +26,7 @@
 #include "asylo/util/status.h"
 #include "src/hello.pb.h"
 #include "gdp.h"
-#include "double_linked_list.h"
-
-#define MAX_MEM_SZ 300
-#define BUCKET_NUM 5
-
-struct bucket_entry{
-  bool valid;
-  DoublyLinkedList buckets; 
-};
-
-class MemTable {
-  public:
-    size_t getSize(); 
-    bool put(data_capsule_t *dc);
-    data_capsule_t *get(data_capsule_id id);
-    __uint32_t hash(data_capsule_id id);
-    MemTable(){
-      max_capacity = MAX_MEM_SZ; 
-      curr_capacity = 0; 
-    }
-  private:
-    bucket_entry memtable[MAX_MEM_SZ/BUCKET_NUM];
-    size_t max_capacity;  
-    size_t curr_capacity; 
-};
-
-// TODO: Replace hash function
-__uint32_t MemTable:: hash(data_capsule_id id){
-    return id % (MAX_MEM_SZ/BUCKET_NUM);
-}
-
-
-data_capsule_t *MemTable:: get(data_capsule_id id){
-
-  uint32_t mem_idx = hash(id);
-
-  if(!memtable[mem_idx].buckets.length()){
-    printf("Index: %d is invalid!\n", mem_idx);
-    return NULL;
-  }
-
-  data_capsule_t *ret = memtable[mem_idx].buckets.search(id);
-  return ret; 
-}
-
-
-/*
- Datacapsule is copied into memtable  
- We assume dc is provided by client enclave application 
-*/
-bool MemTable:: put(data_capsule_t *dc){
-  
-  uint32_t mem_idx = hash(dc->id);
-
-  if(memtable[mem_idx].buckets.length() >= BUCKET_NUM){
-    memtable[mem_idx].buckets.delete_back();
-    memtable[mem_idx].buckets.insert_front(dc);
-  } else {
-    memtable[mem_idx].buckets.insert_front(dc); 
-    curr_capacity++; 
-  }
-
-  return true; 
-
-}
-
-size_t MemTable::getSize() {
-  return curr_capacity; 
-}
+#include "memtable.hpp"
 
 class HelloApplication : public asylo::TrustedApplication {
  public:
