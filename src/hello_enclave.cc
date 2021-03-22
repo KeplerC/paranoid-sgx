@@ -26,7 +26,7 @@
 #include "src/hello.pb.h"
 #include "asylo/crypto/aead_cryptor.h"
 #include "asylo/util/cleansing_types.h"
-#include "asylo/crypto/fake_signing_key.h"
+#include "asylo/crypto/ecdsa_p256_sha256_signing_key.h"
 #include "asylo/util/status_macros.h"
 #include "asylo/crypto/util/byte_container_view.h"
 
@@ -36,7 +36,7 @@ namespace asylo {
         constexpr uint8_t kAesKey128[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05,
                                           0x06, 0x07, 0x08, 0x09, 0x10, 0x11,
                                           0x12, 0x13, 0x14, 0x15};
-        constexpr char fake_key[] = "Fake Signing Key";
+        std::unique_ptr<SigningKey> signing_key;
 
         // Helper function that adapts absl::BytesToHexString, allowing it to be used
         // with ByteContainerView.
@@ -45,17 +45,20 @@ namespace asylo {
                     reinterpret_cast<const char *>(bytes.data()), bytes.size()));
         }
 
-        // signs the message with fake signing key
+        // signs the message with ecdsa signing key
         const std::vector<uint8_t> SignMessage(const std::string &message) {
-            FakeSigningKey signing_key(UNKNOWN_SIGNATURE_SCHEME, fake_key);
+            signing_key = EcdsaP256Sha256SigningKey::Create().ValueOrDie();
             std::vector<uint8_t> signature;
-            signing_key.Sign(message, &signature);
+            ASYLO_CHECK_OK(signing_key->Sign(message, &signature));
             return signature;
         }
 
+        // verify the message with ecdsa verfying key
         const Status VerifyMessage(const std::string &message, std::vector<uint8_t> signature) {
-            FakeVerifyingKey verifying_key(UNKNOWN_SIGNATURE_SCHEME, fake_key);
-            return verifying_key.Verify(message, signature);
+            std::unique_ptr<VerifyingKey> verifying_key;
+            ASYLO_ASSIGN_OR_RETURN(verifying_key,
+                                    signing_key->GetVerifyingKey());
+            return verifying_key->Verify(message, signature);
         }
 
         // Encrypts a message against `kAesKey128` and returns a 12-byte nonce followed
