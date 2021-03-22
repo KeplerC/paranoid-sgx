@@ -116,8 +116,13 @@ namespace asylo {
 
             return CleansingString(plaintext.begin(), plaintext.end());
         }
-    }
 
+        void OnPutCapsule(hello_world::CapsulePDU *capsule_ptr, std::string key, std::string value){
+            capsule_ptr->set_dc_ptr(2021);
+            //dc_msg->payload_size = 13;
+            //memcpy(dc_msg->payload, "Hello World!", dc_msg.payload_size);
+        }
+    }
 
     class HelloApplication : public asylo::TrustedApplication {
     public:
@@ -131,13 +136,13 @@ namespace asylo {
             }
 
             //Check if DataCapsule is defined in proto-buf messsage.
-            if (!input.HasExtension(hello_world::dc)) {
+            if (!input.HasExtension(hello_world::input_dc)) {
                 return asylo::Status(asylo::error::GoogleError::INVALID_ARGUMENT,
                                      "Expected a DataCapsule extension on input.");
             }
 
             data_capsule_t *ret;
-            data_capsule_t *dc = (data_capsule_t *) input.GetExtension(hello_world::dc).dc_ptr();
+            data_capsule_t *dc = (data_capsule_t *) input.GetExtension(hello_world::input_dc).dc_ptr();
 
             LOG(INFO) << "Received DataCapsule is " << (int) dc->id << ", should be 2021!";
             LOG(INFO) << "DataCapsule payload is " << dc->payload << ", should be 'Hello World!";
@@ -168,6 +173,7 @@ namespace asylo {
                         ->set_greeting_message(
                                 absl::StrCat("Hello ", visitor, "! You are visitor #",
                                              ++visitor_count_, " to this enclave."));
+                OnPutCapsule(output->MutableExtension(hello_world::output_dc), "visitor", "hello");
                 LOG(INFO) << "= Encryption and Decryption =";
                 std::string result;
                 ASYLO_ASSIGN_OR_RETURN(result, EncryptMessage(visitor));

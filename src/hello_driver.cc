@@ -94,7 +94,7 @@ public:
 
             input.MutableExtension(hello_world::enclave_input_hello)
                     ->set_to_greet(name);
-            input.MutableExtension(hello_world::dc)->set_dc_ptr((long int) &dc_msg); 
+            input.MutableExtension(hello_world::input_dc)->set_dc_ptr((long int) &dc_msg);
 
             asylo::EnclaveOutput output;
             asylo::Status status = this->client->EnterAndRun(input, &output);
