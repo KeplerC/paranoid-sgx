@@ -3,11 +3,17 @@ workspace(name = "asylo_examples")
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository", "new_git_repository")
 # Download and use the Asylo SDK.
-http_archive(
+#http_archive(
+#    name = "com_google_asylo",
+#    sha256 = "bb6e9599f3e174321d96616ac8069fac76ce9d2de3bd0e4e31e1720c562e83f7",
+#    strip_prefix = "asylo-0.6.0",
+#    urls = ["https://github.com/google/asylo/archive/v0.6.0.tar.gz"],
+#)
+
+git_repository(
     name = "com_google_asylo",
-    sha256 = "bb6e9599f3e174321d96616ac8069fac76ce9d2de3bd0e4e31e1720c562e83f7",
-    strip_prefix = "asylo-0.6.0",
-    urls = ["https://github.com/google/asylo/archive/v0.6.0.tar.gz"],
+    remote = "https://github.com/KeplerC/asylo.git",
+    commit = "ae0aa02",
 )
 
 load(
