@@ -34,14 +34,14 @@
 #include "memtable.hpp"
 
 namespace asylo {
+
     namespace {
         // Dummy 128-bit AES key.
         constexpr uint8_t kAesKey128[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05,
                                           0x06, 0x07, 0x08, 0x09, 0x10, 0x11,
                                           0x12, 0x13, 0x14, 0x15};
-        std::unique_ptr<SigningKey> signing_key;
+        std::unique_ptr <SigningKey> signing_key;
 
-<<<<<<< HEAD:src/hello_enclave.cc
         // Helper function that adapts absl::BytesToHexString, allowing it to be used
         // with ByteContainerView.
         std::string BytesToHexString(ByteContainerView bytes) {
@@ -50,18 +50,18 @@ namespace asylo {
         }
 
         // signs the message with ecdsa signing key
-        const std::vector<uint8_t> SignMessage(const std::string &message) {
+        const std::vector <uint8_t> SignMessage(const std::string &message) {
             signing_key = EcdsaP256Sha256SigningKey::Create().ValueOrDie();
-            std::vector<uint8_t> signature;
+            std::vector <uint8_t> signature;
             ASYLO_CHECK_OK(signing_key->Sign(message, &signature));
             return signature;
         }
 
         // verify the message with ecdsa verfying key
-        const Status VerifyMessage(const std::string &message, std::vector<uint8_t> signature) {
-            std::unique_ptr<VerifyingKey> verifying_key;
+        const Status VerifyMessage(const std::string &message, std::vector <uint8_t> signature) {
+            std::unique_ptr <VerifyingKey> verifying_key;
             ASYLO_ASSIGN_OR_RETURN(verifying_key,
-                                    signing_key->GetVerifyingKey());
+                                   signing_key->GetVerifyingKey());
             return verifying_key->Verify(message, signature);
         }
 
@@ -116,56 +116,9 @@ namespace asylo {
 
             return CleansingString(plaintext.begin(), plaintext.end());
         }
-=======
-  asylo::Status Run(const asylo::EnclaveInput &input,
-                    asylo::EnclaveOutput *output) override {
-    if (!input.HasExtension(hello_world::enclave_input_hello)) {
-      return asylo::Status(asylo::error::GoogleError::INVALID_ARGUMENT,
-                           "Expected a HelloInput extension on input.");
     }
 
-    //Check if DataCapsule is defined in proto-buf messsage. 
-    if (!input.HasExtension(hello_world::dc)) {
-      return asylo::Status(asylo::error::GoogleError::INVALID_ARGUMENT,
-                           "Expected a DataCapsule extension on input.");
-    }
 
-    data_capsule_t *ret;
-    data_capsule_t *dc = (data_capsule_t *) input.GetExtension(hello_world::dc).dc_ptr();
-
-    LOG(INFO) << "Received DataCapsule is " << (int) dc->id << ", should be 2021!";
-    LOG(INFO) << "DataCapsule payload is " << dc->payload << ", should be 'Hello World!"; 
-
-    for(data_capsule_id i = 0; i < 300; i++){
-      dc->id = i; 
-      memtable.put(dc);
-    }
-
-    for(data_capsule_id i = 0; i < 300; i++){
-      ret = memtable.get(i);
-
-      if(!ret){
-        LOG(INFO) << "GET FAILED on DataCapsule id: " << (int) i;
-      }
-    }
-
-    LOG(INFO) << "Hashmap size has size: " << memtable.getSize(); 
-
-    std::string visitor =
-        input.GetExtension(hello_world::enclave_input_hello).to_greet();
-
-    LOG(INFO) << "Hello " << visitor;
-
-    if (output) {
-      LOG(INFO) << "Incrementing visitor count...";
-      output->MutableExtension(hello_world::enclave_output_hello)
-          ->set_greeting_message(
-              absl::StrCat("Hello ", visitor, "! You are visitor #",
-                           ++visitor_count_, " to this enclave."));
->>>>>>> main:src/kvs_enclave.cc
-    }
-
-<<<<<<< HEAD:src/hello_enclave.cc
     class HelloApplication : public asylo::TrustedApplication {
     public:
         HelloApplication() : visitor_count_(0) {}
@@ -176,17 +129,45 @@ namespace asylo {
                 return asylo::Status(asylo::error::GoogleError::INVALID_ARGUMENT,
                                      "Expected a HelloInput extension on input.");
             }
+
+            //Check if DataCapsule is defined in proto-buf messsage.
+            if (!input.HasExtension(hello_world::dc)) {
+                return asylo::Status(asylo::error::GoogleError::INVALID_ARGUMENT,
+                                     "Expected a DataCapsule extension on input.");
+            }
+
+            data_capsule_t *ret;
+            data_capsule_t *dc = (data_capsule_t *) input.GetExtension(hello_world::dc).dc_ptr();
+
+            LOG(INFO) << "Received DataCapsule is " << (int) dc->id << ", should be 2021!";
+            LOG(INFO) << "DataCapsule payload is " << dc->payload << ", should be 'Hello World!";
+
+            for(data_capsule_id i = 0; i < 300; i++){
+                dc->id = i;
+                memtable.put(dc);
+            }
+
+            for(data_capsule_id i = 0; i < 300; i++){
+                ret = memtable.get(i);
+
+                if(!ret){
+                    LOG(INFO) << "GET FAILED on DataCapsule id: " << (int) i;
+                }
+            }
+
+            LOG(INFO) << "Hashmap size has size: " << memtable.getSize();
+
             std::string visitor =
                     input.GetExtension(hello_world::enclave_input_hello).to_greet();
 
             LOG(INFO) << "Hello " << visitor;
+
             if (output) {
                 LOG(INFO) << "Incrementing visitor count...";
                 output->MutableExtension(hello_world::enclave_output_hello)
                         ->set_greeting_message(
                                 absl::StrCat("Hello ", visitor, "! You are visitor #",
                                              ++visitor_count_, " to this enclave."));
-
                 LOG(INFO) << "= Encryption and Decryption =";
                 std::string result;
                 ASYLO_ASSIGN_OR_RETURN(result, EncryptMessage(visitor));
@@ -202,15 +183,8 @@ namespace asylo {
 
     private:
         uint64_t visitor_count_;
+        MemTable memtable;
     };
-
-=======
- private:
-  uint64_t visitor_count_;
-  MemTable memtable;
-};
->>>>>>> main:src/kvs_enclave.cc
-
 
     TrustedApplication *BuildTrustedApplication() { return new HelloApplication; }
 
