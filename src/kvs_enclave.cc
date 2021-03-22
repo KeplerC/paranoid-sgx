@@ -24,7 +24,7 @@
 #include "asylo/trusted_application.h"
 #include "asylo/util/logging.h"
 #include "asylo/util/status.h"
-#include "src/hello.pb.h"
+#include "src/proto/hello.pb.h"
 #include "asylo/crypto/aead_cryptor.h"
 #include "asylo/util/cleansing_types.h"
 #include "asylo/crypto/ecdsa_p256_sha256_signing_key.h"

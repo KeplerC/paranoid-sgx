@@ -1,0 +1,7 @@
+
+syntax = "proto2";
+package hello_world;
+
+message DataCapsule {
+  optional int64 dc_ptr = 1;
+}

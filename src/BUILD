@@ -31,7 +31,7 @@ package(
 
 proto_library(
     name = "hello_proto",
-    srcs = ["hello.proto"],
+    srcs = ["proto/hello.proto", "proto/capsule.proto"],
     deps = ["@com_google_asylo//asylo:enclave_proto"],
 )
 
