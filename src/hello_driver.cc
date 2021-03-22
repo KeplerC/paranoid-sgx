@@ -30,7 +30,9 @@
 #include "src/hello.pb.h"
 #include <thread>
 #include <zmq.hpp>
+#include "gdp.h"
 
+#define MULTI_CLIENT false
 #define NET_CLIENT_BASE_PORT 5555
 #define NET_CLIENT_IP "localhost"
 #define NET_SEED_SERVER_IP "localhost"
@@ -86,8 +88,15 @@ public:
 
         for (const auto &name : names) {
             asylo::EnclaveInput input;
+            
+            data_capsule_t dc_msg;
+            dc_msg.id = 2021; 
+            dc_msg.payload_size = 13; 
+            memcpy(dc_msg.payload, "Hello World!", dc_msg.payload_size); 
+
             input.MutableExtension(hello_world::enclave_input_hello)
                     ->set_to_greet(name);
+            input.MutableExtension(hello_world::dc)->set_dc_ptr((long int) &dc_msg); 
 
             asylo::EnclaveOutput output;
             asylo::Status status = this->client->EnterAndRun(input, &output);
@@ -265,7 +274,7 @@ int main(int argc, char *argv[]) {
     }
 
     // If you just want to test a single enclave, change to false
-    bool multi_client = true;
+    bool multi_client = MULTI_CLIENT;
     if(multi_client) {
         std::vector <std::thread> worker_threads;
         //start clients

@@ -19,10 +19,14 @@
 #include <cstdint>
 
 #include "absl/strings/str_cat.h"
+// #include "absl/container/flat_hash_map.h"
+
 #include "asylo/trusted_application.h"
 #include "asylo/util/logging.h"
 #include "asylo/util/status.h"
 #include "src/hello.pb.h"
+#include "gdp.h"
+#include "memtable.hpp"
 
 class HelloApplication : public asylo::TrustedApplication {
  public:
@@ -34,10 +38,39 @@ class HelloApplication : public asylo::TrustedApplication {
       return asylo::Status(asylo::error::GoogleError::INVALID_ARGUMENT,
                            "Expected a HelloInput extension on input.");
     }
+
+    //Check if DataCapsule is defined in proto-buf messsage. 
+    if (!input.HasExtension(hello_world::dc)) {
+      return asylo::Status(asylo::error::GoogleError::INVALID_ARGUMENT,
+                           "Expected a DataCapsule extension on input.");
+    }
+
+    data_capsule_t *ret;
+    data_capsule_t *dc = (data_capsule_t *) input.GetExtension(hello_world::dc).dc_ptr();
+
+    LOG(INFO) << "Received DataCapsule is " << (int) dc->id << ", should be 2021!";
+    LOG(INFO) << "DataCapsule payload is " << dc->payload << ", should be 'Hello World!"; 
+
+    for(data_capsule_id i = 0; i < 300; i++){
+      dc->id = i; 
+      memtable.put(dc);
+    }
+
+    for(data_capsule_id i = 0; i < 300; i++){
+      ret = memtable.get(i);
+
+      if(!ret){
+        LOG(INFO) << "GET FAILED on DataCapsule id: " << (int) i;
+      }
+    }
+
+    LOG(INFO) << "Hashmap size has size: " << memtable.getSize(); 
+
     std::string visitor =
         input.GetExtension(hello_world::enclave_input_hello).to_greet();
 
     LOG(INFO) << "Hello " << visitor;
+
     if (output) {
       LOG(INFO) << "Incrementing visitor count...";
       output->MutableExtension(hello_world::enclave_output_hello)
@@ -50,6 +83,7 @@ class HelloApplication : public asylo::TrustedApplication {
 
  private:
   uint64_t visitor_count_;
+  MemTable memtable;
 };
 
 namespace asylo {

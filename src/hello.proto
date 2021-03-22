@@ -29,10 +29,15 @@ message HelloOutput {
   optional string greeting_message = 1;
 }
 
+message DataCapsule {
+  optional int64 dc_ptr = 1;
+}
+
 extend asylo.EnclaveInput {
   optional HelloInput enclave_input_hello = 8086;
+  optional DataCapsule dc = 8087;
 }
 
 extend asylo.EnclaveOutput {
-  optional HelloOutput enclave_output_hello = 8087;
+  optional HelloOutput enclave_output_hello = 8088;
 }
