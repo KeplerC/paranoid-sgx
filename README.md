@@ -34,19 +34,17 @@ Next, use Docker to build and run the `paranoid-sgx` application, using a
 simulated enclave backend:
 
 ```bash
-NAMES="${USER}"
 docker run -it --rm \
     -v bazel-cache:/root/.cache/bazel \
     -v "${MY_PROJECT}":/opt/my-project \
     -w /opt/my-project \
     keplerc/paranoid-asylo:latest 
-
 ```
 After entering the docker, run the application: 
 ```bash
-bazel run //src:hello_world_sgx_sim -- --names="${NAMES}"
+bazel run //src:hello_world_sgx_sim -- --names="visitor"
 ```
-The dockerfile for `keplerc/paranoid-asylo:latest` is located in `./docker`.  
+The dockerfile for building `keplerc/paranoid-asylo:latest` is located in `./docker`.  
 
 
 ## Introduction
