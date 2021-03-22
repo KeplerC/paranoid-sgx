@@ -31,3 +31,4 @@ bazel-bin
 bazel-my-project
 bazel-out
 bazel-testlogs
+a.out
