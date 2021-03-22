@@ -33,7 +33,7 @@ message HelloOutput {
 
 extend asylo.EnclaveInput {
   optional HelloInput enclave_input_hello = 8086;
-  optional DataCapsule dc = 8087;
+  optional CapsulePDU dc = 8087;
 }
 
 extend asylo.EnclaveOutput {

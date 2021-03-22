@@ -2,6 +2,20 @@
 syntax = "proto2";
 package hello_world;
 
-message DataCapsule {
+message CapsulePDU {
   optional int64 dc_ptr = 1;
+  //Hash ptr to the previous record, not needed for the minimal prototype
+  optional bytes prevHash = 2;
+  optional bytes metaHash = 3;
+
+  //see if there were any duplicates
+  optional int64 recordNum = 4;
+  optional KVSPayload payload = 5;
+  optional bytes dataHash = 6;
+  optional bytes signature = 7;
+}
+
+message KVSPayload{
+  optional bytes key = 1;
+  optional bytes value = 2;
 }
