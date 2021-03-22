@@ -43,11 +43,12 @@ cc_proto_library(
 
 cc_unsigned_enclave(
     name = "hello_enclave_unsigned.so",
-    srcs = ["hello_enclave.cc"],
+    srcs = ["kvs_enclave.cc",  "memtable.cc", "double_linked_list.cc", "gdp.h", "double_linked_list.hpp", "memtable.hpp"],
     deps = [
         ":hello_cc_proto",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_asylo//asylo:enclave_runtime",
         "@com_google_asylo//asylo/util:logging",
         "@com_google_asylo//asylo/util:status",
@@ -63,7 +64,7 @@ debug_sign_enclave(
 
 enclave_loader(
     name = "hello_world",
-    srcs = ["hello_driver.cc"],
+    srcs = ["hello_driver.cc", "gdp.h"],
     backends = sgx.backend_labels,  # Has SGX loader dependencies
     enclaves = {"enclave": ":hello_enclave.so"},
     loader_args = ["--enclave_path='{enclave}'"],
