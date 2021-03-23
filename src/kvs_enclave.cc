@@ -27,18 +27,28 @@
 #include "src/hello.pb.h"
 #include "gdp.h"
 #include "memtable.hpp"
+#include "hot_msg_pass.h"
 
-class HelloApplication : public asylo::TrustedApplication {
+class KVSApplication : public asylo::TrustedApplication {
  public:
-  HelloApplication() : visitor_count_(0) {}
+  KVSApplication() : visitor_count_(0) {}
+
+  void EnclaveMsgStartResponder( HotMsg* hotmsg ) {
+    HotMsg_waitForCall( hotmsg );
+}
 
   asylo::Status Run(const asylo::EnclaveInput &input,
                     asylo::EnclaveOutput *output) override {
-    if (!input.HasExtension(hello_world::enclave_input_hello)) {
-      return asylo::Status(asylo::error::GoogleError::INVALID_ARGUMENT,
-                           "Expected a HelloInput extension on input.");
+
+    if (input.HasExtension(hello_world::enclave_responder)) {
+      printf("[Enclave Responder]\n");
+
+      HotMsg* hotmsg = (HotMsg*) input.GetExtension(hello_world::enclave_responder).responder();
+      EnclaveMsgStartResponder( hotmsg );
+      return asylo::Status::OkStatus();
     }
 
+    
     //Check if DataCapsule is defined in proto-buf messsage. 
     if (!input.HasExtension(hello_world::dc)) {
       return asylo::Status(asylo::error::GoogleError::INVALID_ARGUMENT,
@@ -48,16 +58,16 @@ class HelloApplication : public asylo::TrustedApplication {
     data_capsule_t *ret;
     data_capsule_t *dc = (data_capsule_t *) input.GetExtension(hello_world::dc).dc_ptr();
 
-    LOG(INFO) << "Received DataCapsule is " << (int) dc->id << ", should be 2021!";
-    LOG(INFO) << "DataCapsule payload is " << dc->payload << ", should be 'Hello World!"; 
+    LOG(INFO) << "Received DataCapsule id: " << (int) dc->id;
+    LOG(INFO) << "DataCapsule payload: " << dc->payload;
 
     for(data_capsule_id i = 0; i < 300; i++){
       dc->id = i; 
-      memtable.put(dc);
+      put(dc);
     }
 
     for(data_capsule_id i = 0; i < 300; i++){
-      ret = memtable.get(i);
+      ret = get(i);
 
       if(!ret){
         LOG(INFO) << "GET FAILED on DataCapsule id: " << (int) i;
@@ -84,10 +94,20 @@ class HelloApplication : public asylo::TrustedApplication {
  private:
   uint64_t visitor_count_;
   MemTable memtable;
+
+  /* These functions willl be part of the CAAPI */
+  bool put(data_capsule_t *dc) {
+    return memtable.put(dc);
+  }
+
+  data_capsule_t *get(data_capsule_id id){
+    return memtable.get(id);
+  }
+
 };
 
 namespace asylo {
 
-TrustedApplication *BuildTrustedApplication() { return new HelloApplication; }
+TrustedApplication *BuildTrustedApplication() { return new KVSApplication; }
 
 }  // namespace asylo

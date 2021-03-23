@@ -24,13 +24,16 @@
 #include "absl/flags/parse.h"
 #include "absl/strings/str_split.h"
 #include "asylo/client.h"
+#include "asylo/crypto/sha256_hash_util.h"
 #include "asylo/enclave.pb.h"
 #include "asylo/platform/primitives/sgx/loader.pb.h"
 #include "asylo/util/logging.h"
 #include "src/hello.pb.h"
 #include <thread>
+#include <mutex>
 #include <zmq.hpp>
 #include "gdp.h"
+#include "hot_msg_pass.h"
 
 #define MULTI_CLIENT false
 #define NET_CLIENT_BASE_PORT 5555
@@ -42,9 +45,13 @@
 ABSL_FLAG(std::string, enclave_path, "", "Path to enclave to load");
 ABSL_FLAG(std::string, names, "",
           "A comma-separated list of names to pass to the enclave");
+ABSL_FLAG(std::string, payload, "",
+          "Data capsule payload to send to the enclave!");
 
-
-
+struct enclave_responder_args {
+     asylo::EnclaveClient *client;
+     HotMsg *hotMsg;
+};
 
 class Asylo_SGX{
 public:
@@ -52,6 +59,23 @@ public:
         //enclave name has to be unique
         this->m_name = enclave_name;
     }
+
+    static void* EnclaveKVSThread( void* hotMsgAsVoidP )
+{
+    //To be started in a new thread
+    struct enclave_responder_args *args = (struct enclave_responder_args *) hotMsgAsVoidP;
+    HotMsg *hotMsg = args->hotMsg;
+
+    asylo::EnclaveInput input;
+    asylo::EnclaveOutput output;
+
+    input.MutableExtension(hello_world::enclave_responder)->set_responder((long int)  hotMsg); 
+    args->client->EnterAndRun(input, &output);
+    
+    // EnclaveMsgStartResponder( globalEnclaveID, hotMsg );
+    printf("%p\n", hotMsg);
+    return NULL;
+}
 
     void init(){
         asylo::EnclaveManager::Configure(asylo::EnclaveManagerOptions());
@@ -88,11 +112,20 @@ public:
 
         for (const auto &name : names) {
             asylo::EnclaveInput input;
-            
+
             data_capsule_t dc_msg;
             dc_msg.id = 2021; 
-            dc_msg.payload_size = 13; 
-            memcpy(dc_msg.payload, "Hello World!", dc_msg.payload_size); 
+            dc_msg.payload_size = name.length() + 1; 
+
+            HotMsg hotMsg = HOTMSG_INITIALIZER;
+            HotMsg_init(&hotMsg);
+
+            struct enclave_responder_args e_responder_args = {this->client, &hotMsg};
+
+            pthread_create(&hotMsg.responderThread, NULL, EnclaveKVSThread, (void*)&e_responder_args);
+
+
+            name.copy(dc_msg.payload, dc_msg.payload_size , 0);
 
             input.MutableExtension(hello_world::enclave_input_hello)
                     ->set_to_greet(name);
@@ -269,8 +302,8 @@ int main(int argc, char *argv[]) {
   // Part 0: Setup
     absl::ParseCommandLine(argc, argv);
 
-    if (absl::GetFlag(FLAGS_names).empty()) {
-    LOG(QFATAL) << "Must supply a non-empty list of names with --names";
+    if (absl::GetFlag(FLAGS_payload).empty()) {
+      LOG(QFATAL) << "Must supply a non-empty string for the DataCapsule payload --payload";
     }
 
     // If you just want to test a single enclave, change to false
@@ -288,7 +321,7 @@ int main(int argc, char *argv[]) {
         sleep(15);
     } else {
         std::vector<std::string> names =
-                absl::StrSplit(absl::GetFlag(FLAGS_names), ',');
+                absl::StrSplit(absl::GetFlag(FLAGS_payload), ',');
         Asylo_SGX* sgx = new Asylo_SGX("hello_enclave");
         sgx->run(names);
     }

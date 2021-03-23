@@ -20,14 +20,18 @@ void DoublyLinkedList::insert_front(data_capsule_t *value)
 {
     Node* temp = new Node(value);
 
-    if (head == NULL)
+    // printf("[insert front] %p, %d\n", temp, temp->dc.id);
+
+    if (head == NULL){
         head = tail = temp;
-    else
-    {
+        // printf("head:%p, tail:%p, temp: %p\n", head, tail, temp);
+    }   else {
         head->prev = temp;
         temp->next = head;
         head = temp;
     }
+    // delete temp;
+    // printf("done\n");
     size++;
 }
  
@@ -46,7 +50,7 @@ void DoublyLinkedList::insert_back(data_capsule_t *value)
     size++;
 }
  
-data_capsule_t * DoublyLinkedList::delete_front()
+void DoublyLinkedList::delete_front()
 {
     if (!is_empty())
     {
@@ -58,14 +62,14 @@ data_capsule_t * DoublyLinkedList::delete_front()
         data_capsule_t * delValue = &temp->dc;
         head = head->next;
  
-        // delete temp;
+        delete temp;
  
         size--;
  
-        return delValue;
+        return;
  
     }
-    return 0;
+    return;
 }
  
 void DoublyLinkedList::delete_back()
@@ -83,7 +87,6 @@ void DoublyLinkedList::delete_back()
 
         delete temp; 
         size--;
- 
         return;
  
     }

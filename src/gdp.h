@@ -1,6 +1,8 @@
 #ifndef _GDP_H_
 #define _GDP_H_
 
+#include "asylo/crypto/sha256_hash_util.h"
+
 // Size of DC payload 
 #define DC_PAYLOAD_SZ 256
 

@@ -9,6 +9,7 @@
 struct bucket_entry{
   bool valid;
   DoublyLinkedList buckets; 
+  absl::Mutex lock; 
 };
 
 class MemTable {
