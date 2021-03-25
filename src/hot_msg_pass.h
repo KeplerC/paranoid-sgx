@@ -74,7 +74,7 @@ static inline void _mm_sleep(void)
 }
 
 
-static inline int HotMsg_requestCall( HotMsg* hotMsg, int dataID, void *data )
+static inline int HotMsg_requestECall( HotMsg* hotMsg, int dataID, void *data )
 {
     int i = 0;
     const uint32_t MAX_RETRIES = 10;
@@ -90,7 +90,7 @@ static inline int HotMsg_requestCall( HotMsg* hotMsg, int dataID, void *data )
         if( data_ptr-> isRead == true ) {
             data_ptr-> isRead  = false;
             data_ptr->data = data;
-            data_capsule_t *clarg = (data_capsule_t *) data; 
+            // data_capsule_t *clarg = (data_capsule_t *) data; 
             // printf("[HotMsg_requestCall] data id: %d\n", arg->id);
             sgx_spin_unlock( &data_ptr->spinlock );
             break;

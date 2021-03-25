@@ -25,11 +25,25 @@
 #ifndef __COMMON_H
 #define __COMMON_H
 
+enum OCALL_ID {
+    OCALL_PUT,
+};
+
+enum ECALL_ID {
+    ECALL_PUT,
+};
+
 typedef struct {
     uint64_t* cyclesCount;
     uint64_t  counter;
+    void*     data; 
+    OCALL_ID  ocall_id; 
 } OcallParams;
 
+typedef struct {
+    void*     data; 
+    ECALL_ID  ecall_id; 
+} EcallParams;
 
 
 #endif

@@ -34,6 +34,7 @@
 #include <zmq.hpp>
 #include "gdp.h"
 #include "hot_msg_pass.h"
+#include "common.h"
 
 #define PERFORMANCE_MEASUREMENT_NUM_REPEATS 10
 #define MULTI_CLIENT false
@@ -106,10 +107,16 @@ static void *StartOcallResponder( void *arg ) {
 
       if(data_ptr->data){
           //Message exists!
-          data_capsule_t *dc = (data_capsule_t *) data_ptr->data; 
-          printf("RECEIVED OCALL\n");
-          // printf("[OCALL] arg: %d, %p\n", dc->id, dc);
-          // dc->id = 8080;
+          OcallParams *arg = (OcallParams *) data_ptr->data; 
+          data_capsule_t *dc = (data_capsule_t *) arg->data; 
+
+          switch(arg->ocall_id){
+            case OCALL_PUT:
+              printf("[OCALL] dc_id : %d\n", dc->id);
+              break;
+            default:
+              printf("Invalid ECALL id: %d\n", arg->ocall_id);
+          }
           data_ptr->data = 0; 
       }
 
@@ -122,7 +129,10 @@ static void *StartOcallResponder( void *arg ) {
 }
 
     void put_ecall(data_capsule_t *dc) {
-      HotMsg_requestCall( hotMsg_enclave, requestedCallID, dc);
+      EcallParams *args = (EcallParams *) malloc(sizeof(OcallParams));
+      args->ecall_id = ECALL_PUT;
+      args->data = dc; 
+      HotMsg_requestECall( hotMsg_enclave, requestedCallID++, args);
     }
 
     void init(){
@@ -179,21 +189,15 @@ static void *StartOcallResponder( void *arg ) {
         pthread_create(&hotMsg_host->responderThread, NULL, StartOcallResponder, (void*) hotMsg_host);
 
         for (const auto &name : names) {
-            data_capsule_t dc_msg;
-            dc_msg.id = 2021; 
-            dc_msg.payload_size = name.length() + 1; 
-            name.copy(dc_msg.payload, dc_msg.payload_size , 0);
+            data_capsule_t dc[10];
 
-            int requestedCallID = 0;
-            for( uint64_t i=0; i < PERFORMANCE_MEASUREMENT_NUM_REPEATS; ++i ) {
-                requestedCallID += 1;
-                dc_msg.id = requestedCallID; 
-                put_ecall( &dc_msg );
+            for( uint64_t i=0; i < 10; ++i ) {
+                dc[i].id = i; 
+                put_ecall( &dc[i] );
             }
 
             //Test OCALL 
             asylo::EnclaveInput input;
-            input.MutableExtension(hello_world::dc)->set_dc_ptr((long int) &dc_msg); 
             input.MutableExtension(hello_world::buffer)->set_buffer((long int) hotMsg_host); 
 
             asylo::EnclaveOutput output;
@@ -202,8 +206,10 @@ static void *StartOcallResponder( void *arg ) {
                 LOG(QFATAL) << "EnterAndRun failed: " << status;
             }
         }
-       
-        
+
+        //Sleep so that threads have time to process ALL requests
+        sleep(1);
+
         StopMsgResponder( hotMsg_host );
         pthread_join(hotMsg_host->responderThread, NULL);
 
@@ -215,7 +221,6 @@ static void *StartOcallResponder( void *arg ) {
     }
 
     void finalize(){
-        printf("Destroying enclave\n");
         asylo::EnclaveFinal final_input;
         asylo::Status status = this->manager->DestroyEnclave(this->client, final_input);
         if (!status.ok()) {
