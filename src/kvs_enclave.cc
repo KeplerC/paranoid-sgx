@@ -34,7 +34,7 @@ class KVSApplication : public asylo::TrustedApplication {
  public:
   KVSApplication() : visitor_count_(0) {}
 
-
+  //TODO: Free memory in the OCALL responder
   void put_ocall(data_capsule_t *dc){
       OcallParams *args = (OcallParams *) malloc(sizeof(OcallParams));
       args->ocall_id = OCALL_PUT;
@@ -70,11 +70,11 @@ class KVSApplication : public asylo::TrustedApplication {
         sgx_spin_unlock( &data_ptr->spinlock );
 
         numRetries++;
-        // if( numRetries > MAX_RETRIES ){
-        //     printf("exceeded tries\n");
-        //     sgx_spin_unlock( &data_ptr->spinlock );
-        //     return -1;
-        // }
+        if( numRetries > MAX_RETRIES ){
+            printf("exceeded tries\n");
+            sgx_spin_unlock( &data_ptr->spinlock );
+            return -1;
+        }
 
         for( i = 0; i<3; ++i)
             _mm_sleep();
@@ -113,7 +113,7 @@ class KVSApplication : public asylo::TrustedApplication {
 
           switch(arg->ecall_id){
             case ECALL_PUT:
-              // printf("[ECALL] dc_id : %d\n", dc->id);
+              printf("[ECALL] dc_id : %d\n", dc->id);
               put((data_capsule_t *) arg->data);
               break;
             default:
@@ -151,7 +151,7 @@ class KVSApplication : public asylo::TrustedApplication {
       dc[i].id = i; 
       put_ocall(&dc[i]);
     }
-    
+
     return asylo::Status::OkStatus();
   }
 

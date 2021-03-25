@@ -62,6 +62,7 @@ static void HotMsg_init( HotMsg* hotMsg )
     hotMsg->MsgQueue = (HotData**) calloc(MAX_QUEUE_LENGTH, sizeof(HotData*));
     for(int i = 0; i < MAX_QUEUE_LENGTH; i++){
         HotData* hd = (HotData*) calloc(1, sizeof(HotData));
+        hd->isRead = true; 
         (hotMsg->MsgQueue)[i] = hd;
     }
 }
@@ -100,11 +101,11 @@ static inline int HotMsg_requestECall( HotMsg* hotMsg, int dataID, void *data )
         sgx_spin_unlock( &data_ptr->spinlock );
 
         numRetries++;
-        // if( numRetries > MAX_RETRIES ){
-        //     printf("exceeded tries\n");
-        //     sgx_spin_unlock( &data_ptr->spinlock );
-        //     return -1;
-        // }
+        if( numRetries > MAX_RETRIES ){
+            printf("exceeded tries\n");
+            sgx_spin_unlock( &data_ptr->spinlock );
+            return -1;
+        }
 
         for( i = 0; i<3; ++i)
             _mm_sleep();
