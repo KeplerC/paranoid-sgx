@@ -29,6 +29,7 @@
 
 #include <stdbool.h>
 #include "common.h"
+#include "sgx_spinlock.h"
 
 #pragma GCC diagnostic ignored "-Wunused-function"
 #define MAX_QUEUE_LENGTH 1000
@@ -36,14 +37,16 @@
 typedef unsigned long int pthread_t;
 
 typedef struct {
-    absl::Mutex lock; 
+    sgx_spinlock_t  spinlock;
     bool            isRead;
     void*           data;
 } HotData;
 
 
 typedef struct {
+    sgx_spinlock_t  spinlock;
     pthread_t       responderThread;
+    bool            initialized; 
     bool            keepPolling;
     HotData**    MsgQueue;
 } HotMsg;
@@ -79,23 +82,28 @@ static inline int HotMsg_requestCall( HotMsg* hotMsg, int dataID, void *data )
     int data_index = dataID % (MAX_QUEUE_LENGTH - 1);
     //Request call
     while( true ) {
+
         HotData* data_ptr = (HotData*) hotMsg -> MsgQueue[data_index];
-        data_ptr->lock.Lock(); 
-        // sgx_spin_lock( &data_ptr->spinlock );
+        sgx_spin_lock( &data_ptr->spinlock );
+        // printf("[HotMsg_requestCall] keep polling: %d\n", hotMsg->keepPolling);
+
         if( data_ptr-> isRead == true ) {
             data_ptr-> isRead  = false;
             data_ptr->data = data;
-            data_ptr->lock.Unlock(); 
-            // sgx_spin_unlock( &data_ptr->spinlock );
+            data_capsule_t *clarg = (data_capsule_t *) data; 
+            // printf("[HotMsg_requestCall] data id: %d\n", arg->id);
+            sgx_spin_unlock( &data_ptr->spinlock );
             break;
         }
         //else:
-        data_ptr->lock.Unlock(); 
-        // sgx_spin_unlock( &data_ptr->spinlock );
+        sgx_spin_unlock( &data_ptr->spinlock );
 
         numRetries++;
-        if( numRetries > MAX_RETRIES )
-            return -1;
+        // if( numRetries > MAX_RETRIES ){
+        //     printf("exceeded tries\n");
+        //     sgx_spin_unlock( &data_ptr->spinlock );
+        //     return -1;
+        // }
 
         for( i = 0; i<3; ++i)
             _mm_sleep();
@@ -105,36 +113,43 @@ static inline int HotMsg_requestCall( HotMsg* hotMsg, int dataID, void *data )
 }
 
 static inline void HotMsg_waitForCall( HotMsg *hotMsg )  __attribute__((always_inline));
-static inline void HotMsg_waitForCall( HotMsg *hotMsg )
-{
-    int dataID = 0;
+// static inline void HotMsg_waitForCall( HotMsg *hotMsg )
+// {
+//     int dataID = 0;
 
-    static int i;
-    printf("data_ID: %d\n", dataID);
+//     static int i;
+//     // printf("[HotMsg_waitForCall] data_ID: %d\n", dataID);
 
-    while( true )
-    {
-        printf("data_ptr: %p, data_id: %d\n", hotMsg -> MsgQueue[dataID], dataID);
-        HotData* data_ptr = (HotData*) hotMsg -> MsgQueue[dataID];
-        if (data_ptr == 0){
-            printf("data_ID: %d\n", dataID);
-            continue;
-        }
-        if( hotMsg->keepPolling != true ) {
-            break;
-        }
-        data_ptr->lock.Lock(); 
-        // sgx_spin_lock( &data_ptr->spinlock );
-        //do stuff
-        printf("Lock held\n");
-        data_ptr->isRead      = true;
-        data_ptr->lock.Unlock(); 
-        // sgx_spin_unlock( &data_ptr->spinlock );
-        dataID = (dataID + 1) % (MAX_QUEUE_LENGTH - 1);
-        for( i = 0; i<3; ++i)
-            _mm_pause();
-    }
-}
+//     while( true )
+//     {
+//         // printf("[HotMsg_waitForCall] data_ptr: %p, data_id: %d\n", hotMsg -> MsgQueue[dataID], dataID);
+//         HotData* data_ptr = (HotData*) hotMsg -> MsgQueue[dataID];
+//         if (data_ptr == 0){
+//             continue;
+//         }
+//         if( hotMsg->keepPolling != true ) {
+//             break;
+//         }
+
+//         sgx_spin_lock( &data_ptr->spinlock );
+//         //do stuff
+
+//         if(data_ptr->data){
+//             //Message exists!
+//             data_capsule_t *arg = (data_capsule_t *) data_ptr->data; 
+//             printf("[HotMsg_waitForCall] FOUND MESSSAGE: dc_id: %d\n", arg->id);
+//             data_ptr->data = 0; 
+//         }
+
+//         // printf("[HotMsg_waitForCall] data_ptr->isRead: %d, dataID: %d\n", data_ptr->isRead, dataID);
+
+//         data_ptr->isRead      = true;
+//         sgx_spin_unlock( &data_ptr->spinlock );
+//         dataID = (dataID + 1) % (MAX_QUEUE_LENGTH - 1);
+//         for( i = 0; i<3; ++i)
+//             _mm_pause();
+//     }
+// }
 
 // This function is here for purely measurement purpose
 // enclave does not support rdtsp, and our msg passing does not call functions
@@ -158,13 +173,13 @@ static inline void HotMsg_waitForCall_Measurement( HotMsg *hotMsg, uint64_t (*rd
             break;
         }
 
-        data_ptr->lock.Lock(); 
-        // sgx_spin_lock( &data_ptr->spinlock );
+        // data_ptr->lock.Lock(); 
+        sgx_spin_lock( &data_ptr->spinlock );
 
         OcallParams* ocallParams = (OcallParams*)data_ptr->data;
         data_ptr->isRead      = true;
-        data_ptr->lock.Unlock(); 
-        // sgx_spin_unlock( &data_ptr->spinlock );
+        // data_ptr->lock.Unlock(); 
+        sgx_spin_unlock( &data_ptr->spinlock );
 
         *(ocallParams->cyclesCount)  = rdtsp_ptr() - startTime;
         startTime     = rdtsp_ptr();

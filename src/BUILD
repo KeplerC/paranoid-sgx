@@ -52,7 +52,6 @@ cc_unsigned_enclave(
         "@com_google_asylo//asylo:enclave_runtime",
         "@com_google_asylo//asylo/util:logging",
         "@com_google_asylo//asylo/util:status",
-        # "@com_google_asylo//asylo/platform/core:trusted_spin_lock",
         "@com_google_asylo//asylo/crypto:sha256_hash_util",
     ],
 )
@@ -64,7 +63,7 @@ debug_sign_enclave(
 
 enclave_loader(
     name = "hello_world",
-    srcs = ["hello_driver.cc", "gdp.h", "hot_msg_pass.h",  "common.h"],
+    srcs = ["sgx_spinlock.h", "spinlock.c", "hello_driver.cc", "gdp.h", "hot_msg_pass.h",  "common.h"],
     backends = sgx.backend_labels,  # Has SGX loader dependencies
     enclaves = {"enclave": ":hello_enclave.so"},
     loader_args = ["--enclave_path='{enclave}'"],

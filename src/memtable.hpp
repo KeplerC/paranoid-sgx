@@ -2,6 +2,7 @@
 #define _MEMTBL_H
 
 #include "double_linked_list.hpp"
+#include "sgx_spinlock.h"
 
 #define MAX_MEM_SZ 300
 #define BUCKET_NUM 5
@@ -9,7 +10,7 @@
 struct bucket_entry{
   bool valid;
   DoublyLinkedList buckets; 
-  absl::Mutex lock; 
+  sgx_spinlock_t  spinlock;
 };
 
 class MemTable {
@@ -21,6 +22,7 @@ class MemTable {
     MemTable(){
       max_capacity = MAX_MEM_SZ; 
       curr_capacity = 0; 
+      memset(memtable, 0, MAX_MEM_SZ/BUCKET_NUM * sizeof(bucket_entry));
     }
   private:
     bucket_entry memtable[MAX_MEM_SZ/BUCKET_NUM];

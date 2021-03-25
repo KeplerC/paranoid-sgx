@@ -35,6 +35,7 @@
 #include "gdp.h"
 #include "hot_msg_pass.h"
 
+#define PERFORMANCE_MEASUREMENT_NUM_REPEATS 10
 #define MULTI_CLIENT false
 #define NET_CLIENT_BASE_PORT 5555
 #define NET_CLIENT_IP "localhost"
@@ -60,22 +61,69 @@ public:
         this->m_name = enclave_name;
     }
 
-    static void* EnclaveKVSThread( void* hotMsgAsVoidP )
-{
+static void* StartEnclaveResponder( void* hotMsgAsVoidP ) {
+
     //To be started in a new thread
     struct enclave_responder_args *args = (struct enclave_responder_args *) hotMsgAsVoidP;
+    struct enclave_responder_args params;
+    params.hotMsg = args->hotMsg;
+    params.client = args->client; 
+
     HotMsg *hotMsg = args->hotMsg;
 
     asylo::EnclaveInput input;
     asylo::EnclaveOutput output;
 
     input.MutableExtension(hello_world::enclave_responder)->set_responder((long int)  hotMsg); 
-    args->client->EnterAndRun(input, &output);
+    params.client->EnterAndRun(input, &output);
     
-    // EnclaveMsgStartResponder( globalEnclaveID, hotMsg );
-    printf("%p\n", hotMsg);
     return NULL;
 }
+
+static void *StartOcallResponder( void *arg ) {
+
+    HotMsg *hotMsg = (HotMsg *) arg;
+
+    int dataID = 0;
+
+    static int i;
+    sgx_spin_lock(&hotMsg->spinlock );
+    hotMsg->initialized = true;  
+    sgx_spin_unlock(&hotMsg->spinlock);
+
+    while( true )
+    {
+      if( hotMsg->keepPolling != true ) {
+            break;
+      }
+      
+      HotData* data_ptr = (HotData*) hotMsg -> MsgQueue[dataID];
+      if (data_ptr == 0){
+          continue;
+      }
+
+      sgx_spin_lock( &data_ptr->spinlock );
+
+      if(data_ptr->data){
+          //Message exists!
+          data_capsule_t *dc = (data_capsule_t *) data_ptr->data; 
+          printf("RECEIVED OCALL\n");
+          // printf("[OCALL] arg: %d, %p\n", dc->id, dc);
+          // dc->id = 8080;
+          data_ptr->data = 0; 
+      }
+
+      data_ptr->isRead      = true;
+      sgx_spin_unlock( &data_ptr->spinlock );
+      dataID = (dataID + 1) % (MAX_QUEUE_LENGTH - 1);
+      for( i = 0; i<3; ++i)
+          _mm_pause();
+  }
+}
+
+    void put_ecall(data_capsule_t *dc) {
+      HotMsg_requestCall( hotMsg_enclave, requestedCallID, dc);
+    }
 
     void init(){
         asylo::EnclaveManager::Configure(asylo::EnclaveManagerOptions());
@@ -105,50 +153,69 @@ public:
                         << " failed: " << status;
         }
         std::cout << "Enclave " << this->m_name << " Initialized" << std::endl;
+
+        // Initialize the OCALL/ECALL circular buffers for switchless calls 
+        hotMsg_enclave = (HotMsg *) calloc(1, sizeof(HotMsg));   // HOTMSG_INITIALIZER;
+        HotMsg_init(hotMsg_enclave);
+
+        hotMsg_host = (HotMsg *) calloc(1, sizeof(HotMsg));   // HOTMSG_INITIALIZER;
+        HotMsg_init(hotMsg_host);
+
+        //ID for ECALL requests
+        requestedCallID = 0; 
+
+        std::cout << "OCALL and ECALL circular buffers initialized." << std::endl;
     }
 
     void execute(std::vector<std::string>  names){
+
         this->client = this->manager->GetClient(this->m_name);
 
-        for (const auto &name : names) {
-            asylo::EnclaveInput input;
+        //Starts Enclave responder 
+        struct enclave_responder_args e_responder_args = {this->client, hotMsg_enclave};
+        pthread_create(&hotMsg_enclave->responderThread, NULL, StartEnclaveResponder, (void*)&e_responder_args);
 
+        //Start Host Responder
+        pthread_create(&hotMsg_host->responderThread, NULL, StartOcallResponder, (void*) hotMsg_host);
+
+        for (const auto &name : names) {
             data_capsule_t dc_msg;
             dc_msg.id = 2021; 
             dc_msg.payload_size = name.length() + 1; 
-
-            HotMsg hotMsg = HOTMSG_INITIALIZER;
-            HotMsg_init(&hotMsg);
-
-            struct enclave_responder_args e_responder_args = {this->client, &hotMsg};
-
-            pthread_create(&hotMsg.responderThread, NULL, EnclaveKVSThread, (void*)&e_responder_args);
-
-
             name.copy(dc_msg.payload, dc_msg.payload_size , 0);
 
-            input.MutableExtension(hello_world::enclave_input_hello)
-                    ->set_to_greet(name);
+            int requestedCallID = 0;
+            for( uint64_t i=0; i < PERFORMANCE_MEASUREMENT_NUM_REPEATS; ++i ) {
+                requestedCallID += 1;
+                dc_msg.id = requestedCallID; 
+                put_ecall( &dc_msg );
+            }
+
+            //Test OCALL 
+            asylo::EnclaveInput input;
             input.MutableExtension(hello_world::dc)->set_dc_ptr((long int) &dc_msg); 
+            input.MutableExtension(hello_world::buffer)->set_buffer((long int) hotMsg_host); 
 
             asylo::EnclaveOutput output;
             asylo::Status status = this->client->EnterAndRun(input, &output);
             if (!status.ok()) {
                 LOG(QFATAL) << "EnterAndRun failed: " << status;
             }
-
-            if (!output.HasExtension(hello_world::enclave_output_hello)) {
-                LOG(QFATAL) << "Enclave did not assign an ID for " << name;
-            }
-
-            std::cout << "Message from enclave " << this->m_name << ": "
-                      << output.GetExtension(hello_world::enclave_output_hello)
-                              .greeting_message()
-                      << std::endl;
         }
+       
+        
+        StopMsgResponder( hotMsg_host );
+        pthread_join(hotMsg_host->responderThread, NULL);
+
+        StopMsgResponder( hotMsg_enclave );
+        pthread_join(hotMsg_enclave->responderThread, NULL);
+
+        free(hotMsg_host);
+        free(hotMsg_enclave);
     }
 
     void finalize(){
+        printf("Destroying enclave\n");
         asylo::EnclaveFinal final_input;
         asylo::Status status = this->manager->DestroyEnclave(this->client, final_input);
         if (!status.ok()) {
@@ -166,6 +233,9 @@ private:
     asylo::EnclaveManager *manager;
     asylo::EnclaveClient *client;
     std::string m_name;
+    HotMsg *hotMsg_enclave;
+    HotMsg *hotMsg_host; 
+    int requestedCallID;
 };
 
 
