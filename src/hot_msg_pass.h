@@ -40,6 +40,7 @@ typedef struct {
     sgx_spinlock_t  spinlock;
     bool            isRead;
     void*           data;
+    data_capsule_t  dc; 
 } HotData;
 
 

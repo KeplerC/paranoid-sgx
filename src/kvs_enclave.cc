@@ -57,7 +57,12 @@ class KVSApplication : public asylo::TrustedApplication {
         if( data_ptr-> isRead == true ) {
             data_ptr-> isRead  = false;
             data_ptr->data = data;
-            data_capsule_t *arg = (data_capsule_t *) data; 
+      
+            OcallParams *arg = (OcallParams *) data; 
+            data_capsule_t *dc = (data_capsule_t *) arg->data; 
+
+            //Must copy to the host since we cannot pass a pointer from enclave
+            memcpy(&data_ptr->dc, dc, sizeof(data_capsule_t));
             sgx_spin_unlock( &data_ptr->spinlock );
             break;
         }
@@ -108,7 +113,7 @@ class KVSApplication : public asylo::TrustedApplication {
 
           switch(arg->ecall_id){
             case ECALL_PUT:
-              printf("[ECALL] dc_id : %d\n", dc->id);
+              // printf("[ECALL] dc_id : %d\n", dc->id);
               put((data_capsule_t *) arg->data);
               break;
             default:
@@ -146,37 +151,7 @@ class KVSApplication : public asylo::TrustedApplication {
       dc[i].id = i; 
       put_ocall(&dc[i]);
     }
-
-    // LOG(INFO) << "Received DataCapsule id: " << (int) dc->id;
-    // LOG(INFO) << "DataCapsule payload: " << dc->payload;
-
-    // for(data_capsule_id i = 0; i < 300; i++){
-    //   dc->id = i; 
-    //   put(dc);
-    // }
-
-    // for(data_capsule_id i = 0; i < 300; i++){
-    //   ret = get(i);
-
-    //   if(!ret){
-    //     LOG(INFO) << "GET FAILED on DataCapsule id: " << (int) i;
-    //   }
-    // }
-
-    // LOG(INFO) << "Hashmap size has size: " << memtable.getSize(); 
-
-    // std::string visitor =
-    //     input.GetExtension(hello_world::enclave_input_hello).to_greet();
-
-    // LOG(INFO) << "Hello " << visitor;
-
-    // if (output) {
-    //   LOG(INFO) << "Incrementing visitor count...";
-    //   output->MutableExtension(hello_world::enclave_output_hello)
-    //       ->set_greeting_message(
-    //           absl::StrCat("Hello ", visitor, "! You are visitor #",
-    //                        ++visitor_count_, " to this enclave."));
-    // }
+    
     return asylo::Status::OkStatus();
   }
 

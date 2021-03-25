@@ -108,7 +108,7 @@ static void *StartOcallResponder( void *arg ) {
       if(data_ptr->data){
           //Message exists!
           OcallParams *arg = (OcallParams *) data_ptr->data; 
-          data_capsule_t *dc = (data_capsule_t *) arg->data; 
+          data_capsule_t *dc = &data_ptr->dc; 
 
           switch(arg->ocall_id){
             case OCALL_PUT:
