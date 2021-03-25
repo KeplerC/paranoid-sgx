@@ -62,7 +62,7 @@ public:
         this->m_name = enclave_name;
     }
 
-static void* StartEnclaveResponder( void* hotMsgAsVoidP ) {
+    static void* StartEnclaveResponder( void* hotMsgAsVoidP ) {
 
     //To be started in a new thread
     struct enclave_responder_args *args = (struct enclave_responder_args *) hotMsgAsVoidP;
@@ -81,7 +81,7 @@ static void* StartEnclaveResponder( void* hotMsgAsVoidP ) {
     return NULL;
 }
 
-static void *StartOcallResponder( void *arg ) {
+    static void *StartOcallResponder( void *arg ) {
 
     HotMsg *hotMsg = (HotMsg *) arg;
 
@@ -110,7 +110,7 @@ static void *StartOcallResponder( void *arg ) {
           OcallParams *arg = (OcallParams *) data_ptr->data; 
           data_capsule_t *dc = &data_ptr->dc; 
 
-          switch(arg->ocall_id){
+          switch(data_ptr->ocall_id){
             case OCALL_PUT:
               printf("[OCALL] dc_id : %d\n", dc->id);
               break;

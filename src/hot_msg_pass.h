@@ -41,6 +41,7 @@ typedef struct {
     bool            isRead;
     void*           data;
     data_capsule_t  dc; 
+    int             ocall_id; 
 } HotData;
 
 

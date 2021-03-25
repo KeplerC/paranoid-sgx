@@ -34,12 +34,14 @@ class KVSApplication : public asylo::TrustedApplication {
  public:
   KVSApplication() : visitor_count_(0) {}
 
-  //TODO: Free memory in the OCALL responder
+  /* 
+    We can allocate OCALL params on stack because params are copied to circular buffer.
+  */
   void put_ocall(data_capsule_t *dc){
-      OcallParams *args = (OcallParams *) malloc(sizeof(OcallParams));
-      args->ocall_id = OCALL_PUT;
-      args->data = dc; 
-      HotMsg_requestOCall( buffer, requestedCallID++, args);
+      OcallParams args;
+      args.ocall_id = OCALL_PUT;
+      args.data = dc; 
+      HotMsg_requestOCall( buffer, requestedCallID++, &args);
   }
 
   int HotMsg_requestOCall( HotMsg* hotMsg, int dataID, void *data ) {
@@ -56,9 +58,9 @@ class KVSApplication : public asylo::TrustedApplication {
 
         if( data_ptr-> isRead == true ) {
             data_ptr-> isRead  = false;
-            data_ptr->data = data;
-      
             OcallParams *arg = (OcallParams *) data; 
+            data_ptr->data = (void *) 1; 
+            data_ptr->ocall_id = arg->ocall_id;      
             data_capsule_t *dc = (data_capsule_t *) arg->data; 
 
             //Must copy to the host since we cannot pass a pointer from enclave
@@ -163,7 +165,6 @@ class KVSApplication : public asylo::TrustedApplication {
 
   /* These functions willl be part of the CAAPI */
   bool put(data_capsule_t *dc) {
-    // printf("PUT dc id: %d\n", dc->id);
     return memtable.put(dc);
   }
 
