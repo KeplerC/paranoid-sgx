@@ -132,7 +132,7 @@ public:
       EcallParams *args = (EcallParams *) malloc(sizeof(OcallParams));
       args->ecall_id = ECALL_PUT;
       args->data = dc; 
-      HotMsg_requestECall( hotMsg_enclave, requestedCallID++, args);
+      HotMsg_requestECall( circ_buffer_enclave, requestedCallID++, args);
     }
 
     void init(){
@@ -165,11 +165,11 @@ public:
         std::cout << "Enclave " << this->m_name << " Initialized" << std::endl;
 
         // Initialize the OCALL/ECALL circular buffers for switchless calls 
-        hotMsg_enclave = (HotMsg *) calloc(1, sizeof(HotMsg));   // HOTMSG_INITIALIZER;
-        HotMsg_init(hotMsg_enclave);
+        circ_buffer_enclave = (HotMsg *) calloc(1, sizeof(HotMsg));   // HOTMSG_INITIALIZER;
+        HotMsg_init(circ_buffer_enclave);
 
-        hotMsg_host = (HotMsg *) calloc(1, sizeof(HotMsg));   // HOTMSG_INITIALIZER;
-        HotMsg_init(hotMsg_host);
+        circ_buffer_host = (HotMsg *) calloc(1, sizeof(HotMsg));   // HOTMSG_INITIALIZER;
+        HotMsg_init(circ_buffer_host);
 
         //ID for ECALL requests
         requestedCallID = 0; 
@@ -182,11 +182,11 @@ public:
         this->client = this->manager->GetClient(this->m_name);
 
         //Starts Enclave responder 
-        struct enclave_responder_args e_responder_args = {this->client, hotMsg_enclave};
-        pthread_create(&hotMsg_enclave->responderThread, NULL, StartEnclaveResponder, (void*)&e_responder_args);
+        struct enclave_responder_args e_responder_args = {this->client, circ_buffer_enclave};
+        pthread_create(&circ_buffer_enclave->responderThread, NULL, StartEnclaveResponder, (void*)&e_responder_args);
 
         //Start Host Responder
-        pthread_create(&hotMsg_host->responderThread, NULL, StartOcallResponder, (void*) hotMsg_host);
+        pthread_create(&circ_buffer_host->responderThread, NULL, StartOcallResponder, (void*) circ_buffer_host);
 
         for (const auto &name : names) {
             data_capsule_t dc[10];
@@ -198,7 +198,7 @@ public:
 
             //Test OCALL 
             asylo::EnclaveInput input;
-            input.MutableExtension(hello_world::buffer)->set_buffer((long int) hotMsg_host); 
+            input.MutableExtension(hello_world::buffer)->set_buffer((long int) circ_buffer_host); 
 
             asylo::EnclaveOutput output;
             asylo::Status status = this->client->EnterAndRun(input, &output);
@@ -210,14 +210,14 @@ public:
         //Sleep so that threads have time to process ALL requests
         sleep(1);
 
-        StopMsgResponder( hotMsg_host );
-        pthread_join(hotMsg_host->responderThread, NULL);
+        StopMsgResponder( circ_buffer_host );
+        pthread_join(circ_buffer_host->responderThread, NULL);
 
-        StopMsgResponder( hotMsg_enclave );
-        pthread_join(hotMsg_enclave->responderThread, NULL);
+        StopMsgResponder( circ_buffer_enclave );
+        pthread_join(circ_buffer_enclave->responderThread, NULL);
 
-        free(hotMsg_host);
-        free(hotMsg_enclave);
+        free(circ_buffer_host);
+        free(circ_buffer_enclave);
     }
 
     void finalize(){
@@ -238,8 +238,8 @@ private:
     asylo::EnclaveManager *manager;
     asylo::EnclaveClient *client;
     std::string m_name;
-    HotMsg *hotMsg_enclave;
-    HotMsg *hotMsg_host; 
+    HotMsg *circ_buffer_enclave;
+    HotMsg *circ_buffer_host; 
     int requestedCallID;
 };
 
