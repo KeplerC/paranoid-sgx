@@ -20,11 +20,9 @@
 #include "absl/base/macros.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/escaping.h"
-// #include "absl/container/flat_hash_map.h"
 #include "asylo/trusted_application.h"
 #include "asylo/util/logging.h"
 #include "asylo/util/status.h"
-#include "src/proto/hello.pb.h"
 #include "asylo/crypto/aead_cryptor.h"
 #include "asylo/util/cleansing_types.h"
 #include "asylo/crypto/ecdsa_p256_sha256_signing_key.h"
@@ -32,6 +30,8 @@
 #include "asylo/crypto/util/byte_container_view.h"
 #include "gdp.h"
 #include "memtable.hpp"
+#include "src/proto/hello.pb.h"
+#include "src/util/proto_util.hpp"
 
 namespace asylo {
 
@@ -116,12 +116,6 @@ namespace asylo {
 
             return CleansingString(plaintext.begin(), plaintext.end());
         }
-
-        void OnPutCapsule(hello_world::CapsulePDU *capsule_ptr, std::string key, std::string value){
-            capsule_ptr->set_dc_ptr(2021);
-            //dc_msg->payload_size = 13;
-            //memcpy(dc_msg->payload, "Hello World!", dc_msg.payload_size);
-        }
     }
 
     class HelloApplication : public asylo::TrustedApplication {
@@ -141,18 +135,21 @@ namespace asylo {
                                      "Expected a DataCapsule extension on input.");
             }
 
-            data_capsule_t *ret;
-            data_capsule_t *dc = (data_capsule_t *) input.GetExtension(hello_world::input_dc).dc_ptr();
+            capsule_pdu *ret;
+            capsule_pdu in_dc;
+            asylo::CapsuleFromProto(&in_dc, &input.GetExtension(hello_world::input_dc));
 
-            LOG(INFO) << "Received DataCapsule is " << (int) dc->id << ", should be 2021!";
-            LOG(INFO) << "DataCapsule payload is " << dc->payload << ", should be 'Hello World!";
+            LOG(INFO) << "Received DataCapsule is " << (int) in_dc.id << ", should be 2021";
+            LOG(INFO) << "DataCapsule payload.key is " << in_dc.payload.key << ", should be input_key";
+            LOG(INFO) << "DataCapsule payload.value is " << in_dc.payload.value << ", should be input_value";
 
-            for(data_capsule_id i = 0; i < 300; i++){
-                dc->id = i;
-                memtable.put(dc);
+            capsule_pdu dc_kvs;
+            for(capsule_id i = 0; i < 300; i++){
+                dc_kvs.id = i;
+                memtable.put(&dc_kvs);
             }
 
-            for(data_capsule_id i = 0; i < 300; i++){
+            for(capsule_id i = 0; i < 300; i++){
                 ret = memtable.get(i);
 
                 if(!ret){
@@ -173,7 +170,9 @@ namespace asylo {
                         ->set_greeting_message(
                                 absl::StrCat("Hello ", visitor, "! You are visitor #",
                                              ++visitor_count_, " to this enclave."));
-                OnPutCapsule(output->MutableExtension(hello_world::output_dc), "visitor", "hello");
+                capsule_pdu out_dc;
+                asylo::KvToCapsule(&out_dc, 2022, "output_key", "output_value");
+                asylo::CapsuleToProto(&out_dc, output->MutableExtension(hello_world::output_dc));
                 LOG(INFO) << "= Encryption and Decryption =";
                 std::string result;
                 ASYLO_ASSIGN_OR_RETURN(result, EncryptMessage(visitor));

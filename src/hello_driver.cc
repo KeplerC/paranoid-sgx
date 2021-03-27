@@ -18,7 +18,9 @@
 
 #include <iostream>
 #include <string>
+#include <thread>
 #include <vector>
+#include <zmq.hpp>
 
 #include "absl/flags/flag.h"
 #include "absl/flags/parse.h"
@@ -27,10 +29,9 @@
 #include "asylo/enclave.pb.h"
 #include "asylo/platform/primitives/sgx/loader.pb.h"
 #include "asylo/util/logging.h"
-#include "src/proto/hello.pb.h"
-#include <thread>
-#include <zmq.hpp>
 #include "gdp.h"
+#include "src/proto/hello.pb.h"
+#include "src/util/proto_util.hpp"
 
 #define MULTI_CLIENT false
 #define NET_CLIENT_BASE_PORT 5555
@@ -85,16 +86,13 @@ public:
         this->client = this->manager->GetClient(this->m_name);
 
         for (const auto &name : names) {
-            asylo::EnclaveInput input;
-            
-            data_capsule_t dc_msg;
-            dc_msg.id = 2021; 
-            dc_msg.payload_size = 13; 
-            memcpy(dc_msg.payload, "Hello World!", dc_msg.payload_size); 
+            asylo::EnclaveInput input;            
+            capsule_pdu in_dc;
 
+            asylo::KvToCapsule(&in_dc, 2021, "input_key", "input_value");
             input.MutableExtension(hello_world::enclave_input_hello)
                     ->set_to_greet(name);
-            input.MutableExtension(hello_world::input_dc)->set_dc_ptr((long int) &dc_msg);
+            asylo::CapsuleToProto(&in_dc, input.MutableExtension(hello_world::input_dc));
 
             asylo::EnclaveOutput output;
             asylo::Status status = this->client->EnterAndRun(input, &output);
@@ -109,6 +107,13 @@ public:
             LOG(INFO)  << "Message from enclave " << this->m_name << ": "
                       << output.GetExtension(hello_world::enclave_output_hello)
                               .greeting_message();
+
+            capsule_pdu out_dc;
+            asylo::CapsuleFromProto(&out_dc, &output.GetExtension(hello_world::output_dc));
+
+            LOG(INFO) << "Received output DataCapsule is " << (int) out_dc.id << ", should be 2022";
+            LOG(INFO) << "DataCapsule payload.key is " << out_dc.payload.key << ", should be output_key";
+            LOG(INFO) << "DataCapsule payload.value is " << out_dc.payload.value << ", should be output_value";
         }
     }
 

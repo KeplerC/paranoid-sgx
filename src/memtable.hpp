@@ -14,9 +14,9 @@ struct bucket_entry{
 class MemTable {
   public:
     size_t getSize(); 
-    bool put(data_capsule_t *dc);
-    data_capsule_t *get(data_capsule_id id);
-    __uint32_t hash(data_capsule_id id);
+    bool put(capsule_pdu *dc);
+    capsule_pdu *get(capsule_id id);
+    __uint32_t hash(capsule_id id);
     MemTable(){
       max_capacity = MAX_MEM_SZ; 
       curr_capacity = 0; 

@@ -3,12 +3,12 @@
 #include "memtable.hpp"
 
 // TODO: Replace hash function
-__uint32_t MemTable:: hash(data_capsule_id id){
+__uint32_t MemTable:: hash(capsule_id id){
     return id % (MAX_MEM_SZ/BUCKET_NUM);
 }
 
 
-data_capsule_t *MemTable:: get(data_capsule_id id){
+capsule_pdu *MemTable:: get(capsule_id id){
 
   uint32_t mem_idx = hash(id);
 
@@ -17,7 +17,7 @@ data_capsule_t *MemTable:: get(data_capsule_id id){
     return NULL;
   } 
 
-  data_capsule_t *ret = memtable[mem_idx].buckets.search(id);
+  capsule_pdu *ret = memtable[mem_idx].buckets.search(id);
   if(!ret){
     //TODO: We must do an OCALL to fetch from the DataCapsule server 
   }
@@ -29,7 +29,7 @@ data_capsule_t *MemTable:: get(data_capsule_id id){
  Datacapsule is copied into memtable  
  We assume dc is provided by client enclave application 
 */
-bool MemTable:: put(data_capsule_t *dc){
+bool MemTable:: put(capsule_pdu *dc){
   
   uint32_t mem_idx = hash(dc->id);
 

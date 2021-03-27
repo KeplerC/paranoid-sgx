@@ -7,10 +7,10 @@
 
 struct Node
 {
-    data_capsule_t dc; 
+    capsule_pdu dc; 
     Node* next;
     Node* prev;
-    Node(data_capsule_t *);
+    Node(capsule_pdu *);
 };
  
 class DoublyLinkedList
@@ -18,14 +18,14 @@ class DoublyLinkedList
 public:
     DoublyLinkedList();
     ~DoublyLinkedList();
-    void insert_front(data_capsule_t *);
-    void insert_back(data_capsule_t *);
-    data_capsule_t *  delete_front();
+    void insert_front(capsule_pdu *);
+    void insert_back(capsule_pdu *);
+    capsule_pdu *  delete_front();
     void  delete_back();
     bool is_empty();
     void display();
     int length();
-    data_capsule_t * search(int);
+    capsule_pdu * search(int);
  
 private:
     Node* head;

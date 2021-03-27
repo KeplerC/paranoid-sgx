@@ -1,8 +1,8 @@
 #include "double_linked_list.hpp"
 
-Node::Node(data_capsule_t *dc_arg)       //Parameterized Constructor
+Node::Node(capsule_pdu *dc_arg)       //Parameterized Constructor
 {
-    memcpy(&dc, dc_arg, sizeof(data_capsule_t));
+    memcpy(&dc, dc_arg, sizeof(capsule_pdu));
     next = prev = NULL;
 }
  
@@ -16,7 +16,7 @@ DoublyLinkedList::~DoublyLinkedList()
 {
 }
  
-void DoublyLinkedList::insert_front(data_capsule_t *value)
+void DoublyLinkedList::insert_front(capsule_pdu *value)
 {
     Node* temp = new Node(value);
 
@@ -31,7 +31,7 @@ void DoublyLinkedList::insert_front(data_capsule_t *value)
     size++;
 }
  
-void DoublyLinkedList::insert_back(data_capsule_t *value)
+void DoublyLinkedList::insert_back(capsule_pdu *value)
 {
     Node* temp = new Node(value);
  
@@ -46,7 +46,7 @@ void DoublyLinkedList::insert_back(data_capsule_t *value)
     size++;
 }
  
-data_capsule_t * DoublyLinkedList::delete_front()
+capsule_pdu * DoublyLinkedList::delete_front()
 {
     if (!is_empty())
     {
@@ -55,7 +55,7 @@ data_capsule_t * DoublyLinkedList::delete_front()
         {
             tail = NULL;
         }
-        data_capsule_t * delValue = &temp->dc;
+        capsule_pdu * delValue = &temp->dc;
         head = head->next;
  
         // delete temp;
@@ -115,7 +115,7 @@ int DoublyLinkedList::length()
     return size;
 }
  
-data_capsule_t * DoublyLinkedList::search(int value)
+capsule_pdu * DoublyLinkedList::search(int value)
 {
     if (!is_empty())
     {
