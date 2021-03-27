@@ -2,7 +2,7 @@
 #define _PROTOUTIL_H
 
 #include <string>
-#include "src/gdp.h"
+#include "src/capsule.h"
 #include "src/proto/hello.pb.h"
 namespace asylo {
 

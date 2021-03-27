@@ -28,7 +28,7 @@
 #include "asylo/crypto/ecdsa_p256_sha256_signing_key.h"
 #include "asylo/util/status_macros.h"
 #include "asylo/crypto/util/byte_container_view.h"
-#include "gdp.h"
+#include "capsule.h"
 #include "memtable.hpp"
 #include "src/proto/hello.pb.h"
 #include "src/util/proto_util.hpp"

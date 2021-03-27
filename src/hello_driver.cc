@@ -29,7 +29,7 @@
 #include "asylo/enclave.pb.h"
 #include "asylo/platform/primitives/sgx/loader.pb.h"
 #include "asylo/util/logging.h"
-#include "gdp.h"
+#include "capsule.h"
 #include "src/proto/hello.pb.h"
 #include "src/util/proto_util.hpp"
 

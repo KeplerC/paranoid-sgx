@@ -1,5 +1,5 @@
-#ifndef _GDP_H_
-#define _GDP_H_
+#ifndef _CAPSULE_H_
+#define _CAPSULE_H_
 
 #include <string>
 // Size of DC payload 
