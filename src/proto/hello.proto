@@ -19,6 +19,7 @@ syntax = "proto2";
 package hello_world;
 
 import "asylo/enclave.proto";
+import "src/proto/capsule.proto";
 
 // Extension to EnclaveInput for use with HelloWorld enclave.
 message HelloInput {
@@ -29,9 +30,6 @@ message HelloOutput {
   optional string greeting_message = 1;
 }
 
-message DataCapsule {
-  optional int64 dc_ptr = 1;
-}
 
 message EnclaveResponder {
   optional int64 responder = 1;
@@ -43,11 +41,13 @@ message HotMsg {
 
 extend asylo.EnclaveInput {
   optional HelloInput enclave_input_hello = 8086;
-  optional DataCapsule dc = 8087;
+  optional CapsulePDU input_dc = 8087;
   optional HotMsg buffer = 8088;
   optional EnclaveResponder enclave_responder = 8089; 
+
 }
 
 extend asylo.EnclaveOutput {
   optional HelloOutput enclave_output_hello = 8088;
+  optional CapsulePDU output_dc = 8089;
 }

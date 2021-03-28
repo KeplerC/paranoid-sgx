@@ -1,0 +1,20 @@
+
+syntax = "proto2";
+package hello_world;
+
+message CapsulePDU {
+
+  optional int64 id = 1;
+  optional KVSPayload payload = 2;
+  optional bytes signature = 3;
+
+  optional bytes prevHash = 4; // Hash ptr to the previous record, not needed for the minimal prototype
+  optional bytes metaHash = 5; // Hash of meta data
+  optional bytes dataHash = 6; // Hash of data
+
+}
+
+message KVSPayload{
+  optional bytes key = 1;
+  optional bytes value = 2;
+}

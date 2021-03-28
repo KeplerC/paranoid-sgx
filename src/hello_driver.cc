@@ -18,7 +18,9 @@
 
 #include <iostream>
 #include <string>
+#include <thread>
 #include <vector>
+#include <zmq.hpp>
 
 #include "absl/flags/flag.h"
 #include "absl/flags/parse.h"
@@ -28,13 +30,15 @@
 #include "asylo/enclave.pb.h"
 #include "asylo/platform/primitives/sgx/loader.pb.h"
 #include "asylo/util/logging.h"
-#include "src/hello.pb.h"
 #include <thread>
 #include <mutex>
 #include <zmq.hpp>
-#include "gdp.h"
 #include "hot_msg_pass.h"
 #include "common.h"
+#include "capsule.h"
+#include "src/proto/hello.pb.h"
+#include "src/util/proto_util.hpp"
+
 
 #define PERFORMANCE_MEASUREMENT_NUM_REPEATS 10
 #define MULTI_CLIENT false
@@ -191,6 +195,7 @@ public:
         pthread_create(&circ_buffer_host->responderThread, NULL, StartOcallResponder, (void*) circ_buffer_host);
 
         for (const auto &name : names) {
+
             data_capsule_t dc[10];
 
             for( uint64_t i=0; i < 10; ++i ) {
@@ -201,6 +206,15 @@ public:
             //Test OCALL
             asylo::EnclaveInput input;
             input.MutableExtension(hello_world::buffer)->set_buffer((long int) circ_buffer_host);
+//
+//            asylo::EnclaveInput input;
+//            capsule_pdu in_dc;
+//
+//            asylo::KvToCapsule(&in_dc, 2021, "input_key", "input_value");
+//            input.MutableExtension(hello_world::enclave_input_hello)
+//                    ->set_to_greet(name);
+//            asylo::CapsuleToProto(&in_dc, input.MutableExtension(hello_world::input_dc));
+
 
             asylo::EnclaveOutput output;
             asylo::Status status = this->client->EnterAndRun(input, &output);
@@ -221,6 +235,20 @@ public:
         free(circ_buffer_host);
         free(circ_buffer_enclave);
 
+//<<<<<<< HEAD
+//=======
+//            LOG(INFO)  << "Message from enclave " << this->m_name << ": "
+//                      << output.GetExtension(hello_world::enclave_output_hello)
+//                              .greeting_message();
+//
+//            capsule_pdu out_dc;
+//            asylo::CapsuleFromProto(&out_dc, &output.GetExtension(hello_world::output_dc));
+//
+//            LOG(INFO) << "Received output DataCapsule is " << (int) out_dc.id << ", should be 2022";
+//            LOG(INFO) << "DataCapsule payload.key is " << out_dc.payload.key << ", should be output_key";
+//            LOG(INFO) << "DataCapsule payload.value is " << out_dc.payload.value << ", should be output_value";
+//        }
+//>>>>>>> a8f381be62795ec3e188437a00f58d1aef42ff66
     }
 
     void finalize(){

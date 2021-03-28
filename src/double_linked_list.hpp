@@ -3,14 +3,14 @@
 
 #include "absl/strings/str_cat.h"
 #include <cstdio>
-#include "gdp.h"
+#include "capsule.h"
 
 struct Node
 {
-    data_capsule_t dc; 
+    capsule_pdu dc; 
     Node* next;
     Node* prev;
-    Node(data_capsule_t *);
+    Node(capsule_pdu *);
     ~Node(){};
 };
  
@@ -19,14 +19,14 @@ class DoublyLinkedList
 public:
     DoublyLinkedList();
     ~DoublyLinkedList();
-    void insert_front(data_capsule_t *);
-    void insert_back(data_capsule_t *);
-    void delete_front();
+    void insert_front(capsule_pdu *);
+    void insert_back(capsule_pdu *);
+    void  delete_front();
     void  delete_back();
     bool is_empty();
     void display();
     int length();
-    data_capsule_t * search(int);
+    capsule_pdu * search(int);
  
 private:
     Node* head;

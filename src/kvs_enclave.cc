@@ -20,20 +20,20 @@
 #include "absl/base/macros.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/escaping.h"
-// #include "absl/container/flat_hash_map.h"
 #include "asylo/trusted_application.h"
 #include "asylo/util/logging.h"
 #include "asylo/util/status.h"
-#include "src/hello.pb.h"
 #include "asylo/crypto/aead_cryptor.h"
 #include "asylo/util/cleansing_types.h"
 #include "asylo/crypto/ecdsa_p256_sha256_signing_key.h"
 #include "asylo/util/status_macros.h"
 #include "asylo/crypto/util/byte_container_view.h"
-#include "gdp.h"
+#include "capsule.h"
 #include "memtable.hpp"
 #include "hot_msg_pass.h"
 #include "common.h"
+#include "src/proto/hello.pb.h"
+#include "src/util/proto_util.hpp"
 
 namespace asylo {
 
@@ -119,7 +119,6 @@ namespace asylo {
             return CleansingString(plaintext.begin(), plaintext.end());
         }
     }
-
 
     class HelloApplication : public asylo::TrustedApplication {
     public:
@@ -292,6 +291,7 @@ namespace asylo {
                 return asylo::Status::OkStatus();
             }
 
+
             buffer = (HotMsg *) input.GetExtension(hello_world::buffer).buffer();
             requestedCallID = 0;
 
@@ -300,6 +300,33 @@ namespace asylo {
             for( uint64_t i=0; i < 10; ++i ){
                 dc[i].id = i;
                 put_ocall(&dc[i]);
+//
+//            LOG(INFO) << "Hashmap size has size: " << memtable.getSize();
+//
+//            std::string visitor =
+//                    input.GetExtension(hello_world::enclave_input_hello).to_greet();
+//
+//            LOG(INFO) << "Hello " << visitor;
+//
+//            if (output) {
+//                LOG(INFO) << "Incrementing visitor count...";
+//                output->MutableExtension(hello_world::enclave_output_hello)
+//                        ->set_greeting_message(
+//                                absl::StrCat("Hello ", visitor, "! You are visitor #",
+//                                             ++visitor_count_, " to this enclave."));
+//                capsule_pdu out_dc;
+//                asylo::KvToCapsule(&out_dc, 2022, "output_key", "output_value");
+//                asylo::CapsuleToProto(&out_dc, output->MutableExtension(hello_world::output_dc));
+//                LOG(INFO) << "= Encryption and Decryption =";
+//                std::string result;
+//                ASYLO_ASSIGN_OR_RETURN(result, EncryptMessage(visitor));
+//                LOG(INFO) << "encrypted: " << result;
+//                ASYLO_ASSIGN_OR_RETURN(result, DecryptMessage(result));
+//                LOG(INFO) << "decrypted: " << result;
+//                LOG(INFO) << "= Sign and Verify =";
+//                LOG(INFO) << "signed: " << reinterpret_cast<const char*>(SignMessage(visitor).data());
+//                LOG(INFO) << "verified: " << VerifyMessage(visitor, SignMessage(visitor));
+//>>>>>>> a8f381be62795ec3e188437a00f58d1aef42ff66
             }
 
             return asylo::Status::OkStatus();
