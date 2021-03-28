@@ -11,6 +11,7 @@ struct Node
     Node* next;
     Node* prev;
     Node(data_capsule_t *);
+    ~Node(){};
 };
  
 class DoublyLinkedList
@@ -20,7 +21,7 @@ public:
     ~DoublyLinkedList();
     void insert_front(data_capsule_t *);
     void insert_back(data_capsule_t *);
-    data_capsule_t *  delete_front();
+    void delete_front();
     void  delete_back();
     bool is_empty();
     void display();

@@ -24,14 +24,19 @@
 #include "absl/flags/parse.h"
 #include "absl/strings/str_split.h"
 #include "asylo/client.h"
+#include "asylo/crypto/sha256_hash_util.h"
 #include "asylo/enclave.pb.h"
 #include "asylo/platform/primitives/sgx/loader.pb.h"
 #include "asylo/util/logging.h"
 #include "src/hello.pb.h"
 #include <thread>
+#include <mutex>
 #include <zmq.hpp>
 #include "gdp.h"
+#include "hot_msg_pass.h"
+#include "common.h"
 
+#define PERFORMANCE_MEASUREMENT_NUM_REPEATS 10
 #define MULTI_CLIENT false
 #define NET_CLIENT_BASE_PORT 5555
 #define NET_CLIENT_IP "localhost"
@@ -42,6 +47,14 @@
 ABSL_FLAG(std::string, enclave_path, "", "Path to enclave to load");
 ABSL_FLAG(std::string, names, "",
           "A comma-separated list of names to pass to the enclave");
+ABSL_FLAG(std::string, payload, "",
+          "Data capsule payload to send to the enclave!");
+
+
+struct enclave_responder_args {
+     asylo::EnclaveClient *client;
+     HotMsg *hotMsg;
+};
 
 
 class Asylo_SGX{
@@ -49,6 +62,79 @@ public:
     Asylo_SGX(std::string enclave_name){
         //enclave name has to be unique
         this->m_name = enclave_name;
+    }
+
+    static void* StartEnclaveResponder( void* hotMsgAsVoidP ) {
+
+    //To be started in a new thread
+    struct enclave_responder_args *args = (struct enclave_responder_args *) hotMsgAsVoidP;
+    struct enclave_responder_args params;
+    params.hotMsg = args->hotMsg;
+    params.client = args->client; 
+
+    HotMsg *hotMsg = args->hotMsg;
+
+    asylo::EnclaveInput input;
+    asylo::EnclaveOutput output;
+
+    input.MutableExtension(hello_world::enclave_responder)->set_responder((long int)  hotMsg); 
+    params.client->EnterAndRun(input, &output);
+    
+    return NULL;
+}
+
+    static void *StartOcallResponder( void *arg ) {
+
+    HotMsg *hotMsg = (HotMsg *) arg;
+
+    int dataID = 0;
+
+    static int i;
+    sgx_spin_lock(&hotMsg->spinlock );
+    hotMsg->initialized = true;  
+    sgx_spin_unlock(&hotMsg->spinlock);
+
+    while( true )
+    {
+      if( hotMsg->keepPolling != true ) {
+            break;
+      }
+      
+      HotData* data_ptr = (HotData*) hotMsg -> MsgQueue[dataID];
+      if (data_ptr == 0){
+          continue;
+      }
+
+      sgx_spin_lock( &data_ptr->spinlock );
+
+      if(data_ptr->data){
+          //Message exists!
+          OcallParams *arg = (OcallParams *) data_ptr->data; 
+          data_capsule_t *dc = &data_ptr->dc; 
+
+          switch(data_ptr->ocall_id){
+            case OCALL_PUT:
+              printf("[OCALL] dc_id : %d\n", dc->id);
+              break;
+            default:
+              printf("Invalid ECALL id: %d\n", arg->ocall_id);
+          }
+          data_ptr->data = 0; 
+      }
+
+      data_ptr->isRead      = true;
+      sgx_spin_unlock( &data_ptr->spinlock );
+      dataID = (dataID + 1) % (MAX_QUEUE_LENGTH - 1);
+      for( i = 0; i<3; ++i)
+          _mm_pause();
+  }
+}
+
+    void put_ecall(data_capsule_t *dc) {
+      EcallParams *args = (EcallParams *) malloc(sizeof(OcallParams));
+      args->ecall_id = ECALL_PUT;
+      args->data = dc; 
+      HotMsg_requestECall( circ_buffer_enclave, requestedCallID++, args);
     }
 
     void init(){
@@ -78,38 +164,63 @@ public:
             LOG(QFATAL) << "Load " << absl::GetFlag(FLAGS_enclave_path)
                         << " failed: " << status;
         }
-        LOG(INFO) << "Enclave " << this->m_name << " Initialized";
+        std::cout << "Enclave " << this->m_name << " Initialized" << std::endl;
+
+        // Initialize the OCALL/ECALL circular buffers for switchless calls 
+        circ_buffer_enclave = (HotMsg *) calloc(1, sizeof(HotMsg));   // HOTMSG_INITIALIZER;
+        HotMsg_init(circ_buffer_enclave);
+
+        circ_buffer_host = (HotMsg *) calloc(1, sizeof(HotMsg));   // HOTMSG_INITIALIZER;
+        HotMsg_init(circ_buffer_host);
+
+        //ID for ECALL requests
+        requestedCallID = 0; 
+
+        std::cout << "OCALL and ECALL circular buffers initialized." << std::endl;
     }
 
     void execute(std::vector<std::string>  names){
+
         this->client = this->manager->GetClient(this->m_name);
 
-        for (const auto &name : names) {
-            asylo::EnclaveInput input;
-            
-            data_capsule_t dc_msg;
-            dc_msg.id = 2021; 
-            dc_msg.payload_size = 13; 
-            memcpy(dc_msg.payload, "Hello World!", dc_msg.payload_size); 
+        //Starts Enclave responder 
+        struct enclave_responder_args e_responder_args = {this->client, circ_buffer_enclave};
+        pthread_create(&circ_buffer_enclave->responderThread, NULL, StartEnclaveResponder, (void*)&e_responder_args);
 
-            input.MutableExtension(hello_world::enclave_input_hello)
-                    ->set_to_greet(name);
-            input.MutableExtension(hello_world::dc)->set_dc_ptr((long int) &dc_msg); 
+        //Start Host Responder
+        pthread_create(&circ_buffer_host->responderThread, NULL, StartOcallResponder, (void*) circ_buffer_host);
+
+        for (const auto &name : names) {
+            data_capsule_t dc[10];
+
+            for( uint64_t i=0; i < 10; ++i ) {
+                dc[i].id = i; 
+                put_ecall( &dc[i] );
+            }
+
+            //Test OCALL
+            asylo::EnclaveInput input;
+            input.MutableExtension(hello_world::buffer)->set_buffer((long int) circ_buffer_host);
 
             asylo::EnclaveOutput output;
             asylo::Status status = this->client->EnterAndRun(input, &output);
             if (!status.ok()) {
                 LOG(QFATAL) << "EnterAndRun failed: " << status;
             }
-
-            if (!output.HasExtension(hello_world::enclave_output_hello)) {
-                LOG(QFATAL) << "Enclave did not assign an ID for " << name;
-            }
-
-            LOG(INFO)  << "Message from enclave " << this->m_name << ": "
-                      << output.GetExtension(hello_world::enclave_output_hello)
-                              .greeting_message();
         }
+
+        //Sleep so that threads have time to process ALL requests
+        sleep(1);
+
+        StopMsgResponder( circ_buffer_host );
+        pthread_join(circ_buffer_host->responderThread, NULL);
+
+        StopMsgResponder( circ_buffer_enclave );
+        pthread_join(circ_buffer_enclave->responderThread, NULL);
+
+        free(circ_buffer_host);
+        free(circ_buffer_enclave);
+
     }
 
     void finalize(){
@@ -130,6 +241,9 @@ private:
     asylo::EnclaveManager *manager;
     asylo::EnclaveClient *client;
     std::string m_name;
+    HotMsg *circ_buffer_enclave;
+    HotMsg *circ_buffer_host; 
+    int requestedCallID;
 };
 
 
@@ -266,8 +380,8 @@ int main(int argc, char *argv[]) {
   // Part 0: Setup
     absl::ParseCommandLine(argc, argv);
 
-    if (absl::GetFlag(FLAGS_names).empty()) {
-    LOG(QFATAL) << "Must supply a non-empty list of names with --names";
+    if (absl::GetFlag(FLAGS_payload).empty()) {
+      LOG(QFATAL) << "Must supply a non-empty string for the DataCapsule payload --payload";
     }
 
     // If you just want to test a single enclave, change to false
@@ -287,7 +401,7 @@ int main(int argc, char *argv[]) {
         sleep(15);
     } else {
         std::vector<std::string> names =
-                absl::StrSplit(absl::GetFlag(FLAGS_names), ',');
+                absl::StrSplit(absl::GetFlag(FLAGS_payload), ',');
         Asylo_SGX* sgx = new Asylo_SGX("hello_enclave");
         sgx->run(names);
     }

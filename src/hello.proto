@@ -33,9 +33,19 @@ message DataCapsule {
   optional int64 dc_ptr = 1;
 }
 
+message EnclaveResponder {
+  optional int64 responder = 1;
+}
+message HotMsg {
+  optional int64 buffer = 1;
+}
+
+
 extend asylo.EnclaveInput {
   optional HelloInput enclave_input_hello = 8086;
   optional DataCapsule dc = 8087;
+  optional HotMsg buffer = 8088;
+  optional EnclaveResponder enclave_responder = 8089; 
 }
 
 extend asylo.EnclaveOutput {
