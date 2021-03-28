@@ -30,6 +30,7 @@
 #include <stdbool.h>
 #include "common.h"
 #include "sgx_spinlock.h"
+#include "capsule.h"
 
 #pragma GCC diagnostic ignored "-Wunused-function"
 #define MAX_QUEUE_LENGTH 1000
@@ -40,7 +41,7 @@ typedef struct {
     sgx_spinlock_t  spinlock;
     bool            isRead;
     void*           data;
-    data_capsule_t  dc; 
+    capsule_pdu  dc;
     int             ocall_id; 
 } HotData;
 

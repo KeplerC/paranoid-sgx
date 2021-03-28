@@ -113,8 +113,8 @@ public:
 
       if(data_ptr->data){
           //Message exists!
-          OcallParams *arg = (OcallParams *) data_ptr->data; 
-          data_capsule_t *dc = &data_ptr->dc; 
+          OcallParams *arg = (OcallParams *) data_ptr->data;
+          capsule_pdu *dc = &data_ptr->dc;
 
           switch(data_ptr->ocall_id){
             case OCALL_PUT:
@@ -134,7 +134,7 @@ public:
   }
 }
 
-    void put_ecall(data_capsule_t *dc) {
+    void put_ecall(capsule_pdu *dc) {
       EcallParams *args = (EcallParams *) malloc(sizeof(OcallParams));
       args->ecall_id = ECALL_PUT;
       args->data = dc; 
@@ -196,7 +196,7 @@ public:
 
         for (const auto &name : names) {
 
-            data_capsule_t dc[10];
+            capsule_pdu dc[10];
 
             for( uint64_t i=0; i < 10; ++i ) {
                 dc[i].id = i; 

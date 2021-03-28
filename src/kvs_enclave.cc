@@ -127,7 +127,7 @@ namespace asylo {
         /*
           We can allocate OCALL params on stack because params are copied to circular buffer.
         */
-        void put_ocall(data_capsule_t *dc){
+        void put_ocall(capsule_pdu *dc){
             OcallParams args;
             args.ocall_id = OCALL_PUT;
             args.data = dc;
@@ -151,10 +151,10 @@ namespace asylo {
                     OcallParams *arg = (OcallParams *) data;
                     data_ptr->data = (void *) 1;
                     data_ptr->ocall_id = arg->ocall_id;
-                    data_capsule_t *dc = (data_capsule_t *) arg->data;
+                    capsule_pdu *dc = (capsule_pdu *) arg->data;
 
                     //Must copy to the host since we cannot pass a pointer from enclave
-                    memcpy(&data_ptr->dc, dc, sizeof(data_capsule_t));
+                    memcpy(&data_ptr->dc, dc, sizeof(capsule_pdu));
                     sgx_spin_unlock( &data_ptr->spinlock );
                     break;
                 }
@@ -201,12 +201,12 @@ namespace asylo {
                 if(data_ptr->data){
                     //Message exists!
                     EcallParams *arg = (EcallParams *) data_ptr->data;
-                    data_capsule_t *dc = (data_capsule_t *) arg->data;
+                    capsule_pdu *dc = (capsule_pdu *) arg->data;
 
                     switch(arg->ecall_id){
                         case ECALL_PUT:
                             printf("[ECALL] dc_id : %d\n", dc->id);
-                            put((data_capsule_t *) arg->data);
+                            put((capsule_pdu *) arg->data);
                             break;
                         default:
                             printf("Invalid ECALL id: %d\n", arg->ecall_id);
@@ -295,7 +295,7 @@ namespace asylo {
             buffer = (HotMsg *) input.GetExtension(hello_world::buffer).buffer();
             requestedCallID = 0;
 
-            data_capsule_t dc[10];
+            capsule_pdu dc[10];
 
             for( uint64_t i=0; i < 10; ++i ){
                 dc[i].id = i;
@@ -338,11 +338,11 @@ namespace asylo {
         int requestedCallID;
 
         /* These functions willl be part of the CAAPI */
-        bool put(data_capsule_t *dc) {
+        bool put(capsule_pdu *dc) {
             return memtable.put(dc);
         }
 
-        data_capsule_t *get(data_capsule_id id){
+        capsule_pdu *get(capsule_id id){
             return memtable.get(id);
         }
     };
