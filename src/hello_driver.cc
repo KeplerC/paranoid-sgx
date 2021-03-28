@@ -119,6 +119,10 @@ public:
           switch(data_ptr->ocall_id){
             case OCALL_PUT:
               printf("[OCALL] dc_id : %d\n", dc->id);
+              //asylo::CapsuleFromProto(dc, &output.GetExtension(hello_world::output_dc));
+              LOG(INFO) << "Received output DataCapsule is " << (int) dc->id;
+              LOG(INFO) << "DataCapsule payload.key is " << dc->payload.key;
+              LOG(INFO) << "DataCapsule payload.value is " << dc->payload.value;
               break;
             default:
               printf("Invalid ECALL id: %d\n", arg->ocall_id);
@@ -199,10 +203,14 @@ public:
             capsule_pdu dc[10];
 
             for( uint64_t i=0; i < 10; ++i ) {
-                dc[i].id = i; 
+                //dc[i].id = i;
+                asylo::KvToCapsule(&dc[i], i, "input_key", "input_value");
+                LOG(INFO) << "DataCapsule payload.key is " << dc->payload.key;
+                LOG(INFO) << "DataCapsule payload.value is " << dc->payload.value;
                 put_ecall( &dc[i] );
             }
 
+            sleep(3);
             //Test OCALL
             asylo::EnclaveInput input;
             input.MutableExtension(hello_world::buffer)->set_buffer((long int) circ_buffer_host);
@@ -241,12 +249,7 @@ public:
 //                      << output.GetExtension(hello_world::enclave_output_hello)
 //                              .greeting_message();
 //
-//            capsule_pdu out_dc;
-//            asylo::CapsuleFromProto(&out_dc, &output.GetExtension(hello_world::output_dc));
 //
-//            LOG(INFO) << "Received output DataCapsule is " << (int) out_dc.id << ", should be 2022";
-//            LOG(INFO) << "DataCapsule payload.key is " << out_dc.payload.key << ", should be output_key";
-//            LOG(INFO) << "DataCapsule payload.value is " << out_dc.payload.value << ", should be output_value";
 //        }
 //>>>>>>> a8f381be62795ec3e188437a00f58d1aef42ff66
     }
