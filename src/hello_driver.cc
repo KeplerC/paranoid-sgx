@@ -202,30 +202,37 @@ public:
 
         this->client = this->manager->GetClient(this->m_name);
 
-
         for (const auto &name : names) {
-
-            capsule_pdu dc[10];
-
-            for( uint64_t i=0; i < 10; ++i ) {
-                //dc[i].id = i;
-                asylo::KvToCapsule(&dc[i], i, "input_key", "input_value");
-                LOG(INFO) << "DataCapsule payload.key is " << dc->payload.key;
-                LOG(INFO) << "DataCapsule payload.value is " << dc->payload.value;
-                put_ecall( &dc[i] );
-            }
-
-            sleep(3);
-            //Test OCALL
-            asylo::EnclaveInput input;
-            input.MutableExtension(hello_world::buffer)->set_buffer((long int) circ_buffer_host);
-
-            asylo::EnclaveOutput output;
-            asylo::Status status = this->client->EnterAndRun(input, &output);
-            if (!status.ok()) {
-                LOG(QFATAL) << "EnterAndRun failed: " << status;
-            }
+            capsule_pdu dc[1];
+            asylo::KvToCapsule(&dc[0], 0, "input_key", name);
+            LOG(INFO) << "DataCapsule payload.key is " << dc->payload.key;
+            LOG(INFO) << "DataCapsule payload.value is " << dc->payload.value;
+            put_ecall(&dc[0]);
         }
+//
+//        for (const auto &name : names) {
+//
+//            capsule_pdu dc[10];
+//
+//            for( uint64_t i=0; i < 10; ++i ) {
+//                //dc[i].id = i;
+//                asylo::KvToCapsule(&dc[i], i, "input_key", "input_value");
+//                LOG(INFO) << "DataCapsule payload.key is " << dc->payload.key;
+//                LOG(INFO) << "DataCapsule payload.value is " << dc->payload.value;
+//                put_ecall( &dc[i] );
+//            }
+//
+//            sleep(3);
+//            //Test OCALL
+//            asylo::EnclaveInput input;
+//            input.MutableExtension(hello_world::buffer)->set_buffer((long int) circ_buffer_host);
+//
+//            asylo::EnclaveOutput output;
+//            asylo::Status status = this->client->EnterAndRun(input, &output);
+//            if (!status.ok()) {
+//                LOG(QFATAL) << "EnterAndRun failed: " << status;
+//            }
+//        }
 
         //Sleep so that threads have time to process ALL requests
         sleep(1);
@@ -339,6 +346,7 @@ public:
 
         Asylo_SGX* sgx = new Asylo_SGX(m_port);
         sgx->init();
+        sleep(1);
         //start enclave
         while (true) {
             zmq::poll(pollitems.data(), pollitems.size(), 0);
