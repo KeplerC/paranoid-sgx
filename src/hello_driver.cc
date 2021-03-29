@@ -41,7 +41,7 @@
 
 
 #define PERFORMANCE_MEASUREMENT_NUM_REPEATS 10
-#define MULTI_CLIENT false
+#define MULTI_CLIENT true
 #define NET_CLIENT_BASE_PORT 5555
 #define NET_CLIENT_IP "localhost"
 #define NET_SEED_SERVER_IP "localhost"
@@ -185,18 +185,23 @@ public:
         requestedCallID = 0; 
 
         std::cout << "OCALL and ECALL circular buffers initialized." << std::endl;
+
+
+
+//        //Starts Enclave responder
+        this->client = this->manager->GetClient(this->m_name);
+        struct enclave_responder_args e_responder_args = {this->client, circ_buffer_enclave};
+        pthread_create(&circ_buffer_enclave->responderThread, NULL, StartEnclaveResponder, (void*)&e_responder_args);
+
+        //Start Host Responder
+        pthread_create(&circ_buffer_host->responderThread, NULL, StartOcallResponder, (void*) circ_buffer_host);
+
     }
 
     void execute(std::vector<std::string>  names){
 
         this->client = this->manager->GetClient(this->m_name);
 
-        //Starts Enclave responder 
-        struct enclave_responder_args e_responder_args = {this->client, circ_buffer_enclave};
-        pthread_create(&circ_buffer_enclave->responderThread, NULL, StartEnclaveResponder, (void*)&e_responder_args);
-
-        //Start Host Responder
-        pthread_create(&circ_buffer_host->responderThread, NULL, StartOcallResponder, (void*) circ_buffer_host);
 
         for (const auto &name : names) {
 
@@ -225,6 +230,11 @@ public:
         //Sleep so that threads have time to process ALL requests
         sleep(1);
 
+    }
+
+    void finalize(){
+        asylo::EnclaveFinal final_input;
+        asylo::Status status = this->manager->DestroyEnclave(this->client, final_input);
         StopMsgResponder( circ_buffer_host );
         pthread_join(circ_buffer_host->responderThread, NULL);
 
@@ -234,11 +244,6 @@ public:
         free(circ_buffer_host);
         free(circ_buffer_enclave);
 
-    }
-
-    void finalize(){
-        asylo::EnclaveFinal final_input;
-        asylo::Status status = this->manager->DestroyEnclave(this->client, final_input);
         if (!status.ok()) {
             LOG(QFATAL) << "Destroy " << absl::GetFlag(FLAGS_enclave_path)
                         << " failed: " << status;
