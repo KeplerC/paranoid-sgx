@@ -70,73 +70,73 @@ public:
 
     static void* StartEnclaveResponder( void* hotMsgAsVoidP ) {
 
-    //To be started in a new thread
-    struct enclave_responder_args *args = (struct enclave_responder_args *) hotMsgAsVoidP;
-    struct enclave_responder_args params;
-    params.hotMsg = args->hotMsg;
-    params.client = args->client; 
+        //To be started in a new thread
+        struct enclave_responder_args *args = (struct enclave_responder_args *) hotMsgAsVoidP;
+        struct enclave_responder_args params;
+        params.hotMsg = args->hotMsg;
+        params.client = args->client;
 
-    HotMsg *hotMsg = args->hotMsg;
+        HotMsg *hotMsg = args->hotMsg;
 
-    asylo::EnclaveInput input;
-    asylo::EnclaveOutput output;
+        asylo::EnclaveInput input;
+        asylo::EnclaveOutput output;
 
-    input.MutableExtension(hello_world::enclave_responder)->set_responder((long int)  hotMsg); 
-    params.client->EnterAndRun(input, &output);
-    
-    return NULL;
-}
+        input.MutableExtension(hello_world::enclave_responder)->set_responder((long int)  hotMsg);
+        params.client->EnterAndRun(input, &output);
+
+        return NULL;
+    }
 
     static void *StartOcallResponder( void *arg ) {
 
-    HotMsg *hotMsg = (HotMsg *) arg;
+        HotMsg *hotMsg = (HotMsg *) arg;
 
-    int dataID = 0;
+        int dataID = 0;
 
-    static int i;
-    sgx_spin_lock(&hotMsg->spinlock );
-    hotMsg->initialized = true;  
-    sgx_spin_unlock(&hotMsg->spinlock);
+        static int i;
+        sgx_spin_lock(&hotMsg->spinlock );
+        hotMsg->initialized = true;
+        sgx_spin_unlock(&hotMsg->spinlock);
 
-    while( true )
-    {
-      if( hotMsg->keepPolling != true ) {
-            break;
-      }
-      
-      HotData* data_ptr = (HotData*) hotMsg -> MsgQueue[dataID];
-      if (data_ptr == 0){
-          continue;
-      }
-
-      sgx_spin_lock( &data_ptr->spinlock );
-
-      if(data_ptr->data){
-          //Message exists!
-          OcallParams *arg = (OcallParams *) data_ptr->data;
-          capsule_pdu *dc = &data_ptr->dc;
-
-          switch(data_ptr->ocall_id){
-            case OCALL_PUT:
-              printf("[OCALL] dc_id : %d\n", dc->id);
-              //asylo::CapsuleFromProto(dc, &output.GetExtension(hello_world::output_dc));
-              LOG(INFO) << "Received output DataCapsule is " << (int) dc->id;
-              LOG(INFO) << "DataCapsule payload.key is " << dc->payload.key;
-              LOG(INFO) << "DataCapsule payload.value is " << dc->payload.value;
-              break;
-            default:
-              printf("Invalid ECALL id: %d\n", arg->ocall_id);
+        while( true )
+        {
+          if( hotMsg->keepPolling != true ) {
+                break;
           }
-          data_ptr->data = 0; 
-      }
 
-      data_ptr->isRead      = true;
-      sgx_spin_unlock( &data_ptr->spinlock );
-      dataID = (dataID + 1) % (MAX_QUEUE_LENGTH - 1);
-      for( i = 0; i<3; ++i)
-          _mm_pause();
-  }
-}
+          HotData* data_ptr = (HotData*) hotMsg -> MsgQueue[dataID];
+          if (data_ptr == 0){
+              continue;
+          }
+
+          sgx_spin_lock( &data_ptr->spinlock );
+
+          if(data_ptr->data){
+              //Message exists!
+              OcallParams *arg = (OcallParams *) data_ptr->data;
+              capsule_pdu *dc = &data_ptr->dc;
+
+              switch(data_ptr->ocall_id){
+                case OCALL_PUT:
+                  printf("[OCALL] dc_id : %d\n", dc->id);
+                  //asylo::CapsuleFromProto(dc, &output.GetExtension(hello_world::output_dc));
+                  LOG(INFO) << "Received output DataCapsule is " << (int) dc->id;
+                  LOG(INFO) << "DataCapsule payload.key is " << dc->payload.key;
+                  LOG(INFO) << "DataCapsule payload.value is " << dc->payload.value;
+                  break;
+                default:
+                  printf("Invalid ECALL id: %d\n", arg->ocall_id);
+              }
+              data_ptr->data = 0;
+          }
+
+          data_ptr->isRead      = true;
+          sgx_spin_unlock( &data_ptr->spinlock );
+          dataID = (dataID + 1) % (MAX_QUEUE_LENGTH - 1);
+          for( i = 0; i<3; ++i)
+              _mm_pause();
+      }
+    }
 
     void put_ecall(capsule_pdu *dc) {
       EcallParams *args = (EcallParams *) malloc(sizeof(OcallParams));
@@ -214,15 +214,6 @@ public:
             //Test OCALL
             asylo::EnclaveInput input;
             input.MutableExtension(hello_world::buffer)->set_buffer((long int) circ_buffer_host);
-//
-//            asylo::EnclaveInput input;
-//            capsule_pdu in_dc;
-//
-//            asylo::KvToCapsule(&in_dc, 2021, "input_key", "input_value");
-//            input.MutableExtension(hello_world::enclave_input_hello)
-//                    ->set_to_greet(name);
-//            asylo::CapsuleToProto(&in_dc, input.MutableExtension(hello_world::input_dc));
-
 
             asylo::EnclaveOutput output;
             asylo::Status status = this->client->EnterAndRun(input, &output);
@@ -243,15 +234,6 @@ public:
         free(circ_buffer_host);
         free(circ_buffer_enclave);
 
-//<<<<<<< HEAD
-//=======
-//            LOG(INFO)  << "Message from enclave " << this->m_name << ": "
-//                      << output.GetExtension(hello_world::enclave_output_hello)
-//                              .greeting_message();
-//
-//
-//        }
-//>>>>>>> a8f381be62795ec3e188437a00f58d1aef42ff66
     }
 
     void finalize(){
