@@ -198,7 +198,7 @@ public:
 
     }
 
-    void execute(std::vector<std::string>  names){
+    void send_to_sgx(std::vector<std::string>  names){
 
         this->client = this->manager->GetClient(this->m_name);
 
@@ -209,34 +209,23 @@ public:
             LOG(INFO) << "DataCapsule payload.value is " << dc->payload.value;
             put_ecall(&dc[0]);
         }
-//
-//        for (const auto &name : names) {
-//
-//            capsule_pdu dc[10];
-//
-//            for( uint64_t i=0; i < 10; ++i ) {
-//                //dc[i].id = i;
-//                asylo::KvToCapsule(&dc[i], i, "input_key", "input_value");
-//                LOG(INFO) << "DataCapsule payload.key is " << dc->payload.key;
-//                LOG(INFO) << "DataCapsule payload.value is " << dc->payload.value;
-//                put_ecall( &dc[i] );
-//            }
-//
-//            sleep(3);
-//            //Test OCALL
-//            asylo::EnclaveInput input;
-//            input.MutableExtension(hello_world::buffer)->set_buffer((long int) circ_buffer_host);
-//
-//            asylo::EnclaveOutput output;
-//            asylo::Status status = this->client->EnterAndRun(input, &output);
-//            if (!status.ok()) {
-//                LOG(QFATAL) << "EnterAndRun failed: " << status;
-//            }
-//        }
 
         //Sleep so that threads have time to process ALL requests
-        sleep(1);
+        sleep(2);
 
+    }
+
+    void execute(std::vector<std::string>  names){
+        //Test OCALL
+        asylo::EnclaveInput input;
+        input.MutableExtension(hello_world::buffer)->set_buffer((long int) circ_buffer_host);
+
+        asylo::EnclaveOutput output;
+        asylo::Status status = this->client->EnterAndRun(input, &output);
+        if (!status.ok()) {
+            LOG(QFATAL) << "EnterAndRun failed: " << status;
+        }
+        sleep(1);
     }
 
     void finalize(){
@@ -346,7 +335,10 @@ public:
 
         Asylo_SGX* sgx = new Asylo_SGX(m_port);
         sgx->init();
+        //sleep to wait for sgx to finish initialization
+        //if there isn't a sleep, there might be segfaults
         sleep(1);
+
         //start enclave
         while (true) {
             zmq::poll(pollitems.data(), pollitems.size(), 0);
@@ -357,7 +349,7 @@ public:
                 LOG(INFO) << "[Client " << m_addr << "]:  " + msg ;
                 this -> send_string(m_port , socket_send);
                 std::vector<std::string> names = {msg};
-                sgx->execute(names);
+                sgx->send_to_sgx(names);
             }
         }
         sgx->finalize();
@@ -417,7 +409,7 @@ int main(int argc, char *argv[]) {
     if(multi_client) {
         std::vector <std::thread> worker_threads;
         //start clients
-        for (unsigned thread_id = 1; thread_id < 5; thread_id++) {
+        for (unsigned thread_id = 1; thread_id < 2; thread_id++) {
             worker_threads.push_back(std::thread(thread_run_zmq_client, thread_id));
         }
         sleep(2);

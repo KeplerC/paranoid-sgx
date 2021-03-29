@@ -234,6 +234,7 @@ namespace asylo {
             }
         }
 
+        // Fake client
         asylo::Status Run(const asylo::EnclaveInput &input,
                           asylo::EnclaveOutput *output) override {
 
@@ -245,6 +246,10 @@ namespace asylo {
             }
 
 
+            //simulate client do some processing...
+            sleep(2);
+
+            //Then the client wants to put some messages
             buffer = (HotMsg *) input.GetExtension(hello_world::buffer).buffer();
             requestedCallID = 0;
 
