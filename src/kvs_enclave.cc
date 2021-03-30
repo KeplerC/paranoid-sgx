@@ -240,24 +240,33 @@ namespace asylo {
 
 
             if (input.HasExtension(hello_world::enclave_responder)) {
-                HotMsg* hotmsg = (HotMsg*) input.GetExtension(hello_world::enclave_responder).responder();
-                EnclaveMsgStartResponder( hotmsg );
+                HotMsg *hotmsg = (HotMsg *) input.GetExtension(hello_world::enclave_responder).responder();
+                EnclaveMsgStartResponder(hotmsg);
                 return asylo::Status::OkStatus();
             }
-
-
-            //simulate client do some processing...
-            sleep(2);
 
             //Then the client wants to put some messages
             buffer = (HotMsg *) input.GetExtension(hello_world::buffer).buffer();
             requestedCallID = 0;
 
+            capsule_pdu dc[10];
+            //simulate client do some processing...
+
+            for( uint64_t i=0; i < 10; ++i ) {
+                //dc[i].id = i;
+                asylo::KvToCapsule(&dc[i], i, "input_key", "input_value");
+                LOG(INFO) << "DataCapsule payload.key is " << dc[i].payload.key;
+                LOG(INFO) << "DataCapsule payload.value is " << dc[i].payload.value;
+                put(&dc[i]);
+                put_ocall(&dc[i]);
+            }
+            sleep(2);
+
             //capsule_pdu dc[10];
 
-            for( uint64_t i=0; i < 10; ++i ){
-                put_ocall(get(i));
-            }
+            //            for( uint64_t i=0; i < 10; ++i ){
+            //                put_ocall(get(i));
+            //            }
 
             return asylo::Status::OkStatus();
         }
