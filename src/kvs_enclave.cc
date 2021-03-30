@@ -214,7 +214,8 @@ namespace asylo {
 
                     switch(arg->ecall_id){
                         case ECALL_PUT:
-                            printf("[ECALL] dc_id : %d\n", dc->id);
+                            //printf("[ECALL] dc_id : %d\n", dc->id);
+                            LOG(INFO) << "[CICBUF-ECALL] transmitted a data capsule pdu";
                             put((capsule_pdu *) arg->data);
                             LOG(INFO) << "DataCapsule payload.key is " << dc->payload.key;
                             LOG(INFO) << "DataCapsule payload.value is " << dc->payload.value;
@@ -256,14 +257,24 @@ namespace asylo {
             // if we want to consider it, probably we need to buffer the messages
 
             for( uint64_t i=0; i < 1; ++i ) {
-                //dc[i].id = i;
-                asylo::KvToCapsule(&dc[i], i, "input_key", "input_value");
+                LOG(INFO) << "[ENCLAVE] ===CLIENT PUT=== ";
+                LOG(INFO) << "[ENCLAVE] Generating a new capsule PDU ";
+                asylo::KvToCapsule(&dc[i], i, "default_key", "original_value");
                 LOG(INFO) << "DataCapsule payload.key is " << dc[i].payload.key;
                 LOG(INFO) << "DataCapsule payload.value is " << dc[i].payload.value;
                 put(&dc[i]);
                 put_ocall(&dc[i]);
             }
             sleep(2);
+
+            for( uint64_t i=0; i < 1; ++i ) {
+                //dc[i].id = i;
+                LOG(INFO) << "[ENCLAVE] ===CLIENT GET=== ";
+                capsule_pdu* tmp_dc = get(i);
+                LOG(INFO) << "DataCapsule payload.key is " << tmp_dc->payload.key;
+                LOG(INFO) << "DataCapsule payload.value is " << tmp_dc->payload.value;
+            }
+
 
             //capsule_pdu dc[10];
 

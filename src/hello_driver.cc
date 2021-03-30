@@ -124,13 +124,15 @@ public:
 
               switch(data_ptr->ocall_id){
                 case OCALL_PUT: {
-                    printf("[OCALL] dc_id : %d\n", dc->id);
+                    //printf("[OCALL] dc_id : %d\n", dc->id);
                     // TODO: we do everything inside of the lock, this is slow
                     // we can copy the string and process it after we release the lock
                     //asylo::CapsuleFromProto(dc, &output.GetExtension(hello_world::output_dc));
-                    LOG(INFO) << "Received output DataCapsule is " << (int) dc->id;
+                    LOG(INFO) << "[CICBUF-OCALL] transmitted a data capsule pdu";
+                    LOG(INFO) << "DataCapsule ID is " << (int) dc->id;
                     LOG(INFO) << "DataCapsule payload.key is " << dc->payload.key;
                     LOG(INFO) << "DataCapsule payload.value is " << dc->payload.value;
+                    dc->payload.value = "updated_value";
 
                     hello_world::CapsulePDU in_dc;
                     asylo::CapsuleToProto(dc, &in_dc);
