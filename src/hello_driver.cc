@@ -125,12 +125,19 @@ public:
               switch(data_ptr->ocall_id){
                 case OCALL_PUT: {
                     printf("[OCALL] dc_id : %d\n", dc->id);
+                    // TODO: we do everything inside of the lock, this is slow
+                    // we can copy the string and process it after we release the lock
                     //asylo::CapsuleFromProto(dc, &output.GetExtension(hello_world::output_dc));
                     LOG(INFO) << "Received output DataCapsule is " << (int) dc->id;
                     LOG(INFO) << "DataCapsule payload.key is " << dc->payload.key;
                     LOG(INFO) << "DataCapsule payload.value is " << dc->payload.value;
 
-                    std::string s = std::to_string((int) dc->id) + dc->payload.key + dc->payload.value;
+                    hello_world::CapsulePDU in_dc;
+                    asylo::CapsuleToProto(dc, &in_dc);
+                    std::string s;
+                    in_dc.SerializeToString(&s);
+                    //in_dc.ParseFromString(s);
+                    //LOG(INFO) << in_dc.DebugString();
                     zmq::message_t msg(s.size());
                     memcpy(msg.data(), s.c_str(), s.size());
                     socket_ptr->send(msg);
@@ -200,8 +207,6 @@ public:
 
         std::cout << "OCALL and ECALL circular buffers initialized." << std::endl;
 
-
-
         //Starts Enclave responder
         this->client = this->manager->GetClient(this->m_name);
         struct enclave_responder_args e_responder_args = {this->client, circ_buffer_enclave};
@@ -216,10 +221,10 @@ public:
 
         this->client = this->manager->GetClient(this->m_name);
 
+        hello_world::CapsulePDU in_dc;
+        in_dc.ParseFromString(message);
         capsule_pdu dc;
-        asylo::KvToCapsule(&dc, requestedCallID, "input_key", message);
-        LOG(INFO) << "DataCapsule payload.key is " << dc.payload.key;
-        LOG(INFO) << "DataCapsule payload.value is " << dc.payload.value;
+        asylo::CapsuleFromProto(&dc, &in_dc);
         put_ecall(&dc);
         //Sleep so that threads have time to process ALL requests
         sleep(1);
@@ -454,7 +459,7 @@ int main(int argc, char *argv[]) {
         std::vector <std::thread> worker_threads;
         //start clients
         for (unsigned thread_id = 1; thread_id < 2; thread_id++) {
-            Asylo_SGX* sgx = new Asylo_SGX("5005");
+            Asylo_SGX* sgx = new Asylo_SGX( std::to_string(thread_id));
             sgx->init();
             sleep(1);
             worker_threads.push_back(std::thread(thread_run_zmq_client, thread_id, sgx));

@@ -252,6 +252,8 @@ namespace asylo {
             capsule_pdu dc[10];
             //simulate client do some processing...
             sleep(3);
+            // TODO: there still has some issues when the client starts before the client connects to the server
+            // if we want to consider it, probably we need to buffer the messages
 
             for( uint64_t i=0; i < 1; ++i ) {
                 //dc[i].id = i;
