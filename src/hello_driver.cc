@@ -212,21 +212,17 @@ public:
 
     }
 
-    void send_to_sgx(std::vector<std::string>  names){
+    void send_to_sgx(std::string message){
 
         this->client = this->manager->GetClient(this->m_name);
 
-        for (const auto &name : names) {
-            capsule_pdu dc[1];
-            asylo::KvToCapsule(&dc[0], requestedCallID, "input_key", name);
-            LOG(INFO) << "DataCapsule payload.key is " << dc->payload.key;
-            LOG(INFO) << "DataCapsule payload.value is " << dc->payload.value;
-            put_ecall(&dc[0]);
-        }
-
+        capsule_pdu dc;
+        asylo::KvToCapsule(&dc, requestedCallID, "input_key", message);
+        LOG(INFO) << "DataCapsule payload.key is " << dc.payload.key;
+        LOG(INFO) << "DataCapsule payload.value is " << dc.payload.value;
+        put_ecall(&dc);
         //Sleep so that threads have time to process ALL requests
         sleep(1);
-
     }
 
     //start a fake client
@@ -303,10 +299,11 @@ private:
 
 class zmq_comm {
 public:
-    zmq_comm(std::string ip, unsigned thread_id){
+    zmq_comm(std::string ip, unsigned thread_id, Asylo_SGX* sgx){
         m_port = std::to_string(NET_CLIENT_BASE_PORT + thread_id);
         m_addr = "tcp://" + ip +":" + m_port;
         m_thread_id = thread_id;
+        m_sgx = sgx;
     }
 
     [[noreturn]] void run_server(){
@@ -338,7 +335,7 @@ public:
                 zmq::socket_t* socket_ptr  = new  zmq::socket_t( context, ZMQ_PUSH);
                 socket_ptr -> connect (msg);
                 this->group_sockets.push_back(socket_ptr);
-                this->send_string("Ack Join", socket_ptr);
+                //this->send_string("Ack Join", socket_ptr);
             }
 
             //receive new message to mcast
@@ -374,15 +371,15 @@ public:
                 { static_cast<void *>(socket_from_server), 0, ZMQ_POLLIN, 0 },
         };
 
-        Asylo_SGX* sgx = new Asylo_SGX(m_port);
-        sgx->init();
+        //Asylo_SGX* sgx = new Asylo_SGX(m_port);
+        //sgx->init();
         //sleep to wait for sgx to finish initialization
         //if there isn't a sleep, there might be segfaults
-        sleep(1);
+        //sleep(1);
 
         //pthread_t m_fake_client;
         //pthread_create(&m_fake_client, NULL, sgx->execute, NULL);
-        std::thread(sgx->execute);
+        //std::thread(sgx->execute);
         //start enclave
         while (true) {
             zmq::poll(pollitems.data(), pollitems.size(), 0);
@@ -392,11 +389,10 @@ public:
                 std::string msg = this->recv_string(&socket_from_server);
                 LOG(INFO) << "[Client " << m_addr << "]:  " + msg ;
                 // this -> send_string(m_port , socket_send);
-                std::vector<std::string> names = {msg};
-                sgx->send_to_sgx(names);
+                this->m_sgx->send_to_sgx(msg);
             }
         }
-        sgx->finalize();
+        m_sgx->finalize();
     }
 
 private:
@@ -406,6 +402,7 @@ private:
     std::string m_seed_server_join_port = std::to_string(NET_SERVER_JOIN_PORT);
     std::string m_seed_server_mcast_port = std::to_string(NET_SERVER_MCAST_PORT);
     unsigned m_thread_id;
+    Asylo_SGX* m_sgx;
 
     int m_enclave_seq_number = 0;
     std::vector<std::string> group_addresses;
@@ -430,12 +427,15 @@ private:
 };
 
 void thread_run_zmq_client(unsigned thread_id, Asylo_SGX* sgx){
-    zmq_comm zs = zmq_comm(NET_CLIENT_IP, thread_id);
+    zmq_comm zs = zmq_comm(NET_CLIENT_IP, thread_id, sgx);
     zs.run_client();
 }
 void thread_run_zmq_server(unsigned thread_id){
-    zmq_comm zs = zmq_comm(NET_SEED_SERVER_IP, thread_id);
+    zmq_comm zs = zmq_comm(NET_SEED_SERVER_IP, thread_id, nullptr);
     zs.run_server();
+}
+void thread_start_fake_client(Asylo_SGX* sgx){
+    sgx->execute();
 }
 
 int main(int argc, char *argv[]) {
@@ -454,9 +454,11 @@ int main(int argc, char *argv[]) {
         std::vector <std::thread> worker_threads;
         //start clients
         for (unsigned thread_id = 1; thread_id < 2; thread_id++) {
-
-            worker_threads.push_back(std::thread(thread_run_zmq_client, thread_id));
-            worker_threads.push_back()
+            Asylo_SGX* sgx = new Asylo_SGX("5005");
+            sgx->init();
+            sleep(1);
+            worker_threads.push_back(std::thread(thread_run_zmq_client, thread_id, sgx));
+            worker_threads.push_back(std::thread(thread_start_fake_client, sgx));
         }
         sleep(2);
 

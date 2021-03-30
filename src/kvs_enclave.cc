@@ -251,8 +251,9 @@ namespace asylo {
 
             capsule_pdu dc[10];
             //simulate client do some processing...
+            sleep(3);
 
-            for( uint64_t i=0; i < 10; ++i ) {
+            for( uint64_t i=0; i < 1; ++i ) {
                 //dc[i].id = i;
                 asylo::KvToCapsule(&dc[i], i, "input_key", "input_value");
                 LOG(INFO) << "DataCapsule payload.key is " << dc[i].payload.key;
