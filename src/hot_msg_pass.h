@@ -41,8 +41,8 @@ typedef struct {
     sgx_spinlock_t  spinlock;
     bool            isRead;
     void*           data;
-    capsule_pdu  dc;
-    int             ocall_id; 
+    int             size; 
+    int             ocall_id;
 } HotData;
 
 
