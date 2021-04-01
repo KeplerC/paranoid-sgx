@@ -41,7 +41,7 @@
 
 
 #define PERFORMANCE_MEASUREMENT_NUM_REPEATS 10
-#define MULTI_CLIENT false
+#define MULTI_CLIENT true
 #define NET_CLIENT_BASE_PORT 5555
 #define NET_CLIENT_IP "localhost"
 #define NET_SEED_SERVER_IP "localhost"
@@ -70,73 +70,96 @@ public:
 
     static void* StartEnclaveResponder( void* hotMsgAsVoidP ) {
 
-    //To be started in a new thread
-    struct enclave_responder_args *args = (struct enclave_responder_args *) hotMsgAsVoidP;
-    struct enclave_responder_args params;
-    params.hotMsg = args->hotMsg;
-    params.client = args->client; 
+        //To be started in a new thread
+        struct enclave_responder_args *args = (struct enclave_responder_args *) hotMsgAsVoidP;
+        struct enclave_responder_args params;
+        params.hotMsg = args->hotMsg;
+        params.client = args->client;
 
-    HotMsg *hotMsg = args->hotMsg;
+        HotMsg *hotMsg = args->hotMsg;
 
-    asylo::EnclaveInput input;
-    asylo::EnclaveOutput output;
+        asylo::EnclaveInput input;
+        asylo::EnclaveOutput output;
 
-    input.MutableExtension(hello_world::enclave_responder)->set_responder((long int)  hotMsg); 
-    params.client->EnterAndRun(input, &output);
-    
-    return NULL;
-}
+        input.MutableExtension(hello_world::enclave_responder)->set_responder((long int)  hotMsg);
+        params.client->EnterAndRun(input, &output);
+
+        return NULL;
+    }
 
     static void *StartOcallResponder( void *arg ) {
 
-    HotMsg *hotMsg = (HotMsg *) arg;
+        HotMsg *hotMsg = (HotMsg *) arg;
 
-    int dataID = 0;
+        int dataID = 0;
 
-    static int i;
-    sgx_spin_lock(&hotMsg->spinlock );
-    hotMsg->initialized = true;  
-    sgx_spin_unlock(&hotMsg->spinlock);
+        static int i;
+        sgx_spin_lock(&hotMsg->spinlock );
+        hotMsg->initialized = true;
+        sgx_spin_unlock(&hotMsg->spinlock);
 
-    while( true )
-    {
-      if( hotMsg->keepPolling != true ) {
-            break;
-      }
-      
-      HotData* data_ptr = (HotData*) hotMsg -> MsgQueue[dataID];
-      if (data_ptr == 0){
-          continue;
-      }
+        zmq::context_t context (1);
+        zmq::socket_t* socket_ptr  = new  zmq::socket_t( context, ZMQ_PUSH);
+        socket_ptr -> connect ("tcp://localhost:6667");
 
-      sgx_spin_lock( &data_ptr->spinlock );
 
-      if(data_ptr->data){
-          //Message exists!
-          OcallParams *arg = (OcallParams *) data_ptr->data;
-          capsule_pdu *dc = &data_ptr->dc;
-
-          switch(data_ptr->ocall_id){
-            case OCALL_PUT:
-              printf("[OCALL] dc_id : %d\n", dc->id);
-              //asylo::CapsuleFromProto(dc, &output.GetExtension(hello_world::output_dc));
-              LOG(INFO) << "Received output DataCapsule is " << (int) dc->id;
-              LOG(INFO) << "DataCapsule payload.key is " << dc->payload.key;
-              LOG(INFO) << "DataCapsule payload.value is " << dc->payload.value;
-              break;
-            default:
-              printf("Invalid ECALL id: %d\n", arg->ocall_id);
+        while( true )
+        {
+          if( hotMsg->keepPolling != true ) {
+                break;
           }
-          data_ptr->data = 0; 
-      }
 
-      data_ptr->isRead      = true;
-      sgx_spin_unlock( &data_ptr->spinlock );
-      dataID = (dataID + 1) % (MAX_QUEUE_LENGTH - 1);
-      for( i = 0; i<3; ++i)
-          _mm_pause();
-  }
-}
+          HotData* data_ptr = (HotData*) hotMsg -> MsgQueue[dataID];
+          if (data_ptr == 0){
+              continue;
+          }
+
+          sgx_spin_lock( &data_ptr->spinlock );
+
+          if(data_ptr->data){
+              //Message exists!
+              OcallParams *arg = (OcallParams *) data_ptr->data;
+              capsule_pdu *dc = &data_ptr->dc;
+
+
+              switch(data_ptr->ocall_id){
+                case OCALL_PUT: {
+                    //printf("[OCALL] dc_id : %d\n", dc->id);
+                    // TODO: we do everything inside of the lock, this is slow
+                    // we can copy the string and process it after we release the lock
+                    //asylo::CapsuleFromProto(dc, &output.GetExtension(hello_world::output_dc));
+                    LOG(INFO) << "[CICBUF-OCALL] transmitted a data capsule pdu";
+                    LOG(INFO) << "DataCapsule ID is " << (int) dc->id;
+                    LOG(INFO) << "DataCapsule payload.key is " << dc->payload.key;
+                    LOG(INFO) << "DataCapsule payload.value is " << dc->payload.value;
+                    dc->payload.value = "updated_value";
+
+                    hello_world::CapsulePDU in_dc;
+                    asylo::CapsuleToProto(dc, &in_dc);
+                    std::string s;
+                    in_dc.SerializeToString(&s);
+                    //in_dc.ParseFromString(s);
+                    //LOG(INFO) << in_dc.DebugString();
+                    zmq::message_t msg(s.size());
+                    memcpy(msg.data(), s.c_str(), s.size());
+                    socket_ptr->send(msg);
+                    break;
+                }
+                default:
+                  printf("Invalid ECALL id: %d\n", arg->ocall_id);
+              }
+              data_ptr->data = 0;
+          }
+
+          data_ptr->isRead      = true;
+          sgx_spin_unlock( &data_ptr->spinlock );
+
+
+          dataID = (dataID + 1) % (MAX_QUEUE_LENGTH - 1);
+          for( i = 0; i<3; ++i)
+              _mm_pause();
+      }
+    }
 
     void put_ecall(capsule_pdu *dc) {
       EcallParams *args = (EcallParams *) malloc(sizeof(OcallParams));
@@ -185,32 +208,45 @@ public:
         requestedCallID = 0; 
 
         std::cout << "OCALL and ECALL circular buffers initialized." << std::endl;
-    }
 
-    void execute(std::vector<std::string>  names){
-
+        //Starts Enclave responder
         this->client = this->manager->GetClient(this->m_name);
-
-        //Starts Enclave responder 
         struct enclave_responder_args e_responder_args = {this->client, circ_buffer_enclave};
         pthread_create(&circ_buffer_enclave->responderThread, NULL, StartEnclaveResponder, (void*)&e_responder_args);
 
         //Start Host Responder
         pthread_create(&circ_buffer_host->responderThread, NULL, StartOcallResponder, (void*) circ_buffer_host);
 
-        for (const auto &name : names) {
+    }
 
-            capsule_pdu dc[10];
+    void send_to_sgx(std::string message){
 
-            for( uint64_t i=0; i < 10; ++i ) {
-                //dc[i].id = i;
-                asylo::KvToCapsule(&dc[i], i, "input_key", "input_value");
-                LOG(INFO) << "DataCapsule payload.key is " << dc->payload.key;
-                LOG(INFO) << "DataCapsule payload.value is " << dc->payload.value;
-                put_ecall( &dc[i] );
-            }
+        this->client = this->manager->GetClient(this->m_name);
 
-            sleep(3);
+        hello_world::CapsulePDU in_dc;
+        in_dc.ParseFromString(message);
+        capsule_pdu dc;
+        asylo::CapsuleFromProto(&dc, &in_dc);
+        put_ecall(&dc);
+        //Sleep so that threads have time to process ALL requests
+        sleep(1);
+    }
+
+    //start a fake client
+    void execute(){
+
+
+//            capsule_pdu dc[10];
+//
+//            for( uint64_t i=0; i < 10; ++i ) {
+//                //dc[i].id = i;
+//                asylo::KvToCapsule(&dc[i], i, "input_key", "input_value");
+//                LOG(INFO) << "DataCapsule payload.key is " << dc->payload.key;
+//                LOG(INFO) << "DataCapsule payload.value is " << dc->payload.value;
+//                put_ecall( &dc[i] );
+//            }
+//
+//            sleep(3);
             //Test OCALL
             asylo::EnclaveInput input;
             input.MutableExtension(hello_world::buffer)->set_buffer((long int) circ_buffer_host);
@@ -229,11 +265,15 @@ public:
             if (!status.ok()) {
                 LOG(QFATAL) << "EnterAndRun failed: " << status;
             }
-        }
+
 
         //Sleep so that threads have time to process ALL requests
         sleep(1);
+    }
 
+    void finalize(){
+        asylo::EnclaveFinal final_input;
+        asylo::Status status = this->manager->DestroyEnclave(this->client, final_input);
         StopMsgResponder( circ_buffer_host );
         pthread_join(circ_buffer_host->responderThread, NULL);
 
@@ -243,20 +283,6 @@ public:
         free(circ_buffer_host);
         free(circ_buffer_enclave);
 
-//<<<<<<< HEAD
-//=======
-//            LOG(INFO)  << "Message from enclave " << this->m_name << ": "
-//                      << output.GetExtension(hello_world::enclave_output_hello)
-//                              .greeting_message();
-//
-//
-//        }
-//>>>>>>> a8f381be62795ec3e188437a00f58d1aef42ff66
-    }
-
-    void finalize(){
-        asylo::EnclaveFinal final_input;
-        asylo::Status status = this->manager->DestroyEnclave(this->client, final_input);
         if (!status.ok()) {
             LOG(QFATAL) << "Destroy " << absl::GetFlag(FLAGS_enclave_path)
                         << " failed: " << status;
@@ -265,7 +291,7 @@ public:
 
     void run(std::vector<std::string>  names){
         init();
-        execute(names);
+        execute();
         finalize();
     }
 private:
@@ -280,10 +306,11 @@ private:
 
 class zmq_comm {
 public:
-    zmq_comm(std::string ip, unsigned thread_id){
+    zmq_comm(std::string ip, unsigned thread_id, Asylo_SGX* sgx){
         m_port = std::to_string(NET_CLIENT_BASE_PORT + thread_id);
         m_addr = "tcp://" + ip +":" + m_port;
         m_thread_id = thread_id;
+        m_sgx = sgx;
     }
 
     [[noreturn]] void run_server(){
@@ -315,7 +342,7 @@ public:
                 zmq::socket_t* socket_ptr  = new  zmq::socket_t( context, ZMQ_PUSH);
                 socket_ptr -> connect (msg);
                 this->group_sockets.push_back(socket_ptr);
-                this->send_string("Ack Join", socket_ptr);
+                //this->send_string("Ack Join", socket_ptr);
             }
 
             //receive new message to mcast
@@ -336,6 +363,7 @@ public:
         zmq::socket_t socket_from_server (context, ZMQ_PULL);
         socket_from_server.bind ("tcp://*:" + m_port);
 
+
         //send join request to seed server
         zmq::socket_t* socket_join  = new  zmq::socket_t( context, ZMQ_PUSH);
         socket_join -> connect ("tcp://" + m_seed_server_ip + ":" + m_seed_server_join_port);
@@ -350,8 +378,15 @@ public:
                 { static_cast<void *>(socket_from_server), 0, ZMQ_POLLIN, 0 },
         };
 
-        Asylo_SGX* sgx = new Asylo_SGX(m_port);
-        sgx->init();
+        //Asylo_SGX* sgx = new Asylo_SGX(m_port);
+        //sgx->init();
+        //sleep to wait for sgx to finish initialization
+        //if there isn't a sleep, there might be segfaults
+        //sleep(1);
+
+        //pthread_t m_fake_client;
+        //pthread_create(&m_fake_client, NULL, sgx->execute, NULL);
+        //std::thread(sgx->execute);
         //start enclave
         while (true) {
             zmq::poll(pollitems.data(), pollitems.size(), 0);
@@ -360,12 +395,11 @@ public:
                 //Get the address
                 std::string msg = this->recv_string(&socket_from_server);
                 LOG(INFO) << "[Client " << m_addr << "]:  " + msg ;
-                this -> send_string(m_port , socket_send);
-                std::vector<std::string> names = {msg};
-                sgx->execute(names);
+                // this -> send_string(m_port , socket_send);
+                this->m_sgx->send_to_sgx(msg);
             }
         }
-        sgx->finalize();
+        m_sgx->finalize();
     }
 
 private:
@@ -375,6 +409,7 @@ private:
     std::string m_seed_server_join_port = std::to_string(NET_SERVER_JOIN_PORT);
     std::string m_seed_server_mcast_port = std::to_string(NET_SERVER_MCAST_PORT);
     unsigned m_thread_id;
+    Asylo_SGX* m_sgx;
 
     int m_enclave_seq_number = 0;
     std::vector<std::string> group_addresses;
@@ -398,13 +433,16 @@ private:
     }
 };
 
-void thread_run_zmq_client(unsigned thread_id){
-    zmq_comm zs = zmq_comm(NET_CLIENT_IP, thread_id);
+void thread_run_zmq_client(unsigned thread_id, Asylo_SGX* sgx){
+    zmq_comm zs = zmq_comm(NET_CLIENT_IP, thread_id, sgx);
     zs.run_client();
 }
 void thread_run_zmq_server(unsigned thread_id){
-    zmq_comm zs = zmq_comm(NET_SEED_SERVER_IP, thread_id);
+    zmq_comm zs = zmq_comm(NET_SEED_SERVER_IP, thread_id, nullptr);
     zs.run_server();
+}
+void thread_start_fake_client(Asylo_SGX* sgx){
+    sgx->execute();
 }
 
 int main(int argc, char *argv[]) {
@@ -422,14 +460,18 @@ int main(int argc, char *argv[]) {
     if(multi_client) {
         std::vector <std::thread> worker_threads;
         //start clients
-        for (unsigned thread_id = 1; thread_id < 5; thread_id++) {
-            worker_threads.push_back(std::thread(thread_run_zmq_client, thread_id));
+        for (unsigned thread_id = 1; thread_id < 2; thread_id++) {
+            Asylo_SGX* sgx = new Asylo_SGX( std::to_string(thread_id));
+            sgx->init();
+            sleep(1);
+            worker_threads.push_back(std::thread(thread_run_zmq_client, thread_id, sgx));
+            worker_threads.push_back(std::thread(thread_start_fake_client, sgx));
         }
         sleep(2);
 
         //start server
         worker_threads.push_back(std::thread(thread_run_zmq_server, 0));
-        sleep(15);
+        sleep(20);
     } else {
         std::vector<std::string> names =
                 absl::StrSplit(absl::GetFlag(FLAGS_payload), ',');

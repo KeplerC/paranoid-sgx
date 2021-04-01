@@ -214,7 +214,8 @@ namespace asylo {
 
                     switch(arg->ecall_id){
                         case ECALL_PUT:
-                            printf("[ECALL] dc_id : %d\n", dc->id);
+                            //printf("[ECALL] dc_id : %d\n", dc->id);
+                            LOG(INFO) << "[CICBUF-ECALL] transmitted a data capsule pdu";
                             put((capsule_pdu *) arg->data);
                             LOG(INFO) << "DataCapsule payload.key is " << dc->payload.key;
                             LOG(INFO) << "DataCapsule payload.value is " << dc->payload.value;
@@ -234,25 +235,52 @@ namespace asylo {
             }
         }
 
+        // Fake client
         asylo::Status Run(const asylo::EnclaveInput &input,
                           asylo::EnclaveOutput *output) override {
 
 
             if (input.HasExtension(hello_world::enclave_responder)) {
-                HotMsg* hotmsg = (HotMsg*) input.GetExtension(hello_world::enclave_responder).responder();
-                EnclaveMsgStartResponder( hotmsg );
+                HotMsg *hotmsg = (HotMsg *) input.GetExtension(hello_world::enclave_responder).responder();
+                EnclaveMsgStartResponder(hotmsg);
                 return asylo::Status::OkStatus();
             }
 
-
+            //Then the client wants to put some messages
             buffer = (HotMsg *) input.GetExtension(hello_world::buffer).buffer();
             requestedCallID = 0;
 
+            capsule_pdu dc[10];
+            //simulate client do some processing...
+            sleep(3);
+            // TODO: there still has some issues when the client starts before the client connects to the server
+            // if we want to consider it, probably we need to buffer the messages
+
+            for( uint64_t i=0; i < 1; ++i ) {
+                LOG(INFO) << "[ENCLAVE] ===CLIENT PUT=== ";
+                LOG(INFO) << "[ENCLAVE] Generating a new capsule PDU ";
+                asylo::KvToCapsule(&dc[i], i, "default_key", "original_value");
+                LOG(INFO) << "DataCapsule payload.key is " << dc[i].payload.key;
+                LOG(INFO) << "DataCapsule payload.value is " << dc[i].payload.value;
+                put(&dc[i]);
+                put_ocall(&dc[i]);
+            }
+            sleep(2);
+
+            for( uint64_t i=0; i < 1; ++i ) {
+                //dc[i].id = i;
+                LOG(INFO) << "[ENCLAVE] ===CLIENT GET=== ";
+                capsule_pdu* tmp_dc = get(i);
+                LOG(INFO) << "DataCapsule payload.key is " << tmp_dc->payload.key;
+                LOG(INFO) << "DataCapsule payload.value is " << tmp_dc->payload.value;
+            }
+
+
             //capsule_pdu dc[10];
 
-            for( uint64_t i=0; i < 10; ++i ){
-                put_ocall(get(i));
-            }
+            //            for( uint64_t i=0; i < 10; ++i ){
+            //                put_ocall(get(i));
+            //            }
 
             return asylo::Status::OkStatus();
         }
