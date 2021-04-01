@@ -216,7 +216,7 @@ namespace asylo {
                         case ECALL_PUT:
                             //printf("[ECALL] dc_id : %d\n", dc->id);
                             LOG(INFO) << "[CICBUF-ECALL] transmitted a data capsule pdu";
-                            put((capsule_pdu *) arg->data);
+                            put_memtable((capsule_pdu *) arg->data);
                             LOG(INFO) << "DataCapsule payload.key is " << dc->payload.key;
                             LOG(INFO) << "DataCapsule payload.value is " << dc->payload.value;
                             break;
@@ -249,8 +249,9 @@ namespace asylo {
             //Then the client wants to put some messages
             buffer = (HotMsg *) input.GetExtension(hello_world::buffer).buffer();
             requestedCallID = 0;
+            counter = 0;
 
-            capsule_pdu dc[10];
+            //capsule_pdu dc[10];
             //simulate client do some processing...
             sleep(3);
             // TODO: there still has some issues when the client starts before the client connects to the server
@@ -259,11 +260,11 @@ namespace asylo {
             for( uint64_t i=0; i < 1; ++i ) {
                 LOG(INFO) << "[ENCLAVE] ===CLIENT PUT=== ";
                 LOG(INFO) << "[ENCLAVE] Generating a new capsule PDU ";
-                asylo::KvToCapsule(&dc[i], i, "default_key", "original_value");
-                LOG(INFO) << "DataCapsule payload.key is " << dc[i].payload.key;
-                LOG(INFO) << "DataCapsule payload.value is " << dc[i].payload.value;
-                put(&dc[i]);
-                put_ocall(&dc[i]);
+                //asylo::KvToCapsule(&dc[i], i, "default_key", "original_value");
+                put("default_key", "default_value");
+
+//                put(&dc[i]);
+                //put_ocall(&dc[i]);
             }
             sleep(2);
 
@@ -284,15 +285,29 @@ namespace asylo {
 
             return asylo::Status::OkStatus();
         }
+
     private:
         uint64_t visitor_count_;
         MemTable memtable;
         HotMsg *buffer;
         int requestedCallID;
+        int counter;
 
         /* These functions willl be part of the CAAPI */
-        bool put(capsule_pdu *dc) {
-            return memtable.put(dc);
+        bool put_memtable(capsule_pdu *dc) {
+            memtable.put(dc);
+            return true;
+        }
+        void put(capsule_pdu *dc) {
+            put_memtable(dc);
+            put_ocall(dc);
+        }
+        void put(std::string key, std::string value) {
+            capsule_pdu dc;
+            asylo::KvToCapsule(&dc, counter++, key, value);
+            LOG(INFO) << "DataCapsule payload.key is " << dc.payload.key;
+            LOG(INFO) << "DataCapsule payload.value is " << dc.payload.value;
+            put(&dc);
         }
 
         capsule_pdu *get(capsule_id id){
