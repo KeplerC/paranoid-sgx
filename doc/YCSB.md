@@ -28,7 +28,7 @@ This tutorial is how to generate YCSB traces.
 
 ```bash
 git clone https://github.com/cocoppang/ShieldStore
-cd ShShieldStore/YCSB
+cd ShieldStore/YCSB
 ./trace_gen.sh
 ```
 
