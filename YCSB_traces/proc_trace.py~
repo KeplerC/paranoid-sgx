@@ -1,0 +1,7 @@
+
+with open("./tracea_load_a.txt") as f:
+    text = f.read()
+    for line in text.split("\n"):
+        line = line.split(" ")
+        print("get({}, {})".format(line[1], line[2]))
+        

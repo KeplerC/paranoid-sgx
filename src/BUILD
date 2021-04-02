@@ -43,7 +43,7 @@ cc_proto_library(
 
 cc_unsigned_enclave(
     name = "hello_enclave_unsigned.so",
-    srcs = ["kvs_enclave.cc",  "memtable.cc", "double_linked_list.cc", "capsule.h", "double_linked_list.hpp", "memtable.hpp", "util/proto_util.hpp", "util/proto_util.cc", "hot_msg_pass.h", "common.h"],
+    srcs = ["kvs_enclave.cc",  "memtable.cc", "double_linked_list.cc", "capsule.h", "double_linked_list.hpp", "memtable.hpp", "util/proto_util.hpp", "util/proto_util.cc", "hot_msg_pass.h", "common.h", "benchmark.h"],
     deps = [
         ":hello_cc_proto",
         "@com_google_absl//absl/strings",
@@ -67,7 +67,7 @@ debug_sign_enclave(
 
 enclave_loader(
     name = "hello_world",
-    srcs = ["sgx_spinlock.h", "spinlock.c", "hello_driver.cc", "capsule.h", "util/proto_util.hpp", "util/proto_util.cc", "hot_msg_pass.h",  "common.h"],
+    srcs = ["sgx_spinlock.h", "spinlock.c", "hello_driver.cc", "capsule.h", "util/proto_util.hpp", "util/proto_util.cc", "hot_msg_pass.h",  "common.h", "benchmark.h"],
     backends = sgx.backend_labels,  # Has SGX loader dependencies
     enclaves = {"enclave": ":hello_enclave.so"},
     loader_args = ["--enclave_path='{enclave}'"],
