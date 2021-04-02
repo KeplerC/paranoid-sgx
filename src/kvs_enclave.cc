@@ -28,6 +28,7 @@
 #include "asylo/crypto/ecdsa_p256_sha256_signing_key.h"
 #include "asylo/util/status_macros.h"
 #include "asylo/crypto/util/byte_container_view.h"
+#include "asylo/platform/primitives/trusted_primitives.h"
 #include "capsule.h"
 #include "memtable.hpp"
 #include "hot_msg_pass.h"
@@ -158,12 +159,17 @@ namespace asylo {
                 if( data_ptr-> isRead == true ) {
                     data_ptr-> isRead  = false;
                     OcallParams *arg = (OcallParams *) data;
-                    data_ptr->data = (void *) 1;
-                    data_ptr->ocall_id = arg->ocall_id;
-                    capsule_pdu *dc = (capsule_pdu *) arg->data;
 
-                    //Must copy to the host since we cannot pass a pointer from enclave
-                    memcpy(&data_ptr->dc, dc, sizeof(capsule_pdu));
+                    hello_world::CapsulePDU out_dc;
+                    asylo::CapsuleToProto((capsule_pdu *) arg->data, &out_dc);
+
+                    std::string out_s;
+                    out_dc.SerializeToString(&out_s);
+                    data_ptr->data = primitives::TrustedPrimitives::UntrustedLocalAlloc(out_s.size());
+                    data_ptr->size = out_s.size();    
+                    memcpy(data_ptr->data, out_s.c_str(), data_ptr->size);
+
+                    data_ptr->ocall_id = arg->ocall_id;
                     sgx_spin_unlock( &data_ptr->spinlock );
                     break;
                 }
@@ -260,7 +266,8 @@ namespace asylo {
             for( uint64_t i=0; i < 1; ++i ) {
                 LOG(INFO) << "[ENCLAVE] ===CLIENT PUT=== ";
                 LOG(INFO) << "[ENCLAVE] Generating a new capsule PDU ";
-                put("default_key", "default_value");
+                //asylo::KvToCapsule(&dc[i], i, "default_key", "original_value");
+                put("default_key_longggggggggggggggggggggggg", "default_value_longggggggggggggggggggggggg");
             }
             sleep(2);
 
@@ -273,7 +280,7 @@ namespace asylo {
             }
 
 
-            benchmark();
+            //benchmark();
 
             return asylo::Status::OkStatus();
         }
