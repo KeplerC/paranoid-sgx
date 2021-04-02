@@ -1,9 +1,11 @@
 #include "proto_util.hpp"
+#include <unistd.h>
 namespace asylo {
 
-void KvToCapsule(capsule_pdu *dc, const capsule_id id, const std::string key, const std::string value) {            
+void KvToCapsule(capsule_pdu *dc, const capsule_id id, const std::string key, const std::string value) {
     dc->id = id;
     dc->payload.key = key;
+    sleep(1);
     dc->payload.value = value;
 }
 

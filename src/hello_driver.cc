@@ -118,35 +118,31 @@ public:
 
           if(data_ptr->data){
               //Message exists!
-              OcallParams *arg = (OcallParams *) data_ptr->data;
-              capsule_pdu *dc = &data_ptr->dc;
+              std::string in_s((char *) data_ptr->data, data_ptr->size);
+              free(data_ptr->data);
 
+              hello_world::CapsulePDU in_dc;
+              in_dc.ParseFromString(in_s);
 
               switch(data_ptr->ocall_id){
                 case OCALL_PUT: {
-                    //printf("[OCALL] dc_id : %d\n", dc->id);
                     // TODO: we do everything inside of the lock, this is slow
                     // we can copy the string and process it after we release the lock
-                    //asylo::CapsuleFromProto(dc, &output.GetExtension(hello_world::output_dc));
                     LOG(INFO) << "[CICBUF-OCALL] transmitted a data capsule pdu";
-                    LOG(INFO) << "DataCapsule ID is " << (int) dc->id;
-                    LOG(INFO) << "DataCapsule payload.key is " << dc->payload.key;
-                    LOG(INFO) << "DataCapsule payload.value is " << dc->payload.value;
-                    dc->payload.value = "updated_value";
+                    LOG(INFO) << "DataCapsule ID is " << (int) in_dc.id();
+                    LOG(INFO) << "DataCapsule payload.key is " << in_dc.payload().key();
+                    LOG(INFO) << "DataCapsule payload.value is " << in_dc.payload().value();
+                    in_dc.mutable_payload()->set_value("updated_value");
 
-                    hello_world::CapsulePDU in_dc;
-                    asylo::CapsuleToProto(dc, &in_dc);
-                    std::string s;
-                    in_dc.SerializeToString(&s);
-                    //in_dc.ParseFromString(s);
-                    //LOG(INFO) << in_dc.DebugString();
-                    zmq::message_t msg(s.size());
-                    memcpy(msg.data(), s.c_str(), s.size());
+                    std::string out_s;
+                    in_dc.SerializeToString(&out_s);
+                    zmq::message_t msg(out_s.size());
+                    memcpy(msg.data(), out_s.c_str(), out_s.size());
                     socket_ptr->send(msg);
                     break;
                 }
                 default:
-                  printf("Invalid ECALL id: %d\n", arg->ocall_id);
+                    printf("Invalid ECALL id: %d\n", data_ptr->ocall_id);
               }
               data_ptr->data = 0;
           }
