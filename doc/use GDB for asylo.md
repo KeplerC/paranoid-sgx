@@ -80,4 +80,4 @@ $ sgx-gdb --args bazel-out/k8-dbg-ST-b8b7b2b153c1/bin/src/hello_world_loader_sgx
 ```
 
 
-
+bazel build  -c dbg  //src:hello_world_loader && bazel build  -c dbg  //src:hello_enclave.so

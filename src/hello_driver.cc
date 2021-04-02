@@ -223,9 +223,9 @@ public:
         in_dc.ParseFromString(message);
         capsule_pdu dc;
         asylo::CapsuleFromProto(&dc, &in_dc);
+        LOG(INFO) << "Client puts capsule into CIRBUF-ECALL";
         put_ecall(&dc);
         //Sleep so that threads have time to process ALL requests
-        sleep(1);
     }
 
     //start a fake client
