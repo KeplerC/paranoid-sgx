@@ -2,7 +2,10 @@
 
 Node::Node(capsule_pdu *dc_arg)       //Parameterized Constructor
 {
-    memcpy(&dc, dc_arg, sizeof(capsule_pdu));
+    dc.id = dc_arg->id;
+    dc.payload.key = dc_arg->payload.key;
+    dc.payload.value = dc_arg->payload.value;
+
     next = prev = NULL;
 }
  
