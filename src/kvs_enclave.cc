@@ -208,11 +208,12 @@ namespace asylo {
                 }
 
                 HotData* data_ptr = (HotData*) hotMsg -> MsgQueue[dataID];
-                if (data_ptr == 0){
-                    continue;
-                }
 
                 sgx_spin_lock( &data_ptr->spinlock );
+                if (data_ptr == 0){
+                    sgx_spin_unlock( &data_ptr->spinlock );
+                    continue;
+                }
 
                 if(data_ptr->data){
                     //Message exists!
@@ -226,7 +227,6 @@ namespace asylo {
                             put_memtable((capsule_pdu *) arg->data);
                             LOG(INFO) << "DataCapsule payload.key is " << dc->payload.key;
                             LOG(INFO) << "DataCapsule payload.value is " << dc->payload.value;
-                            break;
                         default:
                             printf("Invalid ECALL id: %d\n", arg->ecall_id);
                     }
@@ -303,11 +303,13 @@ namespace asylo {
             put_ocall(dc);
         }
         void put(std::string key, std::string value) {
-            capsule_pdu dc;
-            asylo::KvToCapsule(&dc, counter++, key, value);
+            // capsule_pdu *dc = (capsule_pdu *) malloc(sizeof(capsule_pdu));
+            capsule_pdu *dc = new capsule_pdu();
+            asylo::KvToCapsule(dc, counter++, key, value);
 //            LOG(INFO) << "DataCapsule payload.key is " << dc.payload.key;
 //            LOG(INFO) << "DataCapsule payload.value is " << dc.payload.value;
-            put(&dc);
+            put(dc);
+            delete dc; 
         }
 
         capsule_pdu *get(capsule_id id){

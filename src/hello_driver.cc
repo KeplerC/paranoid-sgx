@@ -221,10 +221,12 @@ public:
 
         hello_world::CapsulePDU in_dc;
         in_dc.ParseFromString(message);
-        capsule_pdu dc;
-        asylo::CapsuleFromProto(&dc, &in_dc);
+        //TODO: Figure out where to free this buffer...
+        capsule_pdu *dc = new capsule_pdu();
+        asylo::CapsuleFromProto(dc, &in_dc);
+
         LOG(INFO) << "Client puts capsule into CIRBUF-ECALL";
-        put_ecall(&dc);
+        put_ecall(dc);
         //Sleep so that threads have time to process ALL requests
     }
 
