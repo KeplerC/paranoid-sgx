@@ -447,9 +447,9 @@ int main(int argc, char *argv[]) {
   // Part 0: Setup
     absl::ParseCommandLine(argc, argv);
 
-    if (absl::GetFlag(FLAGS_payload).empty()) {
-      LOG(QFATAL) << "Must supply a non-empty string for the DataCapsule payload --payload";
-    }
+//    if (absl::GetFlag(FLAGS_payload).empty()) {
+//      LOG(QFATAL) << "Must supply a non-empty string for the DataCapsule payload --payload";
+//    }
 
     // If you just want to test a single enclave, change to false
 
