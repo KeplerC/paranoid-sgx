@@ -227,6 +227,7 @@ namespace asylo {
                             put_memtable((capsule_pdu *) arg->data);
                             LOG(INFO) << "DataCapsule payload.key is " << dc->payload.key;
                             LOG(INFO) << "DataCapsule payload.value is " << dc->payload.value;
+                            break;
                         default:
                             printf("Invalid ECALL id: %d\n", arg->ecall_id);
                     }
