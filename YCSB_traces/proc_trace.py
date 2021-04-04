@@ -8,12 +8,12 @@ M_FINAL_SCRIPT = '''
 
 def proc_put(line):
     global M_FINAL_SCRIPT
-    M_FINAL_SCRIPT += ("\tput(\"{}\", \"{}\");\\ \n".format(line[1], line[2].replace("\"", "").replace("\\", "")))
+    M_FINAL_SCRIPT += ("\tput(\"{}\", \"{}\");\\\n".format(line[1], line[2].replace("\"", "").replace("\\", "")))
 
 def proc_get(line):
     global M_FINAL_SCRIPT
     return
-    M_FINAL_SCRIPT += ("\tget(\"{}\");\\ \n".format(line[1]))
+    M_FINAL_SCRIPT += ("\tget(\"{}\");\\\n".format(line[1]))
 	
 with open("./tracea_load_a.txt") as f:
     text = f.read()
