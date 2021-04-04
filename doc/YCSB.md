@@ -39,3 +39,4 @@ The trace files are generated in YCSB's root folder.
 
 1. python's path: You may need to change `YCSB/bin/ycsb`'s python path to your own python path. I think it only works for Python2. 
 2. Reduce the number of records generated: you need to change `YCSB/workloads/workloadX` file. There are `recordcount` and `operationcount`. They can be 1000 by default. 
+3. put the traces into `./YCSB_traces/` and then run `python ./YCSB_traces/proc_trace.py`. The macro header file `./src/benchmark.h` will be autoamtically generated. 
