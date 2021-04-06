@@ -260,6 +260,12 @@ namespace asylo {
                 duk_push_c_function(ctx, js_put, 2 /*nargs*/);
                 duk_put_global_string(ctx, "put");
 
+                duk_push_c_function(ctx, js_get, 1 /*nargs*/);
+                duk_put_global_string(ctx, "get");
+
+                duk_push_c_function(ctx, js_print, 1 /*nargs*/);
+                duk_put_global_string(ctx, "print");
+
                 //Register memtable as global object
                 duk_push_pointer(ctx, this); 
                 duk_put_global_string(ctx, "ctx");
@@ -317,6 +323,11 @@ namespace asylo {
             return true;
         }
 
+        static duk_ret_t js_print(duk_context *ctx) {
+            printf("%s\n", duk_to_string(ctx, 0));
+            return 0;  /* no return value (= undefined) */
+        }
+
         static duk_ret_t js_put(duk_context *ctx){
             std::string key = duk_to_string(ctx, 0);
             std::string val = duk_to_string(ctx, 1);
@@ -329,11 +340,19 @@ namespace asylo {
 
         static duk_ret_t js_get(duk_context *ctx){
             capsule_id id = duk_to_int(ctx, 0);
-
+            
             duk_eval_string(ctx, "ctx");
             HelloApplication *m = (HelloApplication *) duk_to_pointer(ctx, -1);
 
-            duk_push_pointer(ctx, m->get(id));
+            duk_idx_t obj_idx = duk_push_object(ctx);
+            capsule_pdu *dc = m->get(id);
+
+            duk_push_string(ctx, dc->payload.key.c_str()); 
+            duk_put_prop_string(ctx, obj_idx, "key");
+
+            duk_push_string(ctx, dc->payload.value.c_str()); 
+            duk_put_prop_string(ctx, obj_idx, "val");
+
             return 1;           
         }
 
