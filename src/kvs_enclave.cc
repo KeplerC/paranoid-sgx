@@ -36,6 +36,7 @@
 #include "src/proto/hello.pb.h"
 #include "src/util/proto_util.hpp"
 #include "benchmark.h"
+#include "duktape.h"
 
 namespace asylo {
 
@@ -153,14 +154,12 @@ namespace asylo {
 
             //Request call
             while( true ) {
-
                 HotData* data_ptr = (HotData*) hotMsg -> MsgQueue[data_index];
                 sgx_spin_lock( &data_ptr->spinlock );
 
                 if( data_ptr-> isRead == true ) {
                     data_ptr-> isRead  = false;
                     OcallParams *arg = (OcallParams *) data;
-
                     hello_world::CapsulePDU out_dc;
                     asylo::CapsuleToProto((capsule_pdu *) arg->data, &out_dc);
 
@@ -219,6 +218,7 @@ namespace asylo {
                     //Message exists!
                     EcallParams *arg = (EcallParams *) data_ptr->data;
                     capsule_pdu *dc = (capsule_pdu *) arg->data;
+                    char *code = (char *) arg->data;
 
                     switch(arg->ecall_id){
                         case ECALL_PUT:
@@ -227,6 +227,9 @@ namespace asylo {
                             put_memtable((capsule_pdu *) arg->data);
                             LOG(INFO) << "DataCapsule payload.key is " << dc->payload.key;
                             LOG(INFO) << "DataCapsule payload.value is " << dc->payload.value;
+                            break;
+                        case ECALL_RUN:
+                            duk_eval_string(ctx, code);
                             break;
                         default:
                             printf("Invalid ECALL id: %d\n", arg->ecall_id);
@@ -247,8 +250,20 @@ namespace asylo {
         asylo::Status Run(const asylo::EnclaveInput &input,
                           asylo::EnclaveOutput *output) override {
 
-
+            //Initialize Enclave (run only once)
             if (input.HasExtension(hello_world::enclave_responder)) {
+
+                //Initialize JS engine
+                 ctx = duk_create_heap_default();
+
+                //Register 'put' and 'get' functions
+                duk_push_c_function(ctx, js_put, 2 /*nargs*/);
+                duk_put_global_string(ctx, "put");
+
+                //Register memtable as global object
+                duk_push_pointer(ctx, this); 
+                duk_put_global_string(ctx, "ctx");
+
                 HotMsg *hotmsg = (HotMsg *) input.GetExtension(hello_world::enclave_responder).responder();
                 EnclaveMsgStartResponder(hotmsg);
                 return asylo::Status::OkStatus();
@@ -261,28 +276,29 @@ namespace asylo {
 
             //capsule_pdu dc[10];
             //simulate client do some processing...
-            sleep(3);
+            // sleep(3);
             // TODO: there still has some issues when the client starts before the client connects to the server
             // if we want to consider it, probably we need to buffer the messages
 
-            for( uint64_t i=0; i < 1; ++i ) {
-                LOG(INFO) << "[ENCLAVE] ===CLIENT PUT=== ";
-                LOG(INFO) << "[ENCLAVE] Generating a new capsule PDU ";
-                //asylo::KvToCapsule(&dc[i], i, "default_key", "original_value");
-                put("default_key_longggggggggggggggggggggggg", "default_value_longggggggggggggggggggggggg");
-            }
-            sleep(2);
+            // for( uint64_t i=0; i < 1; ++i ) {
+            //     LOG(INFO) << "[ENCLAVE] ===CLIENT PUT=== ";
+            //     LOG(INFO) << "[ENCLAVE] Generating a new capsule PDU ";
+            //     //asylo::KvToCapsule(&dc[i], i, "default_key", "original_value");
+            //     put("default_key_longggggggggggggggggggggggg", "default_value_longggggggggggggggggggggggg");
+            // }
+            // sleep(2);
 
-            for( uint64_t i=0; i < 1; ++i ) {
-                //dc[i].id = i;
-                LOG(INFO) << "[ENCLAVE] ===CLIENT GET=== ";
-                capsule_pdu* tmp_dc = get(i);
-                LOG(INFO) << "DataCapsule payload.key is " << tmp_dc->payload.key;
-                LOG(INFO) << "DataCapsule payload.value is " << tmp_dc->payload.value;
-            }
+            // for( uint64_t i=0; i < 1; ++i ) {
+            //     //dc[i].id = i;
+            //     LOG(INFO) << "[ENCLAVE] ===CLIENT GET=== ";
+            // capsule_pdu* tmp_dc = get(i);
+            //     LOG(INFO) << "DataCapsule payload.key is " << tmp_dc->payload.key;
+            //     LOG(INFO) << "DataCapsule payload.value is " << tmp_dc->payload.value;
+            // }
 
+            // duk_eval_string(ctx, "put('long key', 'long val')");
 
-            benchmark();
+            // benchmark();
 
             return asylo::Status::OkStatus();
         }
@@ -293,12 +309,34 @@ namespace asylo {
         HotMsg *buffer;
         int requestedCallID;
         int counter;
+        duk_context *ctx;
 
         /* These functions willl be part of the CAAPI */
         bool put_memtable(capsule_pdu *dc) {
             memtable.put(dc);
             return true;
         }
+
+        static duk_ret_t js_put(duk_context *ctx){
+            std::string key = duk_to_string(ctx, 0);
+            std::string val = duk_to_string(ctx, 1);
+
+            duk_eval_string(ctx, "ctx");
+            HelloApplication *m = (HelloApplication *) duk_to_pointer(ctx, -1);
+            m->put(key, val);
+            return 0;           
+        }
+
+        static duk_ret_t js_get(duk_context *ctx){
+            capsule_id id = duk_to_int(ctx, 0);
+
+            duk_eval_string(ctx, "ctx");
+            HelloApplication *m = (HelloApplication *) duk_to_pointer(ctx, -1);
+
+            duk_push_pointer(ctx, m->get(id));
+            return 1;           
+        }
+
         void put(capsule_pdu *dc) {
             put_memtable(dc);
             put_ocall(dc);
@@ -307,8 +345,6 @@ namespace asylo {
             // capsule_pdu *dc = (capsule_pdu *) malloc(sizeof(capsule_pdu));
             capsule_pdu *dc = new capsule_pdu();
             asylo::KvToCapsule(dc, counter++, key, value);
-//            LOG(INFO) << "DataCapsule payload.key is " << dc.payload.key;
-//            LOG(INFO) << "DataCapsule payload.value is " << dc.payload.value;
             put(dc);
             delete dc; 
         }

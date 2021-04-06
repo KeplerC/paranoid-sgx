@@ -31,6 +31,7 @@ enum OCALL_ID {
 
 enum ECALL_ID {
     ECALL_PUT,
+    ECALL_RUN,
 };
 
 typedef struct {

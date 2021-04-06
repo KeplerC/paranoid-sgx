@@ -43,7 +43,7 @@ cc_proto_library(
 
 cc_unsigned_enclave(
     name = "hello_enclave_unsigned.so",
-    srcs = ["kvs_enclave.cc",  "memtable.cc", "double_linked_list.cc", "capsule.h", "double_linked_list.hpp", "memtable.hpp", "util/proto_util.hpp", "util/proto_util.cc", "hot_msg_pass.h", "common.h", "benchmark.h"],
+    srcs = ["duktape.c", "duk_config.h", "duktape.h", "kvs_enclave.cc",  "memtable.cc", "double_linked_list.cc", "capsule.h", "double_linked_list.hpp", "memtable.hpp", "util/proto_util.hpp", "util/proto_util.cc", "hot_msg_pass.h", "common.h", "benchmark.h"],
     deps = [
         ":hello_cc_proto",
         "@com_google_absl//absl/strings",

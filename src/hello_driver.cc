@@ -17,6 +17,8 @@
  */
 
 #include <iostream>
+#include <fstream>
+#include <sstream>
 #include <string>
 #include <thread>
 #include <vector>
@@ -53,6 +55,8 @@ ABSL_FLAG(std::string, names, "",
           "A comma-separated list of names to pass to the enclave");
 ABSL_FLAG(std::string, payload, "",
           "Data capsule payload to send to the enclave!");
+ABSL_FLAG(std::string, input_file, "",
+          "JS input file to execute!");
 
 
 struct enclave_responder_args {
@@ -157,6 +161,15 @@ public:
       }
     }
 
+    void run_code(std::string *code){
+      EcallParams *args = (EcallParams *) malloc(sizeof(OcallParams));
+      args->ecall_id = ECALL_RUN;
+      args->data = (char *) code->c_str(); 
+      args->data = (char *) calloc(code->size()+1, sizeof(char));
+      memcpy(args->data, code->c_str(), code->size()); 
+      HotMsg_requestECall( circ_buffer_enclave, requestedCallID++, args);
+    }
+
     void put_ecall(capsule_pdu *dc) {
       EcallParams *args = (EcallParams *) malloc(sizeof(OcallParams));
       args->ecall_id = ECALL_PUT;
@@ -233,36 +246,24 @@ public:
     //start a fake client
     void execute(){
 
+        //Test OCALL
+        asylo::EnclaveInput input;        
+        asylo::EnclaveOutput output;
+        //Register OCALL buffer to enclave 
+        input.MutableExtension(hello_world::buffer)->set_buffer((long int) circ_buffer_host);
+        asylo::Status status = this->client->EnterAndRun(input, &output);
+        if (!status.ok()) {
+            LOG(QFATAL) << "EnterAndRun failed: " << status;
+        }
+        
+        std::string input_js = absl::GetFlag(FLAGS_input_file);
+        std::ifstream t(input_js);
+        std::stringstream buffer;
+        buffer << t.rdbuf();
 
-//            capsule_pdu dc[10];
-//
-//            for( uint64_t i=0; i < 10; ++i ) {
-//                //dc[i].id = i;
-//                asylo::KvToCapsule(&dc[i], i, "input_key", "input_value");
-//                LOG(INFO) << "DataCapsule payload.key is " << dc->payload.key;
-//                LOG(INFO) << "DataCapsule payload.value is " << dc->payload.value;
-//                put_ecall( &dc[i] );
-//            }
-//
-//            sleep(3);
-            //Test OCALL
-            asylo::EnclaveInput input;
-            input.MutableExtension(hello_world::buffer)->set_buffer((long int) circ_buffer_host);
-//
-//            asylo::EnclaveInput input;
-//            capsule_pdu in_dc;
-//
-//            asylo::KvToCapsule(&in_dc, 2021, "input_key", "input_value");
-//            input.MutableExtension(hello_world::enclave_input_hello)
-//                    ->set_to_greet(name);
-//            asylo::CapsuleToProto(&in_dc, input.MutableExtension(hello_world::input_dc));
-
-
-            asylo::EnclaveOutput output;
-            asylo::Status status = this->client->EnterAndRun(input, &output);
-            if (!status.ok()) {
-                LOG(QFATAL) << "EnterAndRun failed: " << status;
-            }
+        std::string code = buffer.str(); 
+        //Execute JS file 
+        run_code(&code);
 
 
         //Sleep so that threads have time to process ALL requests
