@@ -23,6 +23,8 @@ typedef struct {
     std::string metaHash;
     std::string dataHash;
 
+    int64_t timestamp;
+
 } capsule_pdu;
 
 #endif 

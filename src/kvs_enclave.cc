@@ -37,6 +37,7 @@
 #include "src/util/proto_util.hpp"
 #include "benchmark.h"
 
+
 namespace asylo {
 
     namespace {
@@ -218,15 +219,14 @@ namespace asylo {
                 if(data_ptr->data){
                     //Message exists!
                     EcallParams *arg = (EcallParams *) data_ptr->data;
-                    capsule_pdu *dc = (capsule_pdu *) arg->data;
+                    capsule_pdu *dc = new capsule_pdu();
+                    CapsuleToCapsule(dc, (capsule_pdu *) arg->data);
 
                     switch(arg->ecall_id){
                         case ECALL_PUT:
                             //printf("[ECALL] dc_id : %d\n", dc->id);
                             LOG(INFO) << "[CICBUF-ECALL] transmitted a data capsule pdu";
-                            put_memtable((capsule_pdu *) arg->data);
-                            LOG(INFO) << "DataCapsule payload.key is " << dc->payload.key;
-                            LOG(INFO) << "DataCapsule payload.value is " << dc->payload.value;
+                            put_memtable(dc);
                             break;
                         default:
                             printf("Invalid ECALL id: %d\n", arg->ecall_id);
@@ -265,24 +265,30 @@ namespace asylo {
             // TODO: there still has some issues when the client starts before the client connects to the server
             // if we want to consider it, probably we need to buffer the messages
 
+
+
             for( uint64_t i=0; i < 1; ++i ) {
                 LOG(INFO) << "[ENCLAVE] ===CLIENT PUT=== ";
                 LOG(INFO) << "[ENCLAVE] Generating a new capsule PDU ";
                 //asylo::KvToCapsule(&dc[i], i, "default_key", "original_value");
-                put("default_key_longggggggggggggggggggggggg", "default_value_longggggggggggggggggggggggg");
+                put("default_key", "default_value");
             }
-            sleep(2);
 
+
+            //sleep(2);
+            while(true){
+                LOG(INFO) << "=="<< get(0)->timestamp;
+
+                sleep(1);
+            }
             for( uint64_t i=0; i < 1; ++i ) {
                 //dc[i].id = i;
                 LOG(INFO) << "[ENCLAVE] ===CLIENT GET=== ";
                 capsule_pdu* tmp_dc = get(i);
-                LOG(INFO) << "DataCapsule payload.key is " << tmp_dc->payload.key;
-                LOG(INFO) << "DataCapsule payload.value is " << tmp_dc->payload.value;
+                dumpCapsule(tmp_dc);
             }
 
-
-            benchmark();
+            //benchmark();
 
             return asylo::Status::OkStatus();
         }
@@ -307,17 +313,17 @@ namespace asylo {
             // capsule_pdu *dc = (capsule_pdu *) malloc(sizeof(capsule_pdu));
             capsule_pdu *dc = new capsule_pdu();
             asylo::KvToCapsule(dc, counter++, key, value);
-//            LOG(INFO) << "DataCapsule payload.key is " << dc.payload.key;
-//            LOG(INFO) << "DataCapsule payload.value is " << dc.payload.value;
+            //dc->timestamp = get_current_time();
+            dumpCapsule(dc);
             put(dc);
-            delete dc; 
+            delete dc;
         }
 
         capsule_pdu *get(capsule_id id){
             //capsule_pdu out_dc;
-            LOG(INFO) << "DataCapsule id is " << (int)id;
             return memtable.get(id);
         }
+
 
         M_BENCHMARK_HERE
     };

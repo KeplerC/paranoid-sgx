@@ -12,6 +12,8 @@ message CapsulePDU {
   optional bytes metaHash = 5; // Hash of meta data
   optional bytes dataHash = 6; // Hash of data
 
+  optional int64 timestamp = 7; //timestamp
+
 }
 
 message KVSPayload{
