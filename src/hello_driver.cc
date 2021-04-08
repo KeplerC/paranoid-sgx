@@ -458,7 +458,7 @@ int main(int argc, char *argv[]) {
     if(multi_client) {
         std::vector <std::thread> worker_threads;
         //start clients
-        for (unsigned thread_id = 1; thread_id < 2; thread_id++) {
+        for (unsigned thread_id = 1; thread_id < 3; thread_id++) {
             Asylo_SGX* sgx = new Asylo_SGX( std::to_string(thread_id));
             sgx->init();
             sleep(1);
