@@ -275,12 +275,8 @@ namespace asylo {
             }
 
 
-            //sleep(2);
-            while(true){
-                LOG(INFO) << "=="<< get(0)->timestamp;
+            sleep(2);
 
-                sleep(1);
-            }
             for( uint64_t i=0; i < 1; ++i ) {
                 //dc[i].id = i;
                 LOG(INFO) << "[ENCLAVE] ===CLIENT GET=== ";
@@ -302,6 +298,22 @@ namespace asylo {
 
         /* These functions willl be part of the CAAPI */
         bool put_memtable(capsule_pdu *dc) {
+            capsule_pdu *prev_dc = get(dc->id);
+            LOG(INFO) << "Returned";
+//            if(prev_dc != 0){
+//                //the timestamp of this capsule is earlier, skip the change
+//                if (dc->timestamp < prev_dc->timestamp){
+//                    LOG(INFO) << "[EARLIER DISCARDED] Timestamp of incoming capsule " <<dc->timestamp << "ealier than "  << prev_dc ->timestamp;
+//                    return false;
+//                }
+//                else{
+//                    memtable.put(dc);
+//                    LOG(INFO) << "[SAME CAPSULE UPDATED] Timestamp of incoming capsule " <<dc->timestamp << " replaces "  << prev_dc ->timestamp;
+//                    //for debugging reason, I separated an else statement
+//                    //remove the else is equivalent
+//                    return true;
+//                }
+//            }
             memtable.put(dc);
             return true;
         }

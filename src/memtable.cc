@@ -16,7 +16,8 @@ capsule_pdu *MemTable:: get(capsule_id id){
   sgx_spin_lock( &memtable[mem_idx].spinlock );
 
   if(!memtable[mem_idx].buckets.length()){
-    printf("Index: %d is invalid!\n", mem_idx);
+    //printf("Index: %d is invalid!\n", mem_idx);
+    sgx_spin_unlock( &memtable[mem_idx].spinlock );
     return NULL;
   } 
 
