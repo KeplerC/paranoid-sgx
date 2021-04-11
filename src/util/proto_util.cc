@@ -31,6 +31,7 @@ void CapsuleToProto(const capsule_pdu *dc, hello_world::CapsulePDU *dcProto){
     dcProto->set_prevhash(dc->prevHash);
     dcProto->set_metahash(dc->metaHash);
     dcProto->set_datahash(dc->dataHash);
+    dcProto->set_synchash(dc->syncHash);
 
     dcProto->set_timestamp(dc->timestamp);
 
@@ -46,6 +47,7 @@ void CapsuleFromProto(capsule_pdu *dc, const hello_world::CapsulePDU *dcProto) {
     dc->prevHash = dcProto->prevhash();
     dc->metaHash = dcProto->metahash();
     dc->dataHash = dcProto->datahash();
+    dc->syncHash = dcProto->synchash();
 
     dc->timestamp = dcProto->timestamp();
 }
@@ -59,13 +61,14 @@ void CapsuleToCapsule(capsule_pdu *dc_new, capsule_pdu *dc) {
     dc_new->prevHash = dc->prevHash;
     dc_new->metaHash = dc->metaHash;
     dc_new->dataHash = dc->dataHash;
+    dc_new->syncHash = dc->syncHash;
 
     dc_new->timestamp = dc->timestamp;
 }
 
 
 void dumpCapsule(capsule_pdu *dc){
-    LOG(INFO) << "DataCapsule: " << (int) dc->id << ": " << dc->payload.key << ", " << dc->payload.value  << " " << (int64_t) dc->timestamp;
+    LOG(INFO) << "DataCapsule: " << (int) dc->id << ": " << dc->payload.key << ", " << dc->payload.value  << " " << (int64_t) dc->timestamp << " " << dc->syncHash;
 }
 
 } // namespace asylo

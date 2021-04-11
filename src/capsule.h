@@ -22,6 +22,7 @@ typedef struct {
     std::string prevHash; //Hash ptr to the previous record, not needed for the minimal prototype
     std::string metaHash;
     std::string dataHash;
+    std::string syncHash;
 
     int64_t timestamp;
 

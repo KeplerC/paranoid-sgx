@@ -66,10 +66,8 @@ namespace asylo {
         // verify the message with ecdsa verfying key
         const Status VerifyMessage(const std::string &message, std::vector <uint8_t> signature) {
             std::unique_ptr <VerifyingKey> verifying_key;
-            LOG(INFO) << "1";
             ASYLO_ASSIGN_OR_RETURN(verifying_key,
                                    signing_key->GetVerifyingKey());
-            LOG(INFO) << "2";
             return verifying_key->Verify(message, signature);
         }
 
@@ -229,6 +227,7 @@ namespace asylo {
                         case ECALL_PUT:
                             //printf("[ECALL] dc_id : %d\n", dc->id);
                             LOG(INFO) << "[CICBUF-ECALL] transmitted a data capsule pdu";
+                            dumpCapsule(dc);
                             if (dc->payload.key == COORDINATOR_KV_KEY) {
                                 std::stringstream ss (dc->payload.value);
                                 std::string ts;
@@ -243,16 +242,19 @@ namespace asylo {
                                 // Do we need to verify here? Or just verifying a capsule is sufficient
                                 //VerifyMessage(ts, vec_signed_ts);
                                 //LOG(INFO) << VerifyMessage(ts, vec_signed_ts);
-                                
+                                this->m_latest_sync_hash = ts;
                             }
 
                             if (is_coordinator){
                                 // try a simple way for now: sign a timestamp, the packets beyond this timestamp will be dropped
                                 // need fancier mechanisms when we know how to store the hash ptrs
-
                                 //TODO: put newly received packets/hashes into a hashtable
                             } else {
-                                put_memtable(dc);
+                                if(dc->syncHash == m_latest_sync_hash)
+                                    put_memtable(dc);
+                                else
+                                    LOG(INFO) << "[DIFFERENT HASH DISCARDED]"<< "dc: "<< dc -> syncHash
+                                        << " m_latest: "<< m_latest_sync_hash;
                             }
 
                             break;
@@ -275,6 +277,9 @@ namespace asylo {
         asylo::Status Run(const asylo::EnclaveInput &input,
                           asylo::EnclaveOutput *output) override {
 
+            m_latest_sync_hash = "init";
+            requestedCallID = 0;
+            counter = 0;
 
             if (input.HasExtension(hello_world::enclave_responder)) {
                 HotMsg *hotmsg = (HotMsg *) input.GetExtension(hello_world::enclave_responder).responder();
@@ -288,12 +293,13 @@ namespace asylo {
                 is_coordinator = true;
                 // ideally, coordinator is a special form of client
                 // it does not keep special information, it should maintain the same level of information as other clients
-                requestedCallID = 0;
-                counter = 0;
+
                 sleep(3);
 
                 while (true){
+                    sleep(EPOCH_TIME);
                     std::string current_time= std::to_string(get_current_time());
+                    m_latest_sync_hash = current_time;
                     //reinterpret_cast<const char*>(SignMessage(visitor).data())
                     std::vector<unsigned char> s = SignMessage(current_time);
 
@@ -302,9 +308,10 @@ namespace asylo {
                     //LOG(INFO) << VerifyMessage(current_time, s);
                     capsule_pdu *dc = new capsule_pdu();
                     asylo::KvToCapsule(dc, counter++, COORDINATOR_KV_KEY, current_time + "," + current_time_signed);
+                    dc->syncHash = current_time;
+
                     dumpCapsule(dc);
                     put(dc);
-                    sleep(EPOCH_TIME);
                 }
                 return asylo::Status::OkStatus();
             } else{
@@ -313,8 +320,6 @@ namespace asylo {
 
             //Then the client wants to put some messages
             buffer = (HotMsg *) input.GetExtension(hello_world::buffer).buffer();
-            requestedCallID = 0;
-            counter = 0;
             sleep(3);
             // TODO: there still has some issues when the client starts before the client connects to the server
             // if we want to consider it, probably we need to buffer the messages
@@ -349,6 +354,7 @@ namespace asylo {
         int requestedCallID;
         int counter;
         bool is_coordinator;
+        std::string m_latest_sync_hash;
 
         /* These functions willl be part of the CAAPI */
         bool put_memtable(capsule_pdu *dc) {
@@ -379,6 +385,8 @@ namespace asylo {
             // capsule_pdu *dc = (capsule_pdu *) malloc(sizeof(capsule_pdu));
             capsule_pdu *dc = new capsule_pdu();
             asylo::KvToCapsule(dc, counter++, key, value);
+            dc -> syncHash = m_latest_sync_hash;
+            LOG(INFO) << m_latest_sync_hash;
             //dc->timestamp = get_current_time();
             dumpCapsule(dc);
             put(dc);

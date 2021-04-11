@@ -11,8 +11,9 @@ message CapsulePDU {
   optional bytes prevHash = 4; // Hash ptr to the previous record, not needed for the minimal prototype
   optional bytes metaHash = 5; // Hash of meta data
   optional bytes dataHash = 6; // Hash of data
+  optional bytes syncHash = 7; // Latest hash of sync point
 
-  optional int64 timestamp = 7; //timestamp
+  optional int64 timestamp = 8; //timestamp
 
 }
 

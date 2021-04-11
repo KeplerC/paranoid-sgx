@@ -224,6 +224,7 @@ public:
         capsule_pdu *dc = new capsule_pdu();
         asylo::CapsuleFromProto(dc, &in_dc);
 
+
         LOG(INFO) << "Client puts capsule into CIRBUF-ECALL";
         put_ecall(dc);
         //Sleep so that threads have time to process ALL requests
@@ -451,10 +452,10 @@ int main(int argc, char *argv[]) {
             sleep(1);
             if(thread_id == 1){
                 worker_threads.push_back(std::thread(thread_run_zmq_client, thread_id, sgx));
-                worker_threads.push_back(std::thread(thread_start_fake_client, sgx));
+                worker_threads.push_back(std::thread(thread_start_coordinator, sgx));
             } else{
                 worker_threads.push_back(std::thread(thread_run_zmq_client, thread_id, sgx));
-                worker_threads.push_back(std::thread(thread_start_coordinator, sgx));
+                worker_threads.push_back(std::thread(thread_start_fake_client, sgx));
             }
 
         }
