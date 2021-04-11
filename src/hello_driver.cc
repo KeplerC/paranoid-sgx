@@ -132,7 +132,6 @@ public:
                     LOG(INFO) << "DataCapsule ID is " << (int) in_dc.id();
                     LOG(INFO) << "DataCapsule payload.key is " << in_dc.payload().key();
                     LOG(INFO) << "DataCapsule payload.value is " << in_dc.payload().value();
-                    in_dc.mutable_payload()->set_value("updated_value");
 
                     std::string out_s;
                     in_dc.SerializeToString(&out_s);
@@ -230,39 +229,27 @@ public:
         //Sleep so that threads have time to process ALL requests
     }
 
+    void execute_coordinator() {
+
+
+        asylo::EnclaveInput input;
+        asylo::EnclaveOutput output;
+
+        input.MutableExtension(hello_world::is_coordinator)->set_circ_buffer((long int) circ_buffer_host);;
+        this->client->EnterAndRun(input, &output);
+    }
+
     //start a fake client
     void execute(){
 
+        asylo::EnclaveInput input;
+        input.MutableExtension(hello_world::buffer)->set_buffer((long int) circ_buffer_host);
 
-//            capsule_pdu dc[10];
-//
-//            for( uint64_t i=0; i < 10; ++i ) {
-//                //dc[i].id = i;
-//                asylo::KvToCapsule(&dc[i], i, "input_key", "input_value");
-//                LOG(INFO) << "DataCapsule payload.key is " << dc->payload.key;
-//                LOG(INFO) << "DataCapsule payload.value is " << dc->payload.value;
-//                put_ecall( &dc[i] );
-//            }
-//
-//            sleep(3);
-            //Test OCALL
-            asylo::EnclaveInput input;
-            input.MutableExtension(hello_world::buffer)->set_buffer((long int) circ_buffer_host);
-//
-//            asylo::EnclaveInput input;
-//            capsule_pdu in_dc;
-//
-//            asylo::KvToCapsule(&in_dc, 2021, "input_key", "input_value");
-//            input.MutableExtension(hello_world::enclave_input_hello)
-//                    ->set_to_greet(name);
-//            asylo::CapsuleToProto(&in_dc, input.MutableExtension(hello_world::input_dc));
-
-
-            asylo::EnclaveOutput output;
-            asylo::Status status = this->client->EnterAndRun(input, &output);
-            if (!status.ok()) {
-                LOG(QFATAL) << "EnterAndRun failed: " << status;
-            }
+        asylo::EnclaveOutput output;
+        asylo::Status status = this->client->EnterAndRun(input, &output);
+        if (!status.ok()) {
+            LOG(QFATAL) << "EnterAndRun failed: " << status;
+        }
 
 
         //Sleep so that threads have time to process ALL requests
@@ -376,15 +363,7 @@ public:
                 { static_cast<void *>(socket_from_server), 0, ZMQ_POLLIN, 0 },
         };
 
-        //Asylo_SGX* sgx = new Asylo_SGX(m_port);
-        //sgx->init();
-        //sleep to wait for sgx to finish initialization
-        //if there isn't a sleep, there might be segfaults
-        //sleep(1);
 
-        //pthread_t m_fake_client;
-        //pthread_create(&m_fake_client, NULL, sgx->execute, NULL);
-        //std::thread(sgx->execute);
         //start enclave
         while (true) {
             zmq::poll(pollitems.data(), pollitems.size(), 0);
@@ -397,7 +376,7 @@ public:
                 this->m_sgx->send_to_sgx(msg);
             }
         }
-        m_sgx->finalize();
+
     }
 
 private:
@@ -443,6 +422,10 @@ void thread_start_fake_client(Asylo_SGX* sgx){
     sgx->execute();
 }
 
+void thread_start_coordinator(Asylo_SGX* sgx){
+    sgx->execute_coordinator();
+}
+
 int main(int argc, char *argv[]) {
   // Part 0: Setup
     absl::ParseCommandLine(argc, argv);
@@ -456,14 +439,24 @@ int main(int argc, char *argv[]) {
     bool multi_client = MULTI_CLIENT;
 
     if(multi_client) {
+        // thread assignments:
+        // thread 0: multicast server
+        // thread 1: coordinator
+        // thread 2-n: clients
         std::vector <std::thread> worker_threads;
         //start clients
         for (unsigned thread_id = 1; thread_id < 3; thread_id++) {
             Asylo_SGX* sgx = new Asylo_SGX( std::to_string(thread_id));
             sgx->init();
             sleep(1);
-            worker_threads.push_back(std::thread(thread_run_zmq_client, thread_id, sgx));
-            worker_threads.push_back(std::thread(thread_start_fake_client, sgx));
+            if(thread_id == 1){
+                worker_threads.push_back(std::thread(thread_run_zmq_client, thread_id, sgx));
+                worker_threads.push_back(std::thread(thread_start_fake_client, sgx));
+            } else{
+                worker_threads.push_back(std::thread(thread_run_zmq_client, thread_id, sgx));
+                worker_threads.push_back(std::thread(thread_start_coordinator, sgx));
+            }
+
         }
         sleep(2);
 
