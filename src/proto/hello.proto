@@ -38,6 +38,9 @@ message HotMsg {
   optional int64 buffer = 1;
 }
 
+extend asylo.EnclaveLoadConfig {
+  optional EnclaveResponder enclave_r = 8086; 
+}
 
 extend asylo.EnclaveInput {
   optional HelloInput enclave_input_hello = 8086;

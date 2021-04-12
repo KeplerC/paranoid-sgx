@@ -41,6 +41,9 @@
 #include "src/proto/hello.pb.h"
 #include "src/util/proto_util.hpp"
 
+// #include "asylo/identity/enclave_assertion_authority_config.proto.h"
+#include "asylo/identity/enclave_assertion_authority_configs.h"
+
 
 #define PERFORMANCE_MEASUREMENT_NUM_REPEATS 10
 #define MULTI_CLIENT true
@@ -189,6 +192,19 @@ public:
         // Create an EnclaveLoadConfig object.
         asylo::EnclaveLoadConfig load_config;
         load_config.set_name(this->m_name);
+
+
+        // Attestation domain which must be the same for entire SGX machine
+        std::string attestation_domain = "local domain    "; 
+        asylo::StatusOr<asylo::EnclaveAssertionAuthorityConfig> result = asylo::CreateSgxLocalAssertionAuthorityConfig(attestation_domain);
+
+        if (!result.ok()) {
+        // Log or return error
+        }
+
+        asylo::EnclaveConfig *config = load_config.mutable_config();;
+        *config->add_enclave_assertion_authority_configs() = std::move(result).ValueOrDie();
+
 
         // Create an SgxLoadConfig object.
         asylo::SgxLoadConfig sgx_config;

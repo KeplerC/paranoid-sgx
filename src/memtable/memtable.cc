@@ -1,4 +1,4 @@
-#include "capsule.h"
+#include "src/capsule.h"
 #include <cstdint>
 #include "memtable.hpp"
 
@@ -13,7 +13,7 @@ capsule_pdu *MemTable:: get(capsule_id id){
 
   uint32_t mem_idx = hash(id);
 
-  sgx_spin_lock( &memtable[mem_idx].spinlock );
+  // sgx_spin_lock( &memtable[mem_idx].spinlock );
 
   if(!memtable[mem_idx].buckets.length()){
     printf("Index: %d is invalid!\n", mem_idx);
@@ -21,7 +21,7 @@ capsule_pdu *MemTable:: get(capsule_id id){
   } 
 
   capsule_pdu *ret = memtable[mem_idx].buckets.search(id);
-  sgx_spin_unlock( &memtable[mem_idx].spinlock );
+  // sgx_spin_unlock( &memtable[mem_idx].spinlock );
 
   if(!ret){
     //TODO: We must do an OCALL to fetch from the DataCapsule server 
@@ -38,7 +38,7 @@ bool MemTable:: put(capsule_pdu *dc){
   
   uint32_t mem_idx = hash(dc->id);
 
-  sgx_spin_lock(&memtable[mem_idx].spinlock );
+  // sgx_spin_lock(&memtable[mem_idx].spinlock );
 
   if(memtable[mem_idx].buckets.length() >= BUCKET_NUM){
     memtable[mem_idx].buckets.delete_back();
@@ -47,7 +47,7 @@ bool MemTable:: put(capsule_pdu *dc){
     memtable[mem_idx].buckets.insert_front(dc); 
     curr_capacity++; 
   }
-  sgx_spin_unlock( &memtable[mem_idx].spinlock );
+  // sgx_spin_unlock( &memtable[mem_idx].spinlock );
 
   //TODO: We must also do an OCALL to write 
 

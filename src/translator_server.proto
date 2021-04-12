@@ -1,0 +1,32 @@
+// A request message containing a word to be translated.
+message GetTranslationRequest {
+    optional string input_word = 1;
+  }
+  
+  // A response message containing the translation of a GetTranslationRequest's
+  // input_word.
+  message GetTranslationResponse {
+    optional string translated_word = 1;
+  }
+
+// message RetrieveKeyPairRequest {
+//     optional string identity = 1;
+//   }
+
+// message RetrieveKeyPairResponse {
+//     optional bytes private_key = 1;
+//     optional bytes public_key = 2;
+//   }
+  
+  service Translator {
+    // Translates the given word.
+    rpc GetTranslation(GetTranslationRequest) returns (GetTranslationResponse) {
+      // errors: no input word, no translation available
+    }
+
+    // rpc RetrieveKeyPair(RetrieveKeyPairRequest) returns (RetrieveKeyPairResponse) {
+    //   // errors: no input word, no translation available
+    // }
+  }
+
+  

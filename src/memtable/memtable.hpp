@@ -2,7 +2,7 @@
 #define _MEMTBL_H
 
 #include "double_linked_list.hpp"
-#include "sgx_spinlock.h"
+// #include "src/sgx_spinlock.h"
 
 #define MAX_MEM_SZ 300
 #define BUCKET_NUM 5
@@ -10,7 +10,7 @@
 struct bucket_entry{
   bool valid;
   DoublyLinkedList buckets; 
-  sgx_spinlock_t  spinlock;
+  // sgx_spinlock_t  spinlock;
 };
 
 class MemTable {

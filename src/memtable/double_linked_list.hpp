@@ -3,7 +3,7 @@
 
 #include "absl/strings/str_cat.h"
 #include <cstdio>
-#include "capsule.h"
+#include "src/capsule.h"
 
 struct Node
 {

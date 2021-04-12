@@ -29,14 +29,16 @@
 #include "asylo/util/status_macros.h"
 #include "asylo/crypto/util/byte_container_view.h"
 #include "asylo/platform/primitives/trusted_primitives.h"
+#include "asylo/identity/platform/sgx/sgx_identity_util.h"
+#include "asylo/identity/attestation/sgx/sgx_local_assertion_generator.h"
 #include "capsule.h"
-#include "memtable.hpp"
+#include "memtable/memtable.hpp"
 #include "hot_msg_pass.h"
 #include "common.h"
 #include "src/proto/hello.pb.h"
 #include "src/util/proto_util.hpp"
 #include "benchmark.h"
-#include "duktape.h"
+#include "duktape/duktape.h"
 
 namespace asylo {
 
@@ -246,6 +248,10 @@ namespace asylo {
             }
         }
 
+        asylo::Status Initialize(const EnclaveConfig &config){
+            return asylo::Status::OkStatus();
+        }
+
         // Fake client
         asylo::Status Run(const asylo::EnclaveInput &input,
                           asylo::EnclaveOutput *output) override {
@@ -275,36 +281,19 @@ namespace asylo {
                 return asylo::Status::OkStatus();
             }
 
+
+            SgxIdentity identity = GetSelfSgxIdentity();
+            asylo::sgx::CodeIdentity *y = identity.mutable_code_identity(); 
+            Sha256HashProto *mrenclave = y->mutable_mrenclave();
+
+            EnclaveIdentity x = SerializeSgxIdentity(identity).ValueOrDie();
+            EnclaveIdentityDescription *enc_desc = x.mutable_description(); 
+            printf("identity_type: %d, %s\n", enc_desc->identity_type(), mrenclave->mutable_hash());
+            
             //Then the client wants to put some messages
             buffer = (HotMsg *) input.GetExtension(hello_world::buffer).buffer();
             requestedCallID = 0;
             counter = 0;
-
-            //capsule_pdu dc[10];
-            //simulate client do some processing...
-            // sleep(3);
-            // TODO: there still has some issues when the client starts before the client connects to the server
-            // if we want to consider it, probably we need to buffer the messages
-
-            // for( uint64_t i=0; i < 1; ++i ) {
-            //     LOG(INFO) << "[ENCLAVE] ===CLIENT PUT=== ";
-            //     LOG(INFO) << "[ENCLAVE] Generating a new capsule PDU ";
-            //     //asylo::KvToCapsule(&dc[i], i, "default_key", "original_value");
-            //     put("default_key_longggggggggggggggggggggggg", "default_value_longggggggggggggggggggggggg");
-            // }
-            // sleep(2);
-
-            // for( uint64_t i=0; i < 1; ++i ) {
-            //     //dc[i].id = i;
-            //     LOG(INFO) << "[ENCLAVE] ===CLIENT GET=== ";
-            // capsule_pdu* tmp_dc = get(i);
-            //     LOG(INFO) << "DataCapsule payload.key is " << tmp_dc->payload.key;
-            //     LOG(INFO) << "DataCapsule payload.value is " << tmp_dc->payload.value;
-            // }
-
-            // duk_eval_string(ctx, "put('long key', 'long val')");
-
-            // benchmark();
 
             return asylo::Status::OkStatus();
         }
