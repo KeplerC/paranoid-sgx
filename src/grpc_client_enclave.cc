@@ -80,6 +80,7 @@ asylo::Status GrpcClientEnclave::Run(const asylo::EnclaveInput &input,
       EnclaveChannelCredentials(
           asylo::BidirectionalSgxLocalCredentialsOptions());
 
+  printf("address: %s\n", address.c_str());
   // Connect a gRPC channel to the server specified in the EnclaveInput.
   std::shared_ptr<::grpc::Channel> channel =
       ::grpc::CreateChannel(address, channel_credentials);

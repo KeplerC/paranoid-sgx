@@ -34,7 +34,10 @@ package(
 proto_library(
     name = "hello_proto",
     srcs = ["proto/hello.proto", "proto/capsule.proto"],
-    deps = ["@com_google_asylo//asylo:enclave_proto"],
+    deps = [
+        "@com_google_asylo//asylo:enclave_proto",
+        ":translator_server_proto",
+    ],
 )
 
 cc_proto_library(
@@ -231,6 +234,7 @@ cc_unsigned_enclave(
         ":hello_cc_proto",
         ":duktape", 
         ":memtable", 
+        ":translator_server",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/synchronization",
@@ -245,11 +249,16 @@ cc_unsigned_enclave(
         "@com_google_asylo//asylo/identity/platform/sgx:sgx_identity_util",
         "@com_google_asylo//asylo/identity/attestation/sgx:sgx_local_assertion_generator",
         "@com_google_asylo//asylo/identity:enclave_assertion_authority_configs",
+        "@com_google_asylo//asylo/grpc/auth:grpc++_security_enclave",
+        "@com_google_asylo//asylo/grpc/auth:sgx_local_credentials_options",
+        "@com_github_grpc_grpc//:grpc++",
+        "@com_google_absl//absl/time",
     ],
 )
 
 debug_sign_enclave(
     name = "hello_enclave.so",
+    config = ":grpc_client_config",
     unsigned = "hello_enclave_unsigned.so",
 )
 
@@ -285,7 +294,6 @@ cc_unsigned_enclave(
 
 sgx.enclave_configuration(
     name = "grpc_client_config",
-    base = "@com_google_asylo//asylo/grpc/util:grpc_enclave_config",
     isvsvn = "1",
     prodid = "2",
 )

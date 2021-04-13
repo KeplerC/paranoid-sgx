@@ -31,7 +31,6 @@ constexpr char kServerAddress[] = "localhost";
 
 ABSL_FLAG(std::string, enclave_path, "", "Path to enclave to load");
 ABSL_FLAG(int32_t, port, 0, "Port that the server listens to");
-ABSL_FLAG(std::string, word_to_translate, "", "Word to be translated");
 ABSL_FLAG(bool, debug, true, "Whether to use a debug enclave");
 
 int main(int argc, char *argv[]) {

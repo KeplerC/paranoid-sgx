@@ -40,9 +40,37 @@
 #include "benchmark.h"
 #include "duktape/duktape.h"
 
+//GRPC 
+#include "src/translator_server.grpc.pb.h"
+#include "asylo/grpc/auth/enclave_channel_credentials.h"
+#include "asylo/grpc/auth/sgx_local_credentials_options.h"
+#include "include/grpc/support/time.h"
+#include "include/grpcpp/grpcpp.h"
+
+
+
 namespace asylo {
 
     namespace {
+
+        using examples::grpc_server::Translator;
+        using examples::grpc_server::RetrieveKeyPairResponse;
+        using examples::grpc_server::RetrieveKeyPairRequest;
+
+        const absl::Duration kChannelDeadline = absl::Seconds(5);
+
+        // Makes a GetKeyPair RPC with |request| to the server backed by *|stub|.
+        StatusOr<RetrieveKeyPairResponse> RetrieveKeyPair(
+            const RetrieveKeyPairRequest &request, Translator::Stub *stub) {
+        RetrieveKeyPairResponse response;
+
+        ::grpc::ClientContext context;
+        ASYLO_RETURN_IF_ERROR(
+            asylo::Status(stub->RetrieveKeyPair(&context, request, &response)));
+        printf("success\n");
+        return response;
+        }
+
         // Dummy 128-bit AES key.
         constexpr uint8_t kAesKey128[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05,
                                           0x06, 0x07, 0x08, 0x09, 0x10, 0x11,
@@ -249,6 +277,7 @@ namespace asylo {
         }
 
         asylo::Status Initialize(const EnclaveConfig &config){
+            printf("Initialized\n");
             return asylo::Status::OkStatus();
         }
 
@@ -276,19 +305,68 @@ namespace asylo {
                 duk_push_pointer(ctx, this); 
                 duk_put_global_string(ctx, "ctx");
 
+                // const std::string &server_addr = input.GetExtension(hello_world::kvs_server_config).server_address();
+                std::string server_addr = std::string("localhost");
+        
+                if (server_addr.empty()) {
+                    printf("error\n");
+                    return absl::InvalidArgumentError(
+                        "Input must provide a non-empty server address");
+                }
+
+                int32_t port = input.GetExtension(hello_world::kvs_server_config).port();
+                port = 3001; 
+
+                server_addr = absl::StrCat(server_addr, ":", port);
+
+                LOG(INFO) << "Configured with KVS Address: " << server_addr;
+
+                // The ::grpc::ChannelCredentials object configures the channel authentication
+                // mechanisms used by the client and server. This particular configuration
+                // enforces that both the client and server authenticate using SGX local
+                // attestation.
+                std::shared_ptr<::grpc::ChannelCredentials> channel_credentials =
+                    EnclaveChannelCredentials(
+                        asylo::BidirectionalSgxLocalCredentialsOptions());
+
+                // Connect a gRPC channel to the server specified in the EnclaveInput.
+                std::shared_ptr<::grpc::Channel> channel =
+                    ::grpc::CreateChannel(server_addr, channel_credentials);
+
+                gpr_timespec absolute_deadline = gpr_time_add(
+                    gpr_now(GPR_CLOCK_REALTIME),
+                    gpr_time_from_micros(absl::ToInt64Microseconds(kChannelDeadline),
+                                        GPR_TIMESPAN));
+                if (!channel->WaitForConnected(absolute_deadline)) {
+                    LOG(INFO) << "Failed to connect to server";  
+
+                    return absl::InternalError("Failed to connect to server");
+                }
+
+                printf("Successfully connected to server\n");
+
+                hello_world::GrpcClientEnclaveInput client_input; 
+                hello_world::GrpcClientEnclaveOutput client_output; 
+
+                std::unique_ptr<Translator::Stub> stub = Translator::NewStub(channel);
+
+                ASYLO_ASSIGN_OR_RETURN(
+                    *client_output.mutable_key_pair_response(),
+                    RetrieveKeyPair(client_input.key_pair_request(), stub.get()));
+
                 HotMsg *hotmsg = (HotMsg *) input.GetExtension(hello_world::enclave_responder).responder();
                 EnclaveMsgStartResponder(hotmsg);
                 return asylo::Status::OkStatus();
             }
 
 
-            SgxIdentity identity = GetSelfSgxIdentity();
-            asylo::sgx::CodeIdentity *y = identity.mutable_code_identity(); 
-            Sha256HashProto *mrenclave = y->mutable_mrenclave();
+            // SgxIdentity identity = GetSelfSgxIdentity();
+            // asylo::sgx::CodeIdentity *y = identity.mutable_code_identity(); 
+            // Sha256HashProto *mrenclave = y->mutable_mrenclave();
 
-            EnclaveIdentity x = SerializeSgxIdentity(identity).ValueOrDie();
-            EnclaveIdentityDescription *enc_desc = x.mutable_description(); 
-            printf("identity_type: %d, %s\n", enc_desc->identity_type(), mrenclave->mutable_hash());
+            // EnclaveIdentity x = SerializeSgxIdentity(identity).ValueOrDie();
+            // EnclaveIdentityDescription *enc_desc = x.mutable_description(); 
+            // printf("identity_type: %d, %s\n", enc_desc->identity_type(), mrenclave->mutable_hash());
             
             //Then the client wants to put some messages
             buffer = (HotMsg *) input.GetExtension(hello_world::buffer).buffer();
