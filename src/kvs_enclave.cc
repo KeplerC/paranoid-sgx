@@ -20,6 +20,7 @@
 #include "absl/base/macros.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/escaping.h"
+#include "absl/container/flat_hash_map.h"
 #include "asylo/trusted_application.h"
 #include "asylo/util/logging.h"
 #include "asylo/util/status.h"
@@ -249,11 +250,10 @@ namespace asylo {
                             if (is_coordinator){
                                 // try a simple way for now: sign a timestamp, the packets beyond this timestamp will be dropped
                                 // need fancier mechanisms when we know how to store the hash ptrs
-                                // TODO (Hanming): put newly received packets/hashes into a hashtable
+                                put_hash_chain(dc);
                             } else {
                                 if(dc->syncHash == m_latest_sync_hash)
                                     put_memtable(dc);
-                                    // TODO (Hanming): put newly received packets/hashes into a hashtable
                                 else
                                     LOG(INFO) << "[DIFFERENT HASH DISCARDED]"<< "dc: "<< dc -> syncHash
                                         << " m_latest: "<< m_latest_sync_hash;
@@ -314,7 +314,7 @@ namespace asylo {
                     dc->syncHash = current_time;
                     LOG(INFO) << "[Coordinator] Send out sync msg capsule";
                     dumpCapsule(dc);
-                    put(dc);
+                    put_internal(dc);
                 }
                 return asylo::Status::OkStatus();
             } else{
@@ -353,6 +353,7 @@ namespace asylo {
     private:
         uint64_t visitor_count_;
         MemTable memtable;
+        absl::flat_hash_map<std::string, capsule_pdu> hash_chain;
         HotMsg *buffer;
         int requestedCallID;
         int counter;
@@ -365,6 +366,7 @@ namespace asylo {
 
             if(prev_dc != 0){
                 //the timestamp of this capsule is earlier, skip the change
+                // TODO (Hanming): add client id into comparison for same timestamp dc's
                 if (dc->timestamp <= prev_dc->timestamp){
                     LOG(INFO) << "[EARLIER DISCARDED] Timestamp of incoming capsule id: " << (int) dc->id << ", key: " << dc->payload.key 
                               << ", timestamp: " << dc->timestamp << " ealier than "  << prev_dc ->timestamp;
@@ -382,8 +384,20 @@ namespace asylo {
             memtable.put(dc);
             return true;
         }
-        void put(capsule_pdu *dc) {
+
+        bool put_hash_chain(capsule_pdu *dc) {
+            capsule_pdu *cur_dc = get(dc->id);
+            if(cur_dc != 0){
+                return false;
+            }
+            hash_chain.try_emplace(dc->syncHash, *dc);
+
+
+        }
+
+        void put_internal(capsule_pdu *dc) {
             put_memtable(dc);
+            put_hash_chain(dc);
             put_ocall(dc);
         }
         void put(std::string key, std::string value) {
@@ -393,7 +407,7 @@ namespace asylo {
             dc -> syncHash = m_latest_sync_hash;
             //dc->timestamp = get_current_time();
             dumpCapsule(dc);
-            put(dc);
+            put_internal(dc);
             delete dc;
         }
 
