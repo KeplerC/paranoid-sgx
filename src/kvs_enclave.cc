@@ -39,6 +39,7 @@
 
 #define EPOCH_TIME 1
 #define COORDINATOR_KV_KEY "PARANOID_TS"
+#define COORDINATOR_KV_ID 1000000
 namespace asylo {
 
     namespace {
@@ -292,6 +293,7 @@ namespace asylo {
                 LOG(INFO) << "[Coordinator] Up and Running";
                 buffer = (HotMsg *) input.GetExtension(hello_world::is_coordinator).circ_buffer();
                 is_coordinator = true;
+                counter = COORDINATOR_KV_ID;
                 // ideally, coordinator is a special form of client
                 // it does not keep special information, it should maintain the same level of information as other clients
 
