@@ -3,10 +3,7 @@
 Node::Node(capsule_pdu *dc_arg)       //Parameterized Constructor
 {
     //TODO: does this copy necessary?
-    dc.id = dc_arg->id;
-    dc.payload.key = dc_arg->payload.key;
-    dc.payload.value = dc_arg->payload.value;
-    dc.timestamp = dc_arg->timestamp;
+    asylo::CapsuleToCapsule(&dc, dc_arg);
 
     next = prev = NULL;
 }

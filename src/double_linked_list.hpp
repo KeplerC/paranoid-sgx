@@ -2,6 +2,7 @@
 #define _DLL_H
 
 #include "absl/strings/str_cat.h"
+#include "src/util/proto_util.hpp"
 #include <cstdio>
 #include "capsule.h"
 
