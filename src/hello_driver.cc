@@ -129,9 +129,7 @@ public:
                     // TODO: we do everything inside of the lock, this is slow
                     // we can copy the string and process it after we release the lock
                     LOG(INFO) << "[CICBUF-OCALL] transmitted a data capsule pdu";
-                    LOG(INFO) << "DataCapsule ID is " << (int) in_dc.id();
-                    LOG(INFO) << "DataCapsule payload.key is " << in_dc.payload().key();
-                    LOG(INFO) << "DataCapsule payload.value is " << in_dc.payload().value();
+                    asylo::dumpProtoCapsule(&in_dc);
 
                     std::string out_s;
                     in_dc.SerializeToString(&out_s);
@@ -225,7 +223,7 @@ public:
         asylo::CapsuleFromProto(dc, &in_dc);
 
 
-        LOG(INFO) << "Client puts capsule into CIRBUF-ECALL";
+        LOG(INFO) << "Client " << this->m_name << " puts capsule into CIRBUF-ECALL";
         put_ecall(dc);
         //Sleep so that threads have time to process ALL requests
     }

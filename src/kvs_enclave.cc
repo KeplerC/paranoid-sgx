@@ -248,10 +248,11 @@ namespace asylo {
                             if (is_coordinator){
                                 // try a simple way for now: sign a timestamp, the packets beyond this timestamp will be dropped
                                 // need fancier mechanisms when we know how to store the hash ptrs
-                                //TODO: put newly received packets/hashes into a hashtable
+                                // TODO (Hanming): put newly received packets/hashes into a hashtable
                             } else {
                                 if(dc->syncHash == m_latest_sync_hash)
                                     put_memtable(dc);
+                                    // TODO (Hanming): put newly received packets/hashes into a hashtable
                                 else
                                     LOG(INFO) << "[DIFFERENT HASH DISCARDED]"<< "dc: "<< dc -> syncHash
                                         << " m_latest: "<< m_latest_sync_hash;
@@ -309,7 +310,7 @@ namespace asylo {
                     capsule_pdu *dc = new capsule_pdu();
                     asylo::KvToCapsule(dc, counter++, COORDINATOR_KV_KEY, current_time + "," + current_time_signed);
                     dc->syncHash = current_time;
-
+                    LOG(INFO) << "[Coordinator] Send out sync msg capsule";
                     dumpCapsule(dc);
                     put(dc);
                 }
@@ -363,12 +364,14 @@ namespace asylo {
             if(prev_dc != 0){
                 //the timestamp of this capsule is earlier, skip the change
                 if (dc->timestamp <= prev_dc->timestamp){
-                    LOG(INFO) << "[EARLIER DISCARDED] Timestamp of incoming capsule " <<dc->timestamp << "ealier than "  << prev_dc ->timestamp;
+                    LOG(INFO) << "[EARLIER DISCARDED] Timestamp of incoming capsule id: " << (int) dc->id << ", key: " << dc->payload.key 
+                              << ", timestamp: " << dc->timestamp << " ealier than "  << prev_dc ->timestamp;
                     return false;
                 }
                 else{
                     memtable.put(dc);
-                    LOG(INFO) << "[SAME CAPSULE UPDATED] Timestamp of incoming capsule " <<dc->timestamp << " replaces "  << prev_dc ->timestamp;
+                    LOG(INFO) << "[SAME CAPSULE UPDATED] Timestamp of incoming capsule id: " << (int) dc->id << ", key: " << dc->payload.key 
+                              << ", timestamp: " << dc->timestamp << " replaces "  << prev_dc ->timestamp;
                     //for debugging reason, I separated an else statement
                     //remove the else is equivalent
                     return true;
@@ -386,7 +389,6 @@ namespace asylo {
             capsule_pdu *dc = new capsule_pdu();
             asylo::KvToCapsule(dc, counter++, key, value);
             dc -> syncHash = m_latest_sync_hash;
-            LOG(INFO) << m_latest_sync_hash;
             //dc->timestamp = get_current_time();
             dumpCapsule(dc);
             put(dc);
