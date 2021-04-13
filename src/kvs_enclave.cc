@@ -354,6 +354,13 @@ namespace asylo {
                     *client_output.mutable_key_pair_response(),
                     RetrieveKeyPair(client_input.key_pair_request(), stub.get()));
 
+                RetrieveKeyPairResponse resp = *client_output.mutable_key_pair_response();      
+
+                priv_key = resp.private_key();
+                pub_key = resp.public_key(); 
+
+                LOG(INFO) << "Worker enclave configured with private key: " << priv_key << " public key: " << pub_key;
+                
                 HotMsg *hotmsg = (HotMsg *) input.GetExtension(hello_world::enclave_responder).responder();
                 EnclaveMsgStartResponder(hotmsg);
                 return asylo::Status::OkStatus();
@@ -383,6 +390,8 @@ namespace asylo {
         int requestedCallID;
         int counter;
         duk_context *ctx;
+        std::string priv_key;
+        std::string pub_key; 
 
         /* These functions willl be part of the CAAPI */
         bool put_memtable(capsule_pdu *dc) {
