@@ -17,6 +17,7 @@
 # Hello World project for Asylo.
 
 load("@linux_sgx//:sgx_sdk.bzl", "sgx")
+load("@com_github_grpc_grpc//bazel:cc_grpc_library.bzl", "cc_grpc_library")
 load("@rules_cc//cc:defs.bzl", "cc_proto_library")
 load("@rules_proto//proto:defs.bzl", "proto_library")
 load("@com_google_asylo//asylo/bazel:asylo.bzl", "cc_unsigned_enclave", "debug_sign_enclave", "enclave_loader", "ASYLO_ALL_BACKEND_TAGS")
@@ -46,7 +47,7 @@ proto_library(
     srcs = ["grpc_client_enclave.proto"],
     deps = [
         "@com_google_asylo//asylo:enclave_proto",
-        "//translator_server_proto",
+        ":translator_server_proto",
     ],
 )
 
@@ -61,7 +62,7 @@ cc_library(
         ":grpc_client_enclave_cc_proto",
         "@com_google_asylo//asylo:enclave_cc_proto",
         "@com_google_asylo//asylo:enclave_client",
-        "@com_google_asylo//asylo/examples/grpc_server:translator_server",
+        ":translator_server",
         "@com_google_asylo//asylo/identity:enclave_assertion_authority_config_cc_proto",
         "@com_google_asylo//asylo/identity:enclave_assertion_authority_configs",
         "@com_google_asylo//asylo/platform/primitives/sgx:loader_cc_proto",
@@ -71,6 +72,28 @@ cc_library(
     ],
 )
 
+# The generated code for the translator server (and client).
+proto_library(
+    name = "translator_server_proto",
+    srcs = ["translator_server.proto"],
+    tags = ASYLO_ALL_BACKEND_TAGS,
+)
+
+cc_proto_library(
+    name = "translator_server_cc_proto",
+    tags = ASYLO_ALL_BACKEND_TAGS,
+    deps = [":translator_server_proto"],
+)
+
+cc_grpc_library(
+    name = "translator_server",
+    srcs = [":translator_server_proto"],
+    grpc_only = True,
+    tags = ASYLO_ALL_BACKEND_TAGS,
+    deps = [":translator_server_cc_proto"],
+)
+
+
 # The implementation of the translation server.
 cc_library(
     name = "translator_server_impl",
@@ -79,7 +102,7 @@ cc_library(
     copts = ASYLO_DEFAULT_COPTS,
     tags = ASYLO_ALL_BACKEND_TAGS,
     deps = [
-        "@com_google_asylo//asylo/examples/grpc_server:translator_server",
+        ":translator_server",
         "@com_google_asylo//asylo/grpc/auth:enclave_auth_context",
         "@com_google_asylo//asylo/identity:descriptions",
         "@com_google_asylo//asylo/identity:identity_acl_cc_proto",
@@ -189,7 +212,7 @@ cc_unsigned_enclave(
     deps = [
         ":grpc_client_enclave_cc_proto",
         "@com_google_asylo//asylo:enclave_runtime",
-        "@com_google_asylo//asylo/examples/grpc_server:translator_server",
+        ":translator_server",
         "@com_google_asylo//asylo/grpc/auth:grpc++_security_enclave",
         "@com_google_asylo//asylo/grpc/auth:null_credentials_options",
         "@com_google_asylo//asylo/grpc/auth:sgx_local_credentials_options",

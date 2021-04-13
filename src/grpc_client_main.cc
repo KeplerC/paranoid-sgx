@@ -38,10 +38,6 @@ int main(int argc, char *argv[]) {
   // Parse command-line arguments.
   absl::ParseCommandLine(argc, argv);
 
-  std::string word_to_translate = absl::GetFlag(FLAGS_word_to_translate);
-  LOG_IF(QFATAL, word_to_translate.empty())
-      << "--word_to_translate cannot be empty";
-
   std::string enclave_path = absl::GetFlag(FLAGS_enclave_path);
   LOG_IF(QFATAL, enclave_path.empty()) << "--enclave_path cannot be empty";
 
@@ -60,12 +56,12 @@ int main(int argc, char *argv[]) {
 
   asylo::StatusOr<std::string> run_result =
       examples::secure_grpc::GrpcClientEnclaveGetTranslation(
-          absl::StrCat(kServerAddress, ":", port), word_to_translate);
+          absl::StrCat(kServerAddress, ":", port));
   LOG_IF(QFATAL, !run_result.ok())
-      << "Getting translation for " << word_to_translate
+      << "Getting translation for " 
       << " failed: " << run_result.status();
 
-  std::cout << "Translation for \"" << word_to_translate << "\" is \""
+  std::cout << "Public Key is \"" << "\" is \""
             << run_result.ValueOrDie() << "\"" << std::endl;
 
   status = examples::secure_grpc::DestroyGrpcClientEnclave();

@@ -105,9 +105,9 @@ asylo::Status GrpcServerEnclave::Initialize(
 
   // Use SGX local credentials to ensure that only local SGX enclaves can
   // connect to the server.
-  std::shared_ptr<::grpc::ServerCredentials> server_credentials = grpc::InsecureServerCredentials();
-      // asylo::EnclaveServerCredentials(
-      //     asylo::BidirectionalSgxLocalCredentialsOptions());
+  std::shared_ptr<::grpc::ServerCredentials> server_credentials =
+      asylo::EnclaveServerCredentials(
+          asylo::BidirectionalSgxLocalCredentialsOptions());
 
   // Add a listening port to the server.
   builder.AddListeningPort(

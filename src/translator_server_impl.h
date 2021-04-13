@@ -25,7 +25,7 @@
 #include "absl/container/flat_hash_map.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/synchronization/notification.h"
-#include "asylo/examples/grpc_server/translator_server.grpc.pb.h"
+#include "src/translator_server.grpc.pb.h"
 #include "asylo/identity/identity_acl.pb.h"
 #include "include/grpcpp/grpcpp.h"
 #include "include/grpcpp/server.h"
@@ -35,27 +35,37 @@ namespace secure_grpc {
 
 using grpc_server::Translator;
 
+#define MAX_WORKERS 16
+
+enum key_state {KEY_PAIR_INVALID,  KEY_PAIR_VALID};
+
+
+struct key_pair {
+    key_state valid; 
+    __uint64_t priv_key;
+    __int64_t pub_key; 
+};
+
 class TranslatorServerImpl final : public Translator::Service {
  public:
   // Configure the server with an ACL to enforce at the GetTranslation() RPC.
   explicit TranslatorServerImpl(asylo::IdentityAclPredicate acl);
 
  private:
-  ::grpc::Status GetTranslation(
+  ::grpc::Status RetrieveKeyPair(
       ::grpc::ServerContext *context,
-      const grpc_server::GetTranslationRequest *request,
-      grpc_server::GetTranslationResponse *response) override;
-
-  // ::grpc::Status RetrieveKeyPair(
-  //     ::grpc::ServerContext *context,
-  //     const grpc_server::RetrieveKeyPairRequest *request,
-  //     grpc_server::GetKeyPairResponse *response) override;
+      const grpc_server::RetrieveKeyPairRequest *request,
+      grpc_server::RetrieveKeyPairResponse *response) override;
 
   // A map from words to their translations.
   absl::flat_hash_map<std::string, std::string> translation_map_;
 
   // An ACL that is enforced on the GetTranslation RPC.
   asylo::IdentityAclPredicate acl_;
+
+  struct key_pair key_pair_lst[MAX_WORKERS];
+  struct key_pair *find_free_key_pair_idx();
+
 };
 
 }  // namespace secure_grpc

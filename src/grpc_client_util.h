@@ -40,7 +40,7 @@ asylo::Status LoadGrpcClientEnclave(const std::string &enclave_path,
 // translated word on success. |channel_deadline| is the channel-establishment
 // deadline. Returns a non-OK Status if the GrpcClientEnclave is not running.
 asylo::StatusOr<std::string> GrpcClientEnclaveGetTranslation(
-    const std::string &address, const std::string &word_to_translate);
+    const std::string &address);
 
 // Destroys the GrpcClientEnclave and returns its finalization Status. Returns a
 // non-OK Status if the GrpcClientEnclave is not running.

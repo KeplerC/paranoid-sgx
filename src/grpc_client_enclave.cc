@@ -25,7 +25,7 @@
 #include "absl/status/status.h"
 #include "absl/time/time.h"
 #include "asylo/enclave.pb.h"
-#include "asylo/examples/grpc_server/translator_server.grpc.pb.h"
+#include "src/translator_server.grpc.pb.h"
 #include "src/grpc_client_enclave.pb.h"
 #include "asylo/grpc/auth/enclave_channel_credentials.h"
 #include "asylo/grpc/auth/sgx_local_credentials_options.h"
@@ -45,14 +45,14 @@ using grpc_server::Translator;
 
 const absl::Duration kChannelDeadline = absl::Seconds(5);
 
-// Makes a GetTranslation RPC with |request| to the server backed by *|stub|.
-asylo::StatusOr<grpc_server::GetTranslationResponse> GetTranslation(
-    const grpc_server::GetTranslationRequest &request, Translator::Stub *stub) {
-  grpc_server::GetTranslationResponse response;
+// Makes a GetKeyPair RPC with |request| to the server backed by *|stub|.
+asylo::StatusOr<grpc_server::RetrieveKeyPairResponse> RetrieveKeyPair(
+    const grpc_server::RetrieveKeyPairRequest &request, Translator::Stub *stub) {
+  grpc_server::RetrieveKeyPairResponse response;
 
   ::grpc::ClientContext context;
   ASYLO_RETURN_IF_ERROR(
-      asylo::Status(stub->GetTranslation(&context, request, &response)));
+      asylo::Status(stub->RetrieveKeyPair(&context, request, &response)));
   return response;
 }
 
@@ -71,10 +71,6 @@ asylo::Status GrpcClientEnclave::Run(const asylo::EnclaveInput &input,
     return absl::InvalidArgumentError(
         "Input must provide a non-empty server address");
   }
-  if (client_input.translation_request().input_word().empty()) {
-    return absl::InvalidArgumentError(
-        "Input must provide a non-empty RPC input");
-  }
 
   // The ::grpc::ChannelCredentials object configures the channel authentication
   // mechanisms used by the client and server. This particular configuration
@@ -84,10 +80,9 @@ asylo::Status GrpcClientEnclave::Run(const asylo::EnclaveInput &input,
       EnclaveChannelCredentials(
           asylo::BidirectionalSgxLocalCredentialsOptions());
 
-  printf("address: %s\n", address.c_str());
   // Connect a gRPC channel to the server specified in the EnclaveInput.
   std::shared_ptr<::grpc::Channel> channel =
-      ::grpc::CreateChannel(address, grpc::InsecureChannelCredentials());
+      ::grpc::CreateChannel(address, channel_credentials);
 
   gpr_timespec absolute_deadline = gpr_time_add(
       gpr_now(GPR_CLOCK_REALTIME),
@@ -101,9 +96,10 @@ asylo::Status GrpcClientEnclave::Run(const asylo::EnclaveInput &input,
       output->MutableExtension(client_enclave_output);
 
   std::unique_ptr<Translator::Stub> stub = Translator::NewStub(channel);
+
   ASYLO_ASSIGN_OR_RETURN(
-      *client_output->mutable_translation_response(),
-      GetTranslation(client_input.translation_request(), stub.get()));
+      *client_output->mutable_key_pair_response(),
+      RetrieveKeyPair(client_input.key_pair_request(), stub.get()));
 
   return asylo::Status::OkStatus();
 }

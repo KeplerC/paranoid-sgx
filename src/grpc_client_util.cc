@@ -23,7 +23,7 @@
 #include "absl/strings/str_cat.h"
 #include "asylo/client.h"
 #include "asylo/enclave.pb.h"
-#include "asylo/examples/grpc_server/translator_server.grpc.pb.h"
+#include "src/translator_server.grpc.pb.h"
 #include "src/attestation_domain.h"
 #include "src/grpc_client_enclave.pb.h"
 #include "asylo/identity/enclave_assertion_authority_config.pb.h"
@@ -68,7 +68,7 @@ asylo::Status LoadGrpcClientEnclave(const std::string &enclave_path,
 }
 
 asylo::StatusOr<std::string> GrpcClientEnclaveGetTranslation(
-    const std::string &address, const std::string &word_to_translate) {
+    const std::string &address) {
   asylo::EnclaveManager *manager = nullptr;
   ASYLO_ASSIGN_OR_RETURN(manager, asylo::EnclaveManager::Instance());
 
@@ -83,7 +83,6 @@ asylo::StatusOr<std::string> GrpcClientEnclaveGetTranslation(
   GrpcClientEnclaveInput *input =
       enclave_input.MutableExtension(client_enclave_input);
   input->set_server_address(address);
-  input->mutable_translation_request()->set_input_word(word_to_translate);
 
   asylo::EnclaveOutput enclave_output;
   ASYLO_RETURN_IF_ERROR(client->EnterAndRun(enclave_input, &enclave_output));
@@ -95,11 +94,11 @@ asylo::StatusOr<std::string> GrpcClientEnclaveGetTranslation(
   }
   const GrpcClientEnclaveOutput &output =
       enclave_output.GetExtension(client_enclave_output);
-  if (output.translation_response().translated_word().empty()) {
+  if (output.key_pair_response().private_key().empty() || output.key_pair_response().public_key().empty()) {
     return asylo::Status(absl::StatusCode::kInternal,
-                         "GrpcClientEnclaveOutput is missing a translation");
+                         "GrpcClientEnclaveOutput is missing a public/private key pair");
   }
-  return output.translation_response().translated_word();
+  return output.key_pair_response().public_key();
 }
 
 asylo::Status DestroyGrpcClientEnclave() {
