@@ -252,7 +252,7 @@ namespace asylo {
                                 // TODO (Hanming): update clients' current headerHash
                             } else {
                                 if(dc->syncHash == m_latest_sync_hash)
-                                    put_memtable(dc);
+                                    memtable.put(dc);
                                     // TODO (Hanming): update other clients' current headerHash
                                 else
                                     LOG(INFO) << "[DIFFERENT HASH DISCARDED]"<< "dc: "<< dc -> syncHash
@@ -341,8 +341,8 @@ namespace asylo {
             for( uint64_t i=0; i < 1; ++i ) {
                 //dc[i].id = i;
                 LOG(INFO) << "[ENCLAVE] ===CLIENT GET=== ";
-                capsule_pdu* tmp_dc = get(i);
-                dumpCapsule(tmp_dc);
+                capsule_pdu tmp_dc = memtable.get(i);
+                dumpCapsule(&tmp_dc);
             }
 
             //benchmark();
@@ -359,33 +359,8 @@ namespace asylo {
         bool is_coordinator;
         std::string m_latest_sync_hash;
 
-        /* These functions willl be part of the CAAPI */
-        bool put_memtable(capsule_pdu *dc) {
-            capsule_pdu *prev_dc = get(dc->id);
-
-            if(prev_dc != 0){
-                //the timestamp of this capsule is earlier, skip the change
-                // TODO (Hanming): add client id into comparison for same timestamp dc's
-                if (dc->timestamp <= prev_dc->timestamp){
-                    LOG(INFO) << "[EARLIER DISCARDED] Timestamp of incoming capsule id: " << (int) dc->id << ", key: " << dc->payload.key 
-                              << ", timestamp: " << dc->timestamp << " ealier than "  << prev_dc ->timestamp;
-                    return false;
-                }
-                else{
-                    memtable.put(dc);
-                    LOG(INFO) << "[SAME CAPSULE UPDATED] Timestamp of incoming capsule id: " << (int) dc->id << ", key: " << dc->payload.key 
-                              << ", timestamp: " << dc->timestamp << " replaces "  << prev_dc ->timestamp;
-                    //for debugging reason, I separated an else statement
-                    //remove the else is equivalent
-                    return true;
-                }
-            }
-            memtable.put(dc);
-            return true;
-        }
-
         void put_internal(capsule_pdu *dc) {
-            put_memtable(dc);
+            memtable.put(dc);
             put_ocall(dc);
         }
 
@@ -399,12 +374,6 @@ namespace asylo {
             put_internal(dc);
             delete dc;
         }
-
-        capsule_pdu *get(capsule_id id){
-            //capsule_pdu out_dc;
-            return memtable.get(id);
-        }
-
 
         M_BENCHMARK_HERE
     };

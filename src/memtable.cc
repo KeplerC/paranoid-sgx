@@ -1,61 +1,33 @@
-#include "capsule.h"
-#include <cstdint>
 #include "memtable.hpp"
+#include "asylo/util/logging.h"
 
-
-// TODO: Replace hash function
-__uint32_t MemTable:: hash(capsule_id id){
-    return id % (MAX_MEM_SZ/BUCKET_NUM);
+// need to make sure id exists
+capsule_pdu MemTable::get(capsule_id id){
+    //capsule_pdu out_dc;
+    return memtable.at(id);
 }
 
+bool MemTable::put(capsule_pdu *dc) {
+    auto prev_dc_iter = memtable.find(dc->id);
 
-capsule_pdu *MemTable:: get(capsule_id id){
-
-  uint32_t mem_idx = hash(id);
-
-  sgx_spin_lock( &memtable[mem_idx].spinlock );
-
-  if(!memtable[mem_idx].buckets.length()){
-    //printf("Index: %d is invalid!\n", mem_idx);
-    sgx_spin_unlock( &memtable[mem_idx].spinlock );
-    return NULL;
-  } 
-
-  capsule_pdu *ret = memtable[mem_idx].buckets.search(id);
-  sgx_spin_unlock( &memtable[mem_idx].spinlock );
-
-  if(!ret){
-    //TODO: We must do an OCALL to fetch from the DataCapsule server 
-  }
-  return ret; 
-}
-
-
-/*
- Datacapsule is copied into memtable  
- We assume dc is provided by client enclave application 
-*/
-bool MemTable:: put(capsule_pdu *dc){
-  
-  uint32_t mem_idx = hash(dc->id);
-
-  sgx_spin_lock(&memtable[mem_idx].spinlock );
-
-  if(memtable[mem_idx].buckets.length() >= BUCKET_NUM){
-    memtable[mem_idx].buckets.delete_back();
-    memtable[mem_idx].buckets.insert_front(dc);
-  } else {
-    memtable[mem_idx].buckets.insert_front(dc); 
-    curr_capacity++; 
-  }
-  sgx_spin_unlock( &memtable[mem_idx].spinlock );
-
-  //TODO: We must also do an OCALL to write 
-
-  return true; 
-
-}
-
-size_t MemTable::getSize() {
-  return curr_capacity; 
+    if(prev_dc_iter != memtable.end()){
+        int64_t prev_timestamp = prev_dc_iter->second.timestamp;
+        //the timestamp of this capsule is earlier, skip the change
+        // TODO (Hanming): add client id into comparison for same timestamp dc's
+        if (dc->timestamp <= prev_timestamp){
+            LOG(INFO) << "[EARLIER DISCARDED] Timestamp of incoming capsule id: " << (int) dc->id << ", key: " << dc->payload.key 
+                      << ", timestamp: " << dc->timestamp << " ealier than "  << prev_timestamp;
+            return false;
+        }
+        else{
+            memtable[dc->id] = *dc;
+            LOG(INFO) << "[SAME CAPSULE UPDATED] Timestamp of incoming capsule id: " << (int) dc->id << ", key: " << dc->payload.key 
+                      << ", timestamp: " << dc->timestamp << " replaces "  << prev_timestamp;
+            //for debugging reason, I separated an else statement
+            //remove the else is equivalent
+            return true;
+        }
+    }
+    memtable[dc->id] = *dc;
+    return true;
 }
