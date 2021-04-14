@@ -249,11 +249,11 @@ namespace asylo {
                             if (is_coordinator){
                                 // try a simple way for now: sign a timestamp, the packets beyond this timestamp will be dropped
                                 // need fancier mechanisms when we know how to store the hash ptrs
-                                // TODO (Hanming): put newly received packets/hashes into a hashtable
+                                // TODO (Hanming): update clients' current headerHash
                             } else {
                                 if(dc->syncHash == m_latest_sync_hash)
                                     put_memtable(dc);
-                                    // TODO (Hanming): put newly received packets/hashes into a hashtable
+                                    // TODO (Hanming): update other clients' current headerHash
                                 else
                                     LOG(INFO) << "[DIFFERENT HASH DISCARDED]"<< "dc: "<< dc -> syncHash
                                         << " m_latest: "<< m_latest_sync_hash;
@@ -314,7 +314,7 @@ namespace asylo {
                     dc->syncHash = current_time;
                     LOG(INFO) << "[Coordinator] Send out sync msg capsule";
                     dumpCapsule(dc);
-                    put(dc);
+                    put_internal(dc);
                 }
                 return asylo::Status::OkStatus();
             } else{
@@ -365,6 +365,7 @@ namespace asylo {
 
             if(prev_dc != 0){
                 //the timestamp of this capsule is earlier, skip the change
+                // TODO (Hanming): add client id into comparison for same timestamp dc's
                 if (dc->timestamp <= prev_dc->timestamp){
                     LOG(INFO) << "[EARLIER DISCARDED] Timestamp of incoming capsule id: " << (int) dc->id << ", key: " << dc->payload.key 
                               << ", timestamp: " << dc->timestamp << " ealier than "  << prev_dc ->timestamp;
@@ -382,10 +383,12 @@ namespace asylo {
             memtable.put(dc);
             return true;
         }
-        void put(capsule_pdu *dc) {
+
+        void put_internal(capsule_pdu *dc) {
             put_memtable(dc);
             put_ocall(dc);
         }
+
         void put(std::string key, std::string value) {
             // capsule_pdu *dc = (capsule_pdu *) malloc(sizeof(capsule_pdu));
             capsule_pdu *dc = new capsule_pdu();
@@ -393,7 +396,7 @@ namespace asylo {
             dc -> syncHash = m_latest_sync_hash;
             //dc->timestamp = get_current_time();
             dumpCapsule(dc);
-            put(dc);
+            put_internal(dc);
             delete dc;
         }
 
