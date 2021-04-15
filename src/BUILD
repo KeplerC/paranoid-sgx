@@ -22,11 +22,46 @@ load("@rules_cc//cc:defs.bzl", "cc_proto_library")
 load("@rules_proto//proto:defs.bzl", "proto_library")
 load("@com_google_asylo//asylo/bazel:asylo.bzl", "cc_unsigned_enclave", "debug_sign_enclave", "enclave_loader", "ASYLO_ALL_BACKEND_TAGS")
 load("@com_google_asylo//asylo/bazel:copts.bzl", "ASYLO_DEFAULT_COPTS")
+load("@rules_foreign_cc//foreign_cc:defs.bzl", "cmake")
+
 
 licenses(["notice"])
 
 package(
     default_visibility = ["//visibility:public"],
+)
+
+
+cmake(
+    name = "assimp",
+    generate_args = ["-G \"Unix Makefiles\""],
+    lib_source = "@assimp//:all_srcs",
+    out_shared_libs = ["libassimp.so", "libassimp.so.5", "libassimp.so.5.0.0"],
+    out_static_libs = ["libIrrXML.a", ],
+)
+
+cmake(
+    name = "fcl",
+    install = True, 
+    generate_args = ["-DCMAKE_BUILD_TYPE=Release", "-DEIGEN3_INCLUDE_DIR=eigen/include"],
+    lib_source = "@fcl//:all_srcs",
+    deps = [":ccd", ":eigen"],
+)
+
+cmake(
+    name = "ccd",
+    install = True, 
+    generate_args = ["-G \"Unix Makefiles\"", "-DCMAKE_BUILD_TYPE=Release",],
+    lib_source = "@ccd//:all_srcs",
+    out_shared_libs = ["libccd.so.2.0", "libccd.so.2", "libccd.so"],
+)
+
+
+cmake(
+    name = "eigen",
+    install = True, 
+    out_headers_only = True,
+    lib_source = "@eigen//:all_srcs",
 )
 
 # Example for using the Asylo framework.
