@@ -119,7 +119,7 @@ public:
           if(data_ptr->data){
               //Message exists!
               std::string in_s((char *) data_ptr->data, data_ptr->size);
-              free(data_ptr->data);
+              free(data_ptr->data); // allocated using malloc
 
               hello_world::CapsulePDU in_dc;
               in_dc.ParseFromString(in_s);
@@ -155,7 +155,7 @@ public:
     }
 
     void put_ecall(capsule_pdu *dc) {
-      EcallParams *args = (EcallParams *) malloc(sizeof(OcallParams));
+      EcallParams *args = (EcallParams *) malloc(sizeof(OcallParams)); // freed in enclave
       args->ecall_id = ECALL_PUT;
       args->data = dc; 
       HotMsg_requestECall( circ_buffer_enclave, requestedCallID++, args);
@@ -218,7 +218,6 @@ public:
 
         hello_world::CapsulePDU in_dc;
         in_dc.ParseFromString(message);
-        //TODO: Figure out where to free this buffer...
         capsule_pdu *dc = new capsule_pdu();
         asylo::CapsuleFromProto(dc, &in_dc);
 
@@ -464,7 +463,7 @@ int main(int argc, char *argv[]) {
 
         //start server
         worker_threads.push_back(std::thread(thread_run_zmq_server, 0));
-        sleep(20);
+        sleep(1 * 1000 * 1000);
     } else {
         std::vector<std::string> names =
                 absl::StrSplit(absl::GetFlag(FLAGS_payload), ',');

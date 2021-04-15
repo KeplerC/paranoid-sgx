@@ -221,9 +221,9 @@ namespace asylo {
                 if(data_ptr->data){
                     //Message exists!
                     EcallParams *arg = (EcallParams *) data_ptr->data;
-                    capsule_pdu *dc = new capsule_pdu();
+                    capsule_pdu *dc = new capsule_pdu(); // freed below
                     CapsuleToCapsule(dc, (capsule_pdu *) arg->data);
-
+                    primitives::TrustedPrimitives::UntrustedLocalFree((capsule_pdu *) arg->data); 
                     switch(arg->ecall_id){
                         case ECALL_PUT:
                             //printf("[ECALL] dc_id : %d\n", dc->id);
@@ -263,7 +263,8 @@ namespace asylo {
                         default:
                             printf("Invalid ECALL id: %d\n", arg->ecall_id);
                     }
-
+                    delete dc;
+                    primitives::TrustedPrimitives::UntrustedLocalFree(arg);
                     data_ptr->data = 0;
                 }
 
@@ -309,12 +310,13 @@ namespace asylo {
                     //send signed timestamp to others
                     std::string current_time_signed(s.begin(), s.end());
                     //LOG(INFO) << VerifyMessage(current_time, s);
-                    capsule_pdu *dc = new capsule_pdu();
+                    capsule_pdu *dc = new capsule_pdu(); // freed below
                     asylo::KvToCapsule(dc, counter++, COORDINATOR_KV_KEY, current_time + "," + current_time_signed);
                     dc->syncHash = current_time;
                     LOG(INFO) << "[Coordinator] Send out sync msg capsule";
                     dumpCapsule(dc);
                     put_internal(dc);
+                    delete dc;
                 }
                 return asylo::Status::OkStatus();
             } else{
