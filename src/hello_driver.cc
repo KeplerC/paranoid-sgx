@@ -222,8 +222,11 @@ public:
         capsule_pdu *dc = new capsule_pdu();
         asylo::CapsuleFromProto(dc, &in_dc);
 
-
-        LOG(INFO) << "Client " << this->m_name << " puts capsule into CIRBUF-ECALL";
+        if (this->m_name == "1") {
+            LOG(INFO) << "Coordinator " << this->m_name << " puts capsule into CIRBUF-ECALL";
+        } else {
+            LOG(INFO) << "Client (>=2) " << this->m_name << " puts capsule into CIRBUF-ECALL";
+        }
         put_ecall(dc);
         //Sleep so that threads have time to process ALL requests
     }
