@@ -305,8 +305,7 @@ namespace asylo {
                 duk_push_pointer(ctx, this); 
                 duk_put_global_string(ctx, "ctx");
 
-                // const std::string &server_addr = input.GetExtension(hello_world::kvs_server_config).server_address();
-                std::string server_addr = std::string("localhost");
+                std::string server_addr = input.GetExtension(hello_world::kvs_server_config).server_address();
         
                 if (server_addr.empty()) {
                     printf("error\n");
@@ -315,8 +314,6 @@ namespace asylo {
                 }
 
                 int32_t port = input.GetExtension(hello_world::kvs_server_config).port();
-                port = 3001; 
-
                 server_addr = absl::StrCat(server_addr, ":", port);
 
                 LOG(INFO) << "Configured with KVS Address: " << server_addr;
@@ -343,7 +340,7 @@ namespace asylo {
                     return absl::InternalError("Failed to connect to server");
                 }
 
-                printf("Successfully connected to server\n");
+                LOG(INFO) << "Successfully connected to server";
 
                 hello_world::GrpcClientEnclaveInput client_input; 
                 hello_world::GrpcClientEnclaveOutput client_output; 
