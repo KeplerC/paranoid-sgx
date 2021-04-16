@@ -53,15 +53,7 @@ namespace asylo {
             args.ocall_id = OCALL_PUT;
             args.data = dc;
             HotMsg_requestOCall( buffer, requestedCallID++, &args);
-            //                LOG(INFO) << "= Encryption and Decryption =";
-            //                std::string result;
-            //                ASYLO_ASSIGN_OR_RETURN(result, EncryptMessage(visitor));
-            //                LOG(INFO) << "encrypted: " << result;
-            //                ASYLO_ASSIGN_OR_RETURN(result, DecryptMessage(result));
-            //                LOG(INFO) << "decrypted: " << result;
-            //                LOG(INFO) << "= Sign and Verify =";
-            //                LOG(INFO) << "signed: " << reinterpret_cast<const char*>(SignMessage(visitor).data());
-            //                LOG(INFO) << "verified: " << VerifyMessage(visitor, SignMessage(visitor));
+
         }
 
         int HotMsg_requestOCall( HotMsg* hotMsg, int dataID, void *data ) {
@@ -161,7 +153,7 @@ namespace asylo {
                                 //VerifyMessage(ts, vec_signed_ts);
                                 //LOG(INFO) << VerifyMessage(ts, vec_signed_ts);
                                 //this->m_latest_sync_hash = ts;
-                                put(COORDINATOR_EOE_KEY, "latest");
+                                put(COORDINATOR_EOE_KEY, m_prev_hash);
                                 break;
                             }
 
@@ -170,12 +162,12 @@ namespace asylo {
                                 // need fancier mechanisms when we know how to store the hash ptrs
                                 // TODO (Hanming): update clients' current headerHash
                             } else {
-                                if(dc->syncHash == m_latest_sync_hash)
+                                //if(dc->syncHash == m_latest_sync_hash)
                                     memtable.put(dc);
                                     // TODO (Hanming): update other clients' current headerHash
-                                else
-                                    LOG(INFO) << "[DIFFERENT HASH DISCARDED]"<< "dc: "<< dc -> syncHash
-                                        << " m_latest: "<< m_latest_sync_hash;
+                                //else
+                                //    LOG(INFO) << "[DIFFERENT HASH DISCARDED]"<< "dc: "<< dc -> syncHash
+                                //        << " m_latest: "<< m_latest_sync_hash;
                             }
 
                             break;
@@ -199,7 +191,7 @@ namespace asylo {
         asylo::Status Run(const asylo::EnclaveInput &input,
                           asylo::EnclaveOutput *output) override {
 
-            m_latest_sync_hash = "init";
+            m_prev_hash = "init";
             requestedCallID = 0;
             counter = 0;
 
@@ -272,7 +264,7 @@ namespace asylo {
         int counter;
         bool is_coordinator;
         int m_enclave_id;
-        std::string m_latest_sync_hash;
+        std::string m_prev_hash;
 
         void put_internal(capsule_pdu *dc) {
             memtable.put(dc);
@@ -283,7 +275,8 @@ namespace asylo {
             // capsule_pdu *dc = (capsule_pdu *) malloc(sizeof(capsule_pdu));
             capsule_pdu *dc = new capsule_pdu();
             asylo::KvToCapsule(dc, counter++, key, value, m_enclave_id);
-            dc -> syncHash = m_latest_sync_hash;
+            dc -> prevHash = m_prev_hash;
+            m_prev_hash = dc->metaHash;
             //dc->timestamp = get_current_time();
             dumpCapsule(dc);
             put_internal(dc);

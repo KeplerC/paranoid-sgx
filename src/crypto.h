@@ -95,5 +95,14 @@ namespace asylo{
     //
     //    return CleansingString(plaintext.begin(), plaintext.end());
     //}
+//                LOG(INFO) << "= Encryption and Decryption =";
+//                std::string result;
+//                ASYLO_ASSIGN_OR_RETURN(result, EncryptMessage(visitor));
+//                LOG(INFO) << "encrypted: " << result;
+//                ASYLO_ASSIGN_OR_RETURN(result, DecryptMessage(result));
+//                LOG(INFO) << "decrypted: " << result;
+//                LOG(INFO) << "= Sign and Verify =";
+//                LOG(INFO) << "signed: " << reinterpret_cast<const char*>(SignMessage(visitor).data());
+//                LOG(INFO) << "verified: " << VerifyMessage(visitor, SignMessage(visitor));
 }
 #endif //PARANOID_SGX_CRYPTO_H

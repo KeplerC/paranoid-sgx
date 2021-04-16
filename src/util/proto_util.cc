@@ -18,7 +18,7 @@ namespace asylo {
     }
 
     std::string get_meta_data_hash(capsule_pdu *dc){
-        std::string aggregated = std::to_string((int)dc->id) + std::to_string(dc->timestamp) + std::to_string(dc->sender) + dc->dataHash;
+        std::string aggregated = std::to_string((int)dc->id) + std::to_string(dc->timestamp) + std::to_string(dc->sender) ;
         return SignMessage(aggregated);
     }
 
@@ -27,10 +27,9 @@ namespace asylo {
     }
 
     bool verify_meta_data_hash(capsule_pdu *dc, std::string signature){
-        std::string aggregated = std::to_string((int)dc->id) + std::to_string(dc->timestamp) + std::to_string(dc->sender) + dc->dataHash;
+        std::string aggregated = std::to_string((int)dc->id) + std::to_string(dc->timestamp) + std::to_string(dc->sender) ;
         return VerifyMessage(aggregated, signature);
     }
-
 
     void KvToCapsule(capsule_pdu *dc, const capsule_id id, const std::string key, const std::string value, const int enclave_id) {
         dc->id = id;
@@ -41,7 +40,6 @@ namespace asylo {
         dc->dataHash = get_data_hash(key, value);
         dc->metaHash = get_meta_data_hash(dc);
     }
-
 
     void CapsuleToProto(const capsule_pdu *dc, hello_world::CapsulePDU *dcProto){
 
