@@ -155,7 +155,7 @@ namespace asylo {
                             else if (dc->payload.key == COORDINATOR_SYNC_KEY){
                                 deserialize_eoe_hashes_from_string(dc->payload.value);
                                 LOG(INFO) << "Received the sync report " << serialize_eoe_hashes();
-                                //TODO: cross validate the hashes 
+                                //TODO: cross validate the hashes
                             }
                             else {
                                 //if(dc->syncHash == m_latest_sync_hash)
