@@ -36,6 +36,7 @@
 #include "src/proto/hello.pb.h"
 #include "src/util/proto_util.hpp"
 #include "benchmark.h"
+#include <utility>
 #include <unordered_map>
 
 #define EPOCH_TIME 1
@@ -145,7 +146,10 @@ namespace asylo {
                             }
                             else if (dc->payload.key == COORDINATOR_EOE_KEY && is_coordinator){
                                 // TODO (Hanming): update clients' current headerHash
-                                m_eoe_hashes[dc->sender] = dc->payload.value;
+                                std::pair<std::string, int64_t> p;
+                                p.first = dc->payload.value;
+                                p.second = dc->timestamp;
+                                m_eoe_hashes[dc->sender] = p;
                                 if(m_eoe_hashes.size() == TOTAL_THREADS - 2) { //minus 2 for server thread and coordinator thread
                                     LOG(INFO) << "coordinator received all EOEs, sending report" << serialize_eoe_hashes();
                                     put(COORDINATOR_SYNC_KEY, serialize_eoe_hashes(), false);
@@ -260,7 +264,7 @@ namespace asylo {
         bool is_coordinator;
         int m_enclave_id;
         std::string m_prev_hash;
-        std::unordered_map<int, std::string> m_eoe_hashes;
+        std::unordered_map<int, std::pair<std::string, int64_t>> m_eoe_hashes;
 
 
         void put_internal(capsule_pdu *dc, bool to_memtable = true, bool to_network = true) {
@@ -284,8 +288,8 @@ namespace asylo {
 
         std::string serialize_eoe_hashes(){
             std::string ret = "";
-            for( const auto& [key, value] : m_eoe_hashes ) {
-               ret +=  std::to_string(key) + "," + value + "\n";
+            for( const auto& [key, pair] : m_eoe_hashes ) {
+               ret +=  std::to_string(key) + "," + pair.first + "," +  std::to_string(pair.second) + "\n";
             }
             return ret;
         }
@@ -294,11 +298,15 @@ namespace asylo {
             std::stringstream ss(s);
             while(true)
             {
-                std::string key, value;
+                std::string key, value, ts;
                 //try to read key, if there is none, break
                 if (!getline(ss, key, ',')) break;
-                getline(ss, value, '\n');
-                m_eoe_hashes[std::stoi(key)] = value;
+                getline(ss, value, ',');
+                getline(ss, ts, '\n');
+                std::pair<std::string, int64_t> p;
+                p.first = value;
+                p.second = std::stoll(ts);
+                m_eoe_hashes[std::stoi(key)] = p;
             }
         }
 
