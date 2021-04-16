@@ -43,13 +43,17 @@ message CoordinatorParam {
   optional int64 circ_buffer = 1;
 }
 
+message SyncParam {
+  optional int64 is_sync = 1;
+}
+
 extend asylo.EnclaveInput {
   optional HelloInput enclave_input_hello = 8086;
   optional CapsulePDU input_dc = 8087;
   optional HotMsg buffer = 8088;
   optional EnclaveResponder enclave_responder = 8089;
   optional CoordinatorParam is_coordinator = 8090;
-
+  optional SyncParam is_sync_thread = 8091;
 }
 
 extend asylo.EnclaveOutput {

@@ -289,8 +289,7 @@ namespace asylo {
                 EnclaveMsgStartResponder(hotmsg);
                 return asylo::Status::OkStatus();
             }
-
-            if (input.HasExtension(hello_world::is_coordinator)) {
+            else if (input.HasExtension(hello_world::is_coordinator)) {
                 LOG(INFO) << "[Coordinator] Up and Running";
                 buffer = (HotMsg *) input.GetExtension(hello_world::is_coordinator).circ_buffer();
                 is_coordinator = true;
@@ -319,7 +318,10 @@ namespace asylo {
                     delete dc;
                 }
                 return asylo::Status::OkStatus();
-            } else{
+            } else if (input.HasExtension(hello_world::is_sync_thread)){
+                LOG(INFO) << "is sync running";
+            }
+            else{
                 is_coordinator = false;
             }
 

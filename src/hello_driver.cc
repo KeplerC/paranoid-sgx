@@ -231,12 +231,18 @@ public:
     }
 
     void execute_coordinator() {
-
-
         asylo::EnclaveInput input;
         asylo::EnclaveOutput output;
 
         input.MutableExtension(hello_world::is_coordinator)->set_circ_buffer((long int) circ_buffer_host);;
+        this->client->EnterAndRun(input, &output);
+    }
+
+    void start_sync_epoch_thread() {
+        asylo::EnclaveInput input;
+        asylo::EnclaveOutput output;
+
+        input.MutableExtension(hello_world::is_sync_thread)->set_is_sync(1);;
         this->client->EnterAndRun(input, &output);
     }
 
@@ -427,6 +433,10 @@ void thread_start_coordinator(Asylo_SGX* sgx){
     sgx->execute_coordinator();
 }
 
+void thread_start_sync_thread(Asylo_SGX* sgx){
+    sgx->start_sync_epoch_thread();
+}
+
 int main(int argc, char *argv[]) {
   // Part 0: Setup
     absl::ParseCommandLine(argc, argv);
@@ -456,6 +466,7 @@ int main(int argc, char *argv[]) {
             } else{
                 worker_threads.push_back(std::thread(thread_run_zmq_client, thread_id, sgx));
                 worker_threads.push_back(std::thread(thread_start_fake_client, sgx));
+                worker_threads.push_back(std::thread(thread_start_sync_thread, sgx));
             }
 
         }
