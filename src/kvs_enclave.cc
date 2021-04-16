@@ -320,6 +320,7 @@ namespace asylo {
                 return asylo::Status::OkStatus();
             } else if (input.HasExtension(hello_world::is_sync_thread)){
                 LOG(INFO) << "is sync running";
+                return asylo::Status::OkStatus();
             }
             else{
                 is_coordinator = false;
