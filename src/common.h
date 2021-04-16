@@ -32,6 +32,8 @@
 // Key for latest EOE
 #define COORDINATOR_EOE_KEY "PARANOID_EOE"
 
+#define TOTAL_THREADS 3
+
 enum OCALL_ID {
     OCALL_PUT,
 };

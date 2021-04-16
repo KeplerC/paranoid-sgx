@@ -36,6 +36,7 @@
 #include "src/proto/hello.pb.h"
 #include "src/util/proto_util.hpp"
 #include "benchmark.h"
+#include <unordered_map>
 
 #define EPOCH_TIME 1
 #define COORDINATOR_KV_ID 1000000
@@ -156,11 +157,16 @@ namespace asylo {
                                 put(COORDINATOR_EOE_KEY, m_prev_hash);
                                 break;
                             }
-
-                            if (is_coordinator){
+                            else if (dc->payload.key == COORDINATOR_EOE_KEY && is_coordinator){
                                 // try a simple way for now: sign a timestamp, the packets beyond this timestamp will be dropped
                                 // need fancier mechanisms when we know how to store the hash ptrs
                                 // TODO (Hanming): update clients' current headerHash
+                                m_eoe_hashes[dc->sender] = dc->payload.value;
+                                if(m_eoe_hashes.size() == TOTAL_THREADS - 2) { //minus 2 for server thread and coordinator thread
+                                    LOG(INFO) << "coordinator received all EOEs, sending report" << serialize_eoe_hashes();
+                                    put(COORDINATOR_SYNC_KEY, serialize_eoe_hashes());
+                                    m_eoe_hashes.clear();
+                                }
                             } else {
                                 //if(dc->syncHash == m_latest_sync_hash)
                                     memtable.put(dc);
@@ -215,7 +221,6 @@ namespace asylo {
                     sleep(EPOCH_TIME);
                     //send request to sync packet
                     put(COORDINATOR_RTS_KEY, "RTS");
-                    LOG(INFO) << "[Coordinator] Send out sync msg capsule";
                 }
                 return asylo::Status::OkStatus();
             } else if (input.HasExtension(hello_world::is_sync_thread)){
@@ -265,6 +270,8 @@ namespace asylo {
         bool is_coordinator;
         int m_enclave_id;
         std::string m_prev_hash;
+        std::unordered_map<int, std::string> m_eoe_hashes;
+
 
         void put_internal(capsule_pdu *dc) {
             memtable.put(dc);
@@ -282,6 +289,16 @@ namespace asylo {
             put_internal(dc);
             delete dc;
         }
+
+        std::string serialize_eoe_hashes(){
+            std::string ret = "";
+            for( const auto& [key, value] : m_eoe_hashes ) {
+               ret +=  std::to_string(key) + "," + value + "\n";
+            }
+            return ret;
+        }
+
+
 
         M_BENCHMARK_HERE
     };

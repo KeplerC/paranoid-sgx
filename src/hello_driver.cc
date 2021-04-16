@@ -139,7 +139,7 @@ public:
                     zmq::message_t msg(out_s.size());
                     memcpy(msg.data(), out_s.c_str(), out_s.size());
                     if(in_dc.payload().key() == COORDINATOR_EOE_KEY){
-                        //socket_ptr_to_sync->send(msg);
+                        socket_ptr_to_sync->send(msg);
                     }else {
                         socket_ptr->send(msg);
                     }
@@ -225,6 +225,9 @@ public:
 
         hello_world::CapsulePDU in_dc;
         in_dc.ParseFromString(message);
+        if(in_dc.sender() == std::stoi(this->m_name)){
+            return;
+        }
         capsule_pdu *dc = new capsule_pdu();
         asylo::CapsuleFromProto(dc, &in_dc);
 
@@ -464,7 +467,7 @@ int main(int argc, char *argv[]) {
         // thread 2-n: clients
         std::vector <std::thread> worker_threads;
         //start clients
-        for (unsigned thread_id = 1; thread_id < 3; thread_id++) {
+        for (unsigned thread_id = 1; thread_id < TOTAL_THREADS; thread_id++) {
             Asylo_SGX* sgx = new Asylo_SGX( std::to_string(thread_id));
             sgx->init();
             sleep(1);
