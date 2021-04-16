@@ -140,7 +140,7 @@ namespace asylo {
                             DUMP_CAPSULE(dc);
                             // once received RTS, send the latest EOE
                             if (dc->payload.key == COORDINATOR_RTS_KEY && !is_coordinator) {
-                                put(COORDINATOR_EOE_KEY, m_prev_hash);
+                                put(COORDINATOR_EOE_KEY, m_prev_hash, false);
                                 break;
                             }
                             else if (dc->payload.key == COORDINATOR_EOE_KEY && is_coordinator){
@@ -148,7 +148,7 @@ namespace asylo {
                                 m_eoe_hashes[dc->sender] = dc->payload.value;
                                 if(m_eoe_hashes.size() == TOTAL_THREADS - 2) { //minus 2 for server thread and coordinator thread
                                     LOG(INFO) << "coordinator received all EOEs, sending report" << serialize_eoe_hashes();
-                                    put(COORDINATOR_SYNC_KEY, serialize_eoe_hashes());
+                                    put(COORDINATOR_SYNC_KEY, serialize_eoe_hashes(), false);
                                     m_eoe_hashes.clear();
                                 }
                             }
@@ -263,12 +263,14 @@ namespace asylo {
         std::unordered_map<int, std::string> m_eoe_hashes;
 
 
-        void put_internal(capsule_pdu *dc) {
-            memtable.put(dc);
-            put_ocall(dc);
+        void put_internal(capsule_pdu *dc, bool to_memtable = true, bool to_network = true) {
+            if(to_memtable)
+                memtable.put(dc);
+            if(to_network)
+                put_ocall(dc);
         }
 
-        void put(std::string key, std::string value) {
+        void put(std::string key, std::string value, bool to_memtable = true, bool to_network = true) {
             // capsule_pdu *dc = (capsule_pdu *) malloc(sizeof(capsule_pdu));
             capsule_pdu *dc = new capsule_pdu();
             asylo::KvToCapsule(dc, counter++, key, value, m_enclave_id);
@@ -276,7 +278,7 @@ namespace asylo {
             m_prev_hash = dc->metaHash;
             //dc->timestamp = get_current_time();
             DUMP_CAPSULE(dc);
-            put_internal(dc);
+            put_internal(dc, to_memtable, to_network);
             delete dc;
         }
 
