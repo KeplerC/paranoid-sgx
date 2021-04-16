@@ -144,8 +144,6 @@ namespace asylo {
                                 break;
                             }
                             else if (dc->payload.key == COORDINATOR_EOE_KEY && is_coordinator){
-                                // try a simple way for now: sign a timestamp, the packets beyond this timestamp will be dropped
-                                // need fancier mechanisms when we know how to store the hash ptrs
                                 // TODO (Hanming): update clients' current headerHash
                                 m_eoe_hashes[dc->sender] = dc->payload.value;
                                 if(m_eoe_hashes.size() == TOTAL_THREADS - 2) { //minus 2 for server thread and coordinator thread
@@ -157,8 +155,8 @@ namespace asylo {
                             else if (dc->payload.key == COORDINATOR_SYNC_KEY){
                                 deserialize_eoe_hashes_from_string(dc->payload.value);
                                 LOG(INFO) << "Received the sync report " << serialize_eoe_hashes();
+                                //TODO: cross validate the hashes 
                             }
-
                             else {
                                 //if(dc->syncHash == m_latest_sync_hash)
                                     memtable.put(dc);
@@ -297,7 +295,6 @@ namespace asylo {
                 std::string key, value;
                 //try to read key, if there is none, break
                 if (!getline(ss, key, ',')) break;
-                //read value
                 getline(ss, value, '\n');
                 m_eoe_hashes[std::stoi(key)] = value;
             }
