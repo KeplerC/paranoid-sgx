@@ -13,11 +13,12 @@ int64_t get_current_time(){
 }
 
 
-void KvToCapsule(capsule_pdu *dc, const capsule_id id, const std::string key, const std::string value) {
+void KvToCapsule(capsule_pdu *dc, const capsule_id id, const std::string key, const std::string value, const int enclave_id) {
     dc->id = id;
     dc->payload.key = key;
     dc->payload.value = value;
     dc->timestamp = get_current_time();
+    dc->sender = enclave_id;
 }
 
 
@@ -27,6 +28,7 @@ void CapsuleToProto(const capsule_pdu *dc, hello_world::CapsulePDU *dcProto){
     dcProto->mutable_payload()->set_key(dc->payload.key);
     dcProto->mutable_payload()->set_value(dc->payload.value);
     dcProto->set_signature(dc->signature);
+    dcProto->set_sender(dc->sender);
 
     dcProto->set_prevhash(dc->prevHash);
     dcProto->set_metahash(dc->metaHash);
@@ -43,6 +45,7 @@ void CapsuleFromProto(capsule_pdu *dc, const hello_world::CapsulePDU *dcProto) {
     dc->payload.key = dcProto->payload().key();
     dc->payload.value = dcProto->payload().value();
     dc->signature = dcProto->signature();
+    dc->sender = dcProto->sender();
     
     dc->prevHash = dcProto->prevhash();
     dc->metaHash = dcProto->metahash();
@@ -57,6 +60,7 @@ void CapsuleToCapsule(capsule_pdu *dc_new, const capsule_pdu *dc) {
     dc_new->payload.key = dc->payload.key;
     dc_new->payload.value = dc->payload.value;
     dc_new->signature = dc->signature;
+    dc_new->sender = dc->sender;
 
     dc_new->prevHash = dc->prevHash;
     dc_new->metaHash = dc->metaHash;
@@ -68,12 +72,12 @@ void CapsuleToCapsule(capsule_pdu *dc_new, const capsule_pdu *dc) {
 
 
 void dumpCapsule(const capsule_pdu *dc){
-    LOG(INFO) << "DataCapsule id: " << (int) dc->id << ", Key: " << dc->payload.key << ", Value: " 
+    LOG(INFO) << "Sender: "<< dc->sender << ", DataCapsule id: " << (int) dc->id << ", Key: " << dc->payload.key << ", Value: "
               << dc->payload.value << ", Timestamp: " << (int64_t) dc->timestamp << ", syncHash: " << dc->syncHash;
 }
 
 void dumpProtoCapsule(const hello_world::CapsulePDU *dcProto){
-    LOG(INFO) << "DataCapsule id: " << (int) dcProto->id() << ", Key: " << dcProto->payload().key() << ", Value: " 
+    LOG(INFO) << "Sender: "<< dcProto->sender() << ",DataCapsule id: " << (int) dcProto->id() << ", Key: " << dcProto->payload().key() << ", Value: "
               << dcProto->payload().value() << ", Timestamp: " << (int64_t) dcProto->timestamp() << ", syncHash: " << dcProto->synchash();
 }
 

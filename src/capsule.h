@@ -18,6 +18,7 @@ typedef struct {
     capsule_id id;
     kvs_payload payload;
     std::string signature;
+    int sender;
     
     std::string prevHash; //Hash ptr to the previous record, not needed for the minimal prototype
     std::string metaHash;

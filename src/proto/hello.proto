@@ -37,6 +37,7 @@ message EnclaveResponder {
 
 message HotMsg {
   optional int64 buffer = 1;
+  optional string enclave_id = 2;
 }
 
 message CoordinatorParam {
