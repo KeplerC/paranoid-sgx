@@ -140,20 +140,6 @@ namespace asylo {
                             DUMP_CAPSULE(dc);
                             // once received RTS, send the latest EOE
                             if (dc->payload.key == COORDINATOR_RTS_KEY && !is_coordinator) {
-                                //std::stringstream ss (dc->payload.value);
-                                //std::string ts;
-                                //std::string signed_ts;
-                                //first field is timestamp
-                                //(use comma separated because we may need csv for signatures in the future)
-                                //getline(ss, ts, ',');
-                                //second field is signature
-                                //getline(ss, signed_ts, ',');
-                                //std::vector<unsigned char> vec_signed_ts(signed_ts.begin(), signed_ts.end());
-                                // the verification doesn't work for some weird reason (seg fault at ASYLO_ASSIGN_OR_RETURN)
-                                // Do we need to verify here? Or just verifying a capsule is sufficient
-                                //VerifyMessage(ts, vec_signed_ts);
-                                //LOG(INFO) << VerifyMessage(ts, vec_signed_ts);
-                                //this->m_latest_sync_hash = ts;
                                 put(COORDINATOR_EOE_KEY, m_prev_hash);
                                 break;
                             }
@@ -167,7 +153,13 @@ namespace asylo {
                                     put(COORDINATOR_SYNC_KEY, serialize_eoe_hashes());
                                     m_eoe_hashes.clear();
                                 }
-                            } else {
+                            }
+                            else if (dc->payload.key == COORDINATOR_SYNC_KEY){
+                                deserialize_eoe_hashes_from_string(dc->payload.value);
+                                LOG(INFO) << "Received the sync report " << serialize_eoe_hashes();
+                            }
+
+                            else {
                                 //if(dc->syncHash == m_latest_sync_hash)
                                     memtable.put(dc);
                                     // TODO (Hanming): update other clients' current headerHash
@@ -296,6 +288,19 @@ namespace asylo {
                ret +=  std::to_string(key) + "," + value + "\n";
             }
             return ret;
+        }
+
+        void deserialize_eoe_hashes_from_string(std::string s){
+            std::stringstream ss(s);
+            while(true)
+            {
+                std::string key, value;
+                //try to read key, if there is none, break
+                if (!getline(ss, key, ',')) break;
+                //read value
+                getline(ss, value, '\n');
+                m_eoe_hashes[std::stoi(key)] = value;
+            }
         }
 
 
