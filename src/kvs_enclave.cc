@@ -39,7 +39,7 @@
 #include <utility>
 #include <unordered_map>
 
-#define EPOCH_TIME 1
+#define EPOCH_TIME 2
 #define COORDINATOR_KV_ID 1000000
 namespace asylo {
 
@@ -236,7 +236,6 @@ namespace asylo {
             for( uint64_t i=0; i < 1; ++i ) {
                 LOG(INFO) << "[ENCLAVE] ===CLIENT PUT=== ";
                 LOG(INFO) << "[ENCLAVE] Generating a new capsule PDU ";
-                //asylo::KvToCapsule(&dc[i], i, "default_key", "original_value");
                 put("default_key", "default_value");
             }
 
