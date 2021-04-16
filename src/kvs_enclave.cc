@@ -38,7 +38,6 @@
 #include "benchmark.h"
 
 #define EPOCH_TIME 1
-#define COORDINATOR_KV_KEY "PARANOID_TS"
 #define COORDINATOR_KV_ID 1000000
 namespace asylo {
 
@@ -56,20 +55,29 @@ namespace asylo {
                     reinterpret_cast<const char *>(bytes.data()), bytes.size()));
         }
 
-        // signs the message with ecdsa signing key
-        const std::vector <uint8_t> SignMessage(const std::string &message) {
-            signing_key = EcdsaP256Sha256SigningKey::Create().ValueOrDie();
-            std::vector <uint8_t> signature;
-            ASYLO_CHECK_OK(signing_key->Sign(message, &signature));
-            return signature;
-        }
+//        // signs the message with ecdsa signing key
+//        const std::vector <uint8_t> SignMessage(const std::string &message) {
+//            signing_key = EcdsaP256Sha256SigningKey::Create().ValueOrDie();
+//            std::vector <uint8_t> signature;
+//            ASYLO_CHECK_OK(signing_key->Sign(message, &signature));
+//            return signature;
+//        }
+//
+//        // verify the message with ecdsa verfying key
+//        const Status VerifyMessage(const std::string &message, std::vector <uint8_t> signature) {
+//            std::unique_ptr <VerifyingKey> verifying_key;
+//            ASYLO_ASSIGN_OR_RETURN(verifying_key,
+//                                   signing_key->GetVerifyingKey());
+//            return verifying_key->Verify(message, signature);
+//        }
 
-        // verify the message with ecdsa verfying key
-        const Status VerifyMessage(const std::string &message, std::vector <uint8_t> signature) {
-            std::unique_ptr <VerifyingKey> verifying_key;
-            ASYLO_ASSIGN_OR_RETURN(verifying_key,
-                                   signing_key->GetVerifyingKey());
-            return verifying_key->Verify(message, signature);
+        //a dummy version of signing
+        //TODO: actually signing it
+        std::string SignMessage(const std::string &message){
+            return message;
+        }
+        bool VerifyMessage(const std::string &message, const std::string& signature){
+            return message == signature;
         }
 
         // Encrypts a message against `kAesKey128` and returns a 12-byte nonce followed
@@ -229,21 +237,24 @@ namespace asylo {
                             //printf("[ECALL] dc_id : %d\n", dc->id);
                             LOG(INFO) << "[CICBUF-ECALL] transmitted a data capsule pdu";
                             dumpCapsule(dc);
-                            if (dc->payload.key == COORDINATOR_KV_KEY) {
-                                std::stringstream ss (dc->payload.value);
-                                std::string ts;
-                                std::string signed_ts;
+                            // once received RTS, send the latest EOE
+                            if (dc->payload.key == COORDINATOR_RTS_KEY && !is_coordinator) {
+                                //std::stringstream ss (dc->payload.value);
+                                //std::string ts;
+                                //std::string signed_ts;
                                 //first field is timestamp
                                 //(use comma separated because we may need csv for signatures in the future)
-                                getline(ss, ts, ',');
+                                //getline(ss, ts, ',');
                                 //second field is signature
-                                getline(ss, signed_ts, ',');
-                                std::vector<unsigned char> vec_signed_ts(signed_ts.begin(), signed_ts.end());
-                                //TODO: the verification doesn't work for some weird reason (seg fault at ASYLO_ASSIGN_OR_RETURN)
+                                //getline(ss, signed_ts, ',');
+                                //std::vector<unsigned char> vec_signed_ts(signed_ts.begin(), signed_ts.end());
+                                // the verification doesn't work for some weird reason (seg fault at ASYLO_ASSIGN_OR_RETURN)
                                 // Do we need to verify here? Or just verifying a capsule is sufficient
                                 //VerifyMessage(ts, vec_signed_ts);
                                 //LOG(INFO) << VerifyMessage(ts, vec_signed_ts);
-                                this->m_latest_sync_hash = ts;
+                                //this->m_latest_sync_hash = ts;
+                                put(COORDINATOR_EOE_KEY, "latest");
+                                break;
                             }
 
                             if (is_coordinator){
@@ -292,6 +303,7 @@ namespace asylo {
 
             if (input.HasExtension(hello_world::is_coordinator)) {
                 LOG(INFO) << "[Coordinator] Up and Running";
+                m_enclave_id = 1;
                 buffer = (HotMsg *) input.GetExtension(hello_world::is_coordinator).circ_buffer();
                 is_coordinator = true;
                 counter = COORDINATOR_KV_ID;
@@ -302,21 +314,9 @@ namespace asylo {
 
                 while (true){
                     sleep(EPOCH_TIME);
-                    std::string current_time= std::to_string(get_current_time());
-                    m_latest_sync_hash = current_time;
-                    //reinterpret_cast<const char*>(SignMessage(visitor).data())
-                    std::vector<unsigned char> s = SignMessage(current_time);
-
-                    //send signed timestamp to others
-                    std::string current_time_signed(s.begin(), s.end());
-                    //LOG(INFO) << VerifyMessage(current_time, s);
-                    capsule_pdu *dc = new capsule_pdu(); // freed below
-                    asylo::KvToCapsule(dc, counter++, COORDINATOR_KV_KEY, current_time + "," + current_time_signed);
-                    dc->syncHash = current_time;
+                    //send request to sync packet
+                    put(COORDINATOR_RTS_KEY, "RTS");
                     LOG(INFO) << "[Coordinator] Send out sync msg capsule";
-                    dumpCapsule(dc);
-                    put_internal(dc);
-                    delete dc;
                 }
                 return asylo::Status::OkStatus();
             } else{
@@ -325,6 +325,7 @@ namespace asylo {
 
             //Then the client wants to put some messages
             buffer = (HotMsg *) input.GetExtension(hello_world::buffer).buffer();
+            m_enclave_id = std::stoi(input.GetExtension(hello_world::buffer).enclave_id());
             sleep(3);
             // TODO: there still has some issues when the client starts before the client connects to the server
             // if we want to consider it, probably we need to buffer the messages
@@ -359,6 +360,7 @@ namespace asylo {
         int requestedCallID;
         int counter;
         bool is_coordinator;
+        int m_enclave_id;
         std::string m_latest_sync_hash;
 
         void put_internal(capsule_pdu *dc) {
@@ -369,7 +371,7 @@ namespace asylo {
         void put(std::string key, std::string value) {
             // capsule_pdu *dc = (capsule_pdu *) malloc(sizeof(capsule_pdu));
             capsule_pdu *dc = new capsule_pdu();
-            asylo::KvToCapsule(dc, counter++, key, value);
+            asylo::KvToCapsule(dc, counter++, key, value, m_enclave_id);
             dc -> syncHash = m_latest_sync_hash;
             //dc->timestamp = get_current_time();
             dumpCapsule(dc);

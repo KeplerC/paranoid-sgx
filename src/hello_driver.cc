@@ -45,6 +45,8 @@
 #define NET_CLIENT_BASE_PORT 5555
 #define NET_CLIENT_IP "localhost"
 #define NET_SEED_SERVER_IP "localhost"
+#define NET_SYNC_SERVER_IP "localhost"
+#define NET_SYNC_SERVER_PORT 5556
 #define NET_SERVER_JOIN_PORT 6666
 #define NET_SERVER_MCAST_PORT 6667
 
@@ -101,7 +103,8 @@ public:
         zmq::context_t context (1);
         zmq::socket_t* socket_ptr  = new  zmq::socket_t( context, ZMQ_PUSH);
         socket_ptr -> connect ("tcp://localhost:6667");
-
+        zmq::socket_t* socket_ptr_to_sync  = new  zmq::socket_t( context, ZMQ_PUSH);
+        socket_ptr_to_sync -> connect ("tcp://localhost:" + std::to_string(NET_SYNC_SERVER_PORT));
 
         while( true )
         {
@@ -135,7 +138,11 @@ public:
                     in_dc.SerializeToString(&out_s);
                     zmq::message_t msg(out_s.size());
                     memcpy(msg.data(), out_s.c_str(), out_s.size());
-                    socket_ptr->send(msg);
+                    if(in_dc.payload().key() == COORDINATOR_EOE_KEY){
+                        //socket_ptr_to_sync->send(msg);
+                    }else {
+                        socket_ptr->send(msg);
+                    }
                     break;
                 }
                 default:
@@ -245,6 +252,7 @@ public:
 
         asylo::EnclaveInput input;
         input.MutableExtension(hello_world::buffer)->set_buffer((long int) circ_buffer_host);
+        input.MutableExtension(hello_world::buffer)->set_enclave_id(m_name);
 
         asylo::EnclaveOutput output;
         asylo::Status status = this->client->EnterAndRun(input, &output);
@@ -307,6 +315,7 @@ public:
         // socket for new mcast messages
         zmq::socket_t socket_msg (context, ZMQ_PULL);
         socket_msg.bind ("tcp://*:" + std::to_string(NET_SERVER_MCAST_PORT));
+
 
         //poll join and mcast messages
         std::vector<zmq::pollitem_t> pollitems = {
@@ -377,7 +386,6 @@ public:
                 this->m_sgx->send_to_sgx(msg);
             }
         }
-
     }
 
 private:
