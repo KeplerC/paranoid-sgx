@@ -46,7 +46,7 @@ cmake(
     generate_args = ["-DCMAKE_BUILD_TYPE=Release", "-DEIGEN3_INCLUDE_DIR=/opt/my-project/src/eigen3/"],
     lib_source = "@fcl//:all_srcs",
     out_shared_libs =["libfcl.so",  "libfcl.so.0.6",  "libfcl.so.0.6.1"],
-    deps = [":ccd"],
+    deps = [":ccd", ":eigen3"],
 )
 
 cmake(
@@ -59,25 +59,35 @@ cmake(
 
 cc_library(
     name = "mpl_hdrs",
-    hdrs = glob(["mpl/*.hpp"]),
+    hdrs = glob(["mpl/include/**"]),
+    includes = ["mpl/include"],
+)
+
+cc_library(
+    name = "eigen3",
+    hdrs = glob(["eigen3/Eigen/**"]),
+    includes = ["eigen3/"],
+)
+
+cc_library(
+    name = "nigh",
+    hdrs = glob(["nigh/**"]),
+    includes = ["nigh/src/"],
 )
 
 enclave_loader(
     name = "mplambda.so",
-    srcs = [
-        "mpl/mpl_lambda_pseudo.cpp", 
-        "mpl/lambda_common.cpp", 
-        "mpl/comm.cpp" , 
-        "mpl/write_queue.cpp", 
-        "mpl/app_options.cpp",
-    ],
+    srcs = glob(["mpl/*.cpp"]),
     deps = [
         ":mpl_hdrs",
-        # ":fcl",
-        # ":assimp",
-        # ":ccd",
+        ":fcl",
+        ":assimp",
+        ":ccd",
+        ":eigen3",
+        ":nigh",
     ],
-    copts = ASYLO_DEFAULT_COPTS + ["-I/opt/my-project/src/eigen3/"],
+    copts = ASYLO_DEFAULT_COPTS + ["-fopenmp", "-std=c++17"],
+    linkopts = ["-lgomp"],
 )
 
 # Example for using the Asylo framework.
