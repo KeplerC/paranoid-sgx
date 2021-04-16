@@ -89,12 +89,6 @@ namespace asylo {
         dc_new->timestamp = dc->timestamp;
     }
 
-
-    void dumpCapsule(const capsule_pdu *dc){
-        LOG(INFO) << "Sender: "<< dc->sender << ", DataCapsule id: " << (int) dc->id << ", Key: " << dc->payload.key << ", Value: "
-                  << dc->payload.value << ", Timestamp: " << (int64_t) dc->timestamp << ", dataHash: " << dc->dataHash << ", metaHash: " << dc->metaHash; //<< ", syncHash: " << dc->syncHash;
-    }
-
     void dumpProtoCapsule(const hello_world::CapsulePDU *dcProto){
         LOG(INFO) << "Sender: "<< dcProto->sender() << ",DataCapsule id: " << (int) dcProto->id() << ", Key: " << dcProto->payload().key() << ", Value: "
                   << dcProto->payload().value() << ", Timestamp: " << (int64_t) dcProto->timestamp() << ", dataHash: " << dcProto->datahash() <<  ", metaHash: " << dcProto->metahash();//", syncHash: " << dcProto->synchash();

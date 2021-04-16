@@ -136,7 +136,7 @@ namespace asylo {
                         case ECALL_PUT:
                             //printf("[ECALL] dc_id : %d\n", dc->id);
                             LOG(INFO) << "[CICBUF-ECALL] transmitted a data capsule pdu";
-                            dumpCapsule(dc);
+                            DUMP_CAPSULE(dc);
                             // once received RTS, send the latest EOE
                             if (dc->payload.key == COORDINATOR_RTS_KEY && !is_coordinator) {
                                 //std::stringstream ss (dc->payload.value);
@@ -248,7 +248,7 @@ namespace asylo {
                 //dc[i].id = i;
                 LOG(INFO) << "[ENCLAVE] ===CLIENT GET=== ";
                 capsule_pdu tmp_dc = memtable.get(i);
-                dumpCapsule(&tmp_dc);
+                DUMP_CAPSULE((&tmp_dc)); //has to be in () because of the macro expansion
             }
 
             //benchmark();
@@ -278,7 +278,7 @@ namespace asylo {
             dc -> prevHash = m_prev_hash;
             m_prev_hash = dc->metaHash;
             //dc->timestamp = get_current_time();
-            dumpCapsule(dc);
+            DUMP_CAPSULE(dc);
             put_internal(dc);
             delete dc;
         }
