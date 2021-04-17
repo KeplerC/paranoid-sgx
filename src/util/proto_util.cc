@@ -18,7 +18,7 @@ namespace asylo {
     }
 
     std::string get_meta_data_hash(capsule_pdu *dc){
-        std::string aggregated = std::to_string((int)dc->id) + std::to_string(dc->timestamp) + std::to_string(dc->sender) ;
+        std::string aggregated = std::to_string(dc->timestamp) + std::to_string(dc->sender);
         return SignMessage(aggregated);
     }
 
@@ -27,12 +27,11 @@ namespace asylo {
     }
 
     bool verify_meta_data_hash(capsule_pdu *dc, std::string signature){
-        std::string aggregated = std::to_string((int)dc->id) + std::to_string(dc->timestamp) + std::to_string(dc->sender) ;
+        std::string aggregated = std::to_string(dc->timestamp) + std::to_string(dc->sender);
         return VerifyMessage(aggregated, signature);
     }
 
-    void KvToCapsule(capsule_pdu *dc, const capsule_id id, const std::string key, const std::string value, const int enclave_id) {
-        dc->id = id;
+    void KvToCapsule(capsule_pdu *dc, const std::string key, const std::string value, const int enclave_id) {
         dc->payload.key = key;
         dc->payload.value = value;
         dc->timestamp = get_current_time();
@@ -43,7 +42,6 @@ namespace asylo {
 
     void CapsuleToProto(const capsule_pdu *dc, hello_world::CapsulePDU *dcProto){
 
-        dcProto->set_id(dc->id);
         dcProto->mutable_payload()->set_key(dc->payload.key);
         dcProto->mutable_payload()->set_value(dc->payload.value);
         dcProto->set_signature(dc->signature);
@@ -60,7 +58,6 @@ namespace asylo {
 
     void CapsuleFromProto(capsule_pdu *dc, const hello_world::CapsulePDU *dcProto) {
 
-        dc->id = dcProto->id();
         dc->payload.key = dcProto->payload().key();
         dc->payload.value = dcProto->payload().value();
         dc->signature = dcProto->signature();
@@ -75,7 +72,6 @@ namespace asylo {
     }
 
     void CapsuleToCapsule(capsule_pdu *dc_new, const capsule_pdu *dc) {
-        dc_new->id = dc->id;
         dc_new->payload.key = dc->payload.key;
         dc_new->payload.value = dc->payload.value;
         dc_new->signature = dc->signature;
@@ -90,7 +86,7 @@ namespace asylo {
     }
 
     void dumpProtoCapsule(const hello_world::CapsulePDU *dcProto){
-        LOG(INFO) << "Sender: "<< dcProto->sender() << ",DataCapsule id: " << (int) dcProto->id() << ", Key: " << dcProto->payload().key() << ", Value: "
+        LOG(INFO) << "Sender: "<< dcProto->sender() << ", Key: " << dcProto->payload().key() << ", Value: "
                   << dcProto->payload().value() << ", Timestamp: " << (int64_t) dcProto->timestamp() << ", dataHash: " << dcProto->datahash() <<  ", metaHash: " << dcProto->metahash();//", syncHash: " << dcProto->synchash();
     }
 

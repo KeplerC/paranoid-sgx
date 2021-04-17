@@ -40,7 +40,6 @@
 #include <unordered_map>
 
 #define EPOCH_TIME 2
-#define COORDINATOR_KV_ID 1000000
 namespace asylo {
 
     class HelloApplication : public asylo::TrustedApplication {
@@ -136,7 +135,6 @@ namespace asylo {
                     primitives::TrustedPrimitives::UntrustedLocalFree((capsule_pdu *) arg->data); 
                     switch(arg->ecall_id){
                         case ECALL_PUT:
-                            //printf("[ECALL] dc_id : %d\n", dc->id);
                             LOG(INFO) << "[CICBUF-ECALL] transmitted a data capsule pdu";
                             DUMP_CAPSULE(dc);
                             // once received RTS, send the latest EOE
@@ -193,7 +191,6 @@ namespace asylo {
 
             m_prev_hash = "init";
             requestedCallID = 0;
-            counter = 0;
 
             if (input.HasExtension(hello_world::enclave_responder)) {
                 HotMsg *hotmsg = (HotMsg *) input.GetExtension(hello_world::enclave_responder).responder();
@@ -205,7 +202,6 @@ namespace asylo {
                 m_enclave_id = 1;
                 buffer = (HotMsg *) input.GetExtension(hello_world::is_coordinator).circ_buffer();
                 is_coordinator = true;
-                counter = COORDINATOR_KV_ID;
                 // ideally, coordinator is a special form of client
                 // it does not keep special information, it should maintain the same level of information as other clients
 
@@ -242,13 +238,6 @@ namespace asylo {
 
             sleep(2);
 
-            for( uint64_t i=0; i < 1; ++i ) {
-                //dc[i].id = i;
-                LOG(INFO) << "[ENCLAVE] ===CLIENT GET=== ";
-                capsule_pdu tmp_dc = memtable.get(i);
-                DUMP_CAPSULE((&tmp_dc)); //has to be in () because of the macro expansion
-            }
-
             //benchmark();
 
             return asylo::Status::OkStatus();
@@ -259,7 +248,6 @@ namespace asylo {
         MemTable memtable;
         HotMsg *buffer;
         int requestedCallID;
-        int counter;
         bool is_coordinator;
         int m_enclave_id;
         std::string m_prev_hash;
@@ -274,9 +262,8 @@ namespace asylo {
         }
 
         void put(std::string key, std::string value, bool to_memtable = true, bool to_network = true) {
-            // capsule_pdu *dc = (capsule_pdu *) malloc(sizeof(capsule_pdu));
             capsule_pdu *dc = new capsule_pdu();
-            asylo::KvToCapsule(dc, counter++, key, value, m_enclave_id);
+            asylo::KvToCapsule(dc, key, value, m_enclave_id);
             dc -> prevHash = m_prev_hash;
             m_prev_hash = dc->metaHash;
             //dc->timestamp = get_current_time();

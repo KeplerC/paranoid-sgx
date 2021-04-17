@@ -8,11 +8,10 @@
 class MemTable {
   public:
     bool put(capsule_pdu *dc);
-    capsule_pdu get(capsule_id id);
+    capsule_pdu get(std::string key);
     MemTable(){ mt_spinlock = 0; }
   private:
-    absl::flat_hash_map<capsule_id, capsule_pdu> memtable;
-    // TODO (hanming): one spinlock per entry for better performance
+    absl::flat_hash_map<std::string, capsule_pdu> memtable;
     sgx_spinlock_t mt_spinlock;
 };
 

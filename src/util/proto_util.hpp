@@ -7,7 +7,7 @@
 namespace asylo {
 
 
-void KvToCapsule(capsule_pdu *dc, const capsule_id id, const std::string key, const std::string value, const int enclave_id);
+void KvToCapsule(capsule_pdu *dc, const std::string key, const std::string value, const int enclave_id);
 
 void CapsuleToProto(const capsule_pdu *dc, hello_world::CapsulePDU *dcProto);
 

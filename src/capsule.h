@@ -5,9 +5,6 @@
 // Size of DC payload 
 #define DC_PAYLOAD_SZ 256
 
-// TODO want to make this 256 bit
-typedef __int128_t capsule_id;
-
 typedef struct {
     std::string key;
     std::string value;
@@ -15,7 +12,6 @@ typedef struct {
 
 typedef struct {
     
-    capsule_id id;
     kvs_payload payload;
     std::string signature;
     int sender;
@@ -30,6 +26,6 @@ typedef struct {
 } capsule_pdu;
 
 
-#define DUMP_CAPSULE(dc) LOG(INFO) << "Sender: "<< dc->sender << ", DataCapsule id: " << (long) dc->id << ", Key: " << dc->payload.key << ", Value: " << dc->payload.value << ", Timestamp: " << (int64_t) dc->timestamp << ", dataHash: " << dc->dataHash << ", metaHash: " << dc->metaHash  << ", prevHash: " << dc->prevHash; //<< ", syncHash: " << dc->syncHash;
+#define DUMP_CAPSULE(dc) LOG(INFO) << "Sender: "<< dc->sender << ", Key: " << dc->payload.key << ", Value: " << dc->payload.value << ", Timestamp: " << (int64_t) dc->timestamp << ", dataHash: " << dc->dataHash << ", metaHash: " << dc->metaHash  << ", prevHash: " << dc->prevHash; //<< ", syncHash: " << dc->syncHash;
 
 #endif 
