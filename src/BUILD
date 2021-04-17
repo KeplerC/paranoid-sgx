@@ -76,8 +76,24 @@ cc_library(
 )
 
 cc_binary(
-    name = "mplambda.so",
-    data = ["mplambda/resources/se3/Twistycool_env.dae"],
+    name = "mp_coordinator.so",
+    srcs = [
+        "mplambda/src/mpl_coordinator.cpp",
+        "mplambda/src/mpl/write_queue.cpp",
+    ],
+    copts = ["-std=c++17"],
+    deps = [
+        ":mpl_hdrs",
+        ":eigen3"
+    ]
+)
+
+cc_binary(
+    name = "mp_lambda.so",
+    data = [
+        "mplambda/resources/se3/Twistycool_env.dae",
+        "mplambda/resources/se3/Twistycool_robot.dae"
+    ],
     srcs = [
         "mplambda/src/mpl_lambda_pseudo.cpp",
         "mplambda/src/mpl/comm.cpp",
