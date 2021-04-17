@@ -20,7 +20,7 @@ load("@linux_sgx//:sgx_sdk.bzl", "sgx")
 load("@com_github_grpc_grpc//bazel:cc_grpc_library.bzl", "cc_grpc_library")
 load("@rules_cc//cc:defs.bzl", "cc_proto_library")
 load("@rules_proto//proto:defs.bzl", "proto_library")
-load("@com_google_asylo//asylo/bazel:asylo.bzl", "cc_unsigned_enclave", "debug_sign_enclave", "enclave_loader", "ASYLO_ALL_BACKEND_TAGS")
+load("@com_google_asylo//asylo/bazel:asylo.bzl", "cc_enclave_binary", "cc_unsigned_enclave", "debug_sign_enclave", "enclave_loader", "ASYLO_ALL_BACKEND_TAGS")
 load("@com_google_asylo//asylo/bazel:copts.bzl", "ASYLO_DEFAULT_COPTS")
 load("@rules_foreign_cc//foreign_cc:defs.bzl", "cmake")
 
@@ -59,8 +59,8 @@ cmake(
 
 cc_library(
     name = "mpl_hdrs",
-    hdrs = glob(["mpl/include/**"]),
-    includes = ["mpl/include"],
+    hdrs = glob(["mplambda/include/**"]),
+    includes = ["mplambda/include"],
 )
 
 cc_library(
@@ -75,9 +75,28 @@ cc_library(
     includes = ["nigh/src/"],
 )
 
-enclave_loader(
+cc_binary(
     name = "mplambda.so",
-    srcs = glob(["mpl/*.cpp"]),
+    data = ["mplambda/resources/se3/Twistycool_env.dae"],
+    srcs = [
+        "mplambda/src/mpl_lambda_pseudo.cpp",
+        "mplambda/src/mpl/comm.cpp",
+        "mplambda/src/mpl/write_queue.cpp",
+        "mplambda/src/mpl/demo/lambda_common.cpp",
+        "mplambda/src/mpl/demo/app_options.cpp",
+        ],
+    args = [
+        "--coordinator=localhost",
+        "--algorithm=rrt", 
+        "--scenario se3",
+        "--start=0,0,0,1,270,160,-200",
+        "--goal=0,0,0,1,270,160,-400",
+        "--min=53.46,-21.25,-476.86",
+        "--max=402.96,269.25,-91.0",
+        "--robot Twistycool_robot.dae",
+        "--time-limit 60",
+        "--env Twistycool_env.dae",
+    ],
     deps = [
         ":mpl_hdrs",
         ":fcl",
