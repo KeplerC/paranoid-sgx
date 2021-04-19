@@ -135,7 +135,7 @@ namespace asylo {
                     primitives::TrustedPrimitives::UntrustedLocalFree((capsule_pdu *) arg->data); 
                     switch(arg->ecall_id){
                         case ECALL_PUT:
-                            LOG(INFO) << "[CICBUF-ECALL] transmitted a data capsule pdu";
+                            LOGI << "[CICBUF-ECALL] transmitted a data capsule pdu";
                             DUMP_CAPSULE(dc);
                             // once received RTS, send the latest EOE
                             if (dc->payload.key == COORDINATOR_RTS_KEY && !is_coordinator) {
@@ -148,14 +148,14 @@ namespace asylo {
                                 p.second = dc->timestamp;
                                 m_eoe_hashes[dc->sender] = p;
                                 if(m_eoe_hashes.size() == TOTAL_THREADS - 2) { //minus 2 for server thread and coordinator thread
-                                    LOG(INFO) << "coordinator received all EOEs, sending report" << serialize_eoe_hashes();
+                                    LOGI << "coordinator received all EOEs, sending report" << serialize_eoe_hashes();
                                     put(COORDINATOR_SYNC_KEY, serialize_eoe_hashes(), false);
                                     m_eoe_hashes.clear();
                                 }
                             }
                             else if (dc->payload.key == COORDINATOR_SYNC_KEY){
                                 compare_eoe_hashes_from_string(dc->payload.value);
-                                LOG(INFO) << "Received the sync report " << serialize_eoe_hashes();
+                                LOGI << "Received the sync report " << serialize_eoe_hashes();
                             }
                             else {
                                 update_client_hash(dc);
@@ -191,7 +191,7 @@ namespace asylo {
                 return asylo::Status::OkStatus();
             }
             else if (input.HasExtension(hello_world::is_coordinator)) {
-                LOG(INFO) << "[Coordinator] Up and Running";
+                LOGI << "[Coordinator] Up and Running";
                 m_enclave_id = 1;
                 buffer = (HotMsg *) input.GetExtension(hello_world::is_coordinator).circ_buffer();
                 is_coordinator = true;
@@ -207,7 +207,7 @@ namespace asylo {
                 }
                 return asylo::Status::OkStatus();
             } else if (input.HasExtension(hello_world::is_sync_thread)){
-                LOG(INFO) << "is sync running";
+                LOGI << "sync running";
                 return asylo::Status::OkStatus();
             }
             else{
@@ -223,8 +223,8 @@ namespace asylo {
 
 
             for( uint64_t i=0; i < 1; ++i ) {
-                LOG(INFO) << "[ENCLAVE] ===CLIENT PUT=== ";
-                LOG(INFO) << "[ENCLAVE] Generating a new capsule PDU ";
+                LOGI << "[ENCLAVE] ===CLIENT PUT=== ";
+                LOGI << "[ENCLAVE] Generating a new capsule PDU ";
                 put("default_key", "default_value");
             }
 
@@ -234,7 +234,7 @@ namespace asylo {
             //benchmark();
             for( uint64_t i=0; i < 1; ++i ) {
                 //dc[i].id = i;
-                LOG(INFO) << "[ENCLAVE] ===CLIENT GET=== ";
+                LOGI << "[ENCLAVE] ===CLIENT GET=== ";
                 capsule_pdu tmp_dc = memtable.get("default_key");
                 DUMP_CAPSULE((&tmp_dc));
             }
@@ -300,9 +300,9 @@ namespace asylo {
                 auto m_current_hash_ts_pair = m_eoe_hashes[key];
                 if(sync_pt_pair.first != m_current_hash_ts_pair.first){
                     if(sync_pt_pair.second > m_current_hash_ts_pair.second){
-                        LOG(INFO) << "INCONSISTENCY DETECTED!";
-                        LOG(INFO) << "SYNC " << sync_pt_pair.first << " " << sync_pt_pair.second;
-                        LOG(INFO) << "CURRENT " << m_current_hash_ts_pair.first << " " << m_current_hash_ts_pair.second;
+                        LOGI << "INCONSISTENCY DETECTED!";
+                        LOGI << "SYNC " << sync_pt_pair.first << " " << sync_pt_pair.second;
+                        LOGI << "CURRENT " << m_current_hash_ts_pair.first << " " << m_current_hash_ts_pair.second;
                         inconsistency_handler();
                     }
                 }

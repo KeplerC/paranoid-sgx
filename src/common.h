@@ -34,6 +34,10 @@
 
 #define TOTAL_THREADS 3
 
+
+//#define LOGI // //LOG(INFO)
+#define LOGI LOG_IF(INFO, false)
+
 enum OCALL_ID {
     OCALL_PUT,
 };

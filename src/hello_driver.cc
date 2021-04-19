@@ -131,7 +131,7 @@ public:
                 case OCALL_PUT: {
                     // TODO: we do everything inside of the lock, this is slow
                     // we can copy the string and process it after we release the lock
-                    LOG(INFO) << "[CICBUF-OCALL] transmitted a data capsule pdu";
+                    LOGI << "[CICBUF-OCALL] transmitted a data capsule pdu";
                     asylo::dumpProtoCapsule(&in_dc);
 
                     std::string out_s;
@@ -175,7 +175,7 @@ public:
             LOG(QFATAL) << "EnclaveManager unavailable: " << manager_result.status();
         }
         this->manager = manager_result.ValueOrDie();
-        LOG(INFO)  << "Loading " << absl::GetFlag(FLAGS_enclave_path);
+        LOGI  << "Loading " << absl::GetFlag(FLAGS_enclave_path);
 
         // Create an EnclaveLoadConfig object.
         asylo::EnclaveLoadConfig load_config;
@@ -232,9 +232,9 @@ public:
         asylo::CapsuleFromProto(dc, &in_dc);
 
         if (this->m_name == "1") {
-            LOG(INFO) << "Coordinator " << this->m_name << " puts capsule into CIRBUF-ECALL";
+            LOGI << "Coordinator " << this->m_name << " puts capsule into CIRBUF-ECALL";
         } else {
-            LOG(INFO) << "Client (>=2) " << this->m_name << " puts capsule into CIRBUF-ECALL";
+            LOGI << "Client (>=2) " << this->m_name << " puts capsule into CIRBUF-ECALL";
         }
         put_ecall(dc);
         //Sleep so that threads have time to process ALL requests
@@ -339,7 +339,7 @@ public:
             if (pollitems[0].revents & ZMQ_POLLIN){
                 //Get the address
                 std::string msg = this->recv_string(&socket_join);
-                LOG(INFO)  << "[SERVER] JOIN FROM " + msg ;
+                LOGI  << "[SERVER] JOIN FROM " + msg ;
                 this->group_addresses.push_back(msg);
 
                 //create a socket to the client and save
@@ -352,7 +352,7 @@ public:
             //receive new message to mcast
             if (pollitems[1].revents & ZMQ_POLLIN){
                 std::string msg = this->recv_string(&socket_msg);
-                LOG(INFO) << "[SERVER] Mcast Message: " + msg ;
+                LOGI << "[SERVER] Mcast Message: " + msg ;
                 //mcast to all the clients
                 for (zmq::socket_t* socket : this -> group_sockets) {
                     this->send_string(msg, socket);
@@ -390,7 +390,7 @@ public:
             if (pollitems[0].revents & ZMQ_POLLIN) {
                 //Get the address
                 std::string msg = this->recv_string(&socket_from_server);
-                LOG(INFO) << "[Client " << m_addr << "]:  " + msg ;
+                LOGI << "[Client " << m_addr << "]:  " + msg ;
                 // this -> send_string(m_port , socket_send);
                 this->m_sgx->send_to_sgx(msg);
             }
