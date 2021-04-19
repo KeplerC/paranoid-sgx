@@ -35,7 +35,7 @@
 #define TOTAL_THREADS 3
 
 
-#define BENCHMARK_MODE false
+#define BENCHMARK_MODE true
 #define LOGI LOG_IF(INFO, !BENCHMARK_MODE)
 #define LOGD LOG_IF(INFO, BENCHMARK_MODE)<< get_current_time() << " "
 
