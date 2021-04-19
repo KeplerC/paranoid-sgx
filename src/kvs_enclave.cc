@@ -239,7 +239,12 @@ namespace asylo {
             sleep(2);
 
             //benchmark();
-
+            for( uint64_t i=0; i < 1; ++i ) {
+                //dc[i].id = i;
+                LOG(INFO) << "[ENCLAVE] ===CLIENT GET=== ";
+                capsule_pdu tmp_dc = memtable.get("default_key");
+                DUMP_CAPSULE((&tmp_dc));
+            }
             return asylo::Status::OkStatus();
         }
 
