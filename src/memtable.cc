@@ -1,60 +1,40 @@
-#include "capsule.h"
-#include <cstdint>
 #include "memtable.hpp"
+#include "asylo/util/logging.h"
 
-
-// TODO: Replace hash function
-__uint32_t MemTable:: hash(capsule_id id){
-    return id % (MAX_MEM_SZ/BUCKET_NUM);
+// need to make sure key exists. O/w exception is thrown by at
+capsule_pdu MemTable::get(std::string key){
+    sgx_spin_lock(&mt_spinlock);
+    capsule_pdu got = memtable.at(key);
+    sgx_spin_unlock(&mt_spinlock);
+    return got;
 }
 
+bool MemTable::put(capsule_pdu *dc) {
+    sgx_spin_lock(&mt_spinlock);
+    auto prev_dc_iter = memtable.find(dc->payload.key);
 
-capsule_pdu *MemTable:: get(capsule_id id){
-
-  uint32_t mem_idx = hash(id);
-
-  sgx_spin_lock( &memtable[mem_idx].spinlock );
-
-  if(!memtable[mem_idx].buckets.length()){
-    printf("Index: %d is invalid!\n", mem_idx);
-    return NULL;
-  } 
-
-  capsule_pdu *ret = memtable[mem_idx].buckets.search(id);
-  sgx_spin_unlock( &memtable[mem_idx].spinlock );
-
-  if(!ret){
-    //TODO: We must do an OCALL to fetch from the DataCapsule server 
-  }
-  return ret; 
-}
-
-
-/*
- Datacapsule is copied into memtable  
- We assume dc is provided by client enclave application 
-*/
-bool MemTable:: put(capsule_pdu *dc){
-  
-  uint32_t mem_idx = hash(dc->id);
-
-  sgx_spin_lock(&memtable[mem_idx].spinlock );
-
-  if(memtable[mem_idx].buckets.length() >= BUCKET_NUM){
-    memtable[mem_idx].buckets.delete_back();
-    memtable[mem_idx].buckets.insert_front(dc);
-  } else {
-    memtable[mem_idx].buckets.insert_front(dc); 
-    curr_capacity++; 
-  }
-  sgx_spin_unlock( &memtable[mem_idx].spinlock );
-
-  //TODO: We must also do an OCALL to write 
-
-  return true; 
-
-}
-
-size_t MemTable::getSize() {
-  return curr_capacity; 
+    if(prev_dc_iter != memtable.end()){
+        // dc with same key exists
+        int64_t prev_timestamp = prev_dc_iter->second.timestamp;
+        //the timestamp of this capsule is earlier, skip the change
+        // TODO (Hanming): add client id into comparison for same timestamp dc's
+        if (dc->timestamp <= prev_timestamp){
+            LOG(INFO) << "[EARLIER DISCARDED] Timestamp of incoming capsule key: " << dc->payload.key 
+                      << ", timestamp: " << dc->timestamp << " ealier than "  << prev_timestamp;
+            sgx_spin_unlock(&mt_spinlock);
+            return false;
+        }
+        else{
+            memtable[dc->payload.key] = *dc;
+            LOG(INFO) << "[SAME CAPSULE UPDATED] Timestamp of incoming capsule key: " << dc->payload.key 
+                      << ", timestamp: " << dc->timestamp << " replaces "  << prev_timestamp;
+            sgx_spin_unlock(&mt_spinlock);
+            return true;
+        }
+    } else {
+        // new key
+        memtable[dc->payload.key] = *dc;
+    }
+    sgx_spin_unlock(&mt_spinlock);
+    return true;
 }

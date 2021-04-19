@@ -25,6 +25,15 @@
 #ifndef __COMMON_H
 #define __COMMON_H
 
+// Key for coordinator Request To Send(RTS)
+#define COORDINATOR_RTS_KEY "PARANOID_RTS"
+// Key for latest sync packet
+#define COORDINATOR_SYNC_KEY "PARANOID_SYNC"
+// Key for latest EOE
+#define COORDINATOR_EOE_KEY "PARANOID_EOE"
+
+#define TOTAL_THREADS 3
+
 enum OCALL_ID {
     OCALL_PUT,
 };
