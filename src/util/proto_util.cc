@@ -87,7 +87,7 @@ namespace asylo {
     }
 
     void dumpProtoCapsule(const hello_world::CapsulePDU *dcProto){
-        LOG(INFO) << "Sender: "<< dcProto->sender() << ", Key: " << dcProto->payload().key() << ", Value: "
+        LOGI << "Sender: "<< dcProto->sender() << ", Key: " << dcProto->payload().key() << ", Value: "
                   << dcProto->payload().value() << ", Timestamp: " << (int64_t) dcProto->timestamp() << ", dataHash: " << dcProto->datahash() <<  ", metaHash: " << dcProto->metahash();//", syncHash: " << dcProto->synchash();
     }
 

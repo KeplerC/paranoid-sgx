@@ -26,7 +26,7 @@ bool MemTable::put(capsule_pdu *dc) {
         }
         else{
             memtable[dc->payload.key] = *dc;
-            LOG(INFO) << "[SAME CAPSULE UPDATED] Timestamp of incoming capsule key: " << dc->payload.key 
+            LOGI << "[SAME CAPSULE UPDATED] Timestamp of incoming capsule key: " << dc->payload.key
                       << ", timestamp: " << dc->timestamp << " replaces "  << prev_timestamp;
             sgx_spin_unlock(&mt_spinlock);
             return true;
