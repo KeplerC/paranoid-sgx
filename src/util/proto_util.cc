@@ -19,6 +19,7 @@ namespace asylo {
 
     std::string get_meta_data_hash(capsule_pdu *dc){
         std::string aggregated = std::to_string(dc->timestamp) + std::to_string(dc->sender);
+        std::reverse(aggregated.begin(),aggregated.end());
         return SignMessage(aggregated);
     }
 

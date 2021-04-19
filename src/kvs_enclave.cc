@@ -143,7 +143,6 @@ namespace asylo {
                                 break;
                             }
                             else if (dc->payload.key == COORDINATOR_EOE_KEY && is_coordinator){
-                                // TODO (Hanming): update clients' current headerHash
                                 std::pair<std::string, int64_t> p;
                                 p.first = dc->payload.value;
                                 p.second = dc->timestamp;
@@ -155,19 +154,13 @@ namespace asylo {
                                 }
                             }
                             else if (dc->payload.key == COORDINATOR_SYNC_KEY){
-                                deserialize_eoe_hashes_from_string(dc->payload.value);
+                                compare_eoe_hashes_from_string(dc->payload.value);
                                 LOG(INFO) << "Received the sync report " << serialize_eoe_hashes();
-                                //TODO: cross validate the hashes
                             }
                             else {
-                                //if(dc->syncHash == m_latest_sync_hash)
-                                    memtable.put(dc);
-                                    // TODO (Hanming): update other clients' current headerHash
-                                //else
-                                //    LOG(INFO) << "[DIFFERENT HASH DISCARDED]"<< "dc: "<< dc -> syncHash
-                                //        << " m_latest: "<< m_latest_sync_hash;
+                                update_client_hash(dc);
+                                memtable.put(dc);
                             }
-
                             break;
                         default:
                             printf("Invalid ECALL id: %d\n", arg->ecall_id);
@@ -260,6 +253,7 @@ namespace asylo {
 
 
         void put_internal(capsule_pdu *dc, bool to_memtable = true, bool to_network = true) {
+            update_client_hash(dc);
             if(to_memtable)
                 memtable.put(dc);
             if(to_network)
@@ -285,7 +279,9 @@ namespace asylo {
             return ret;
         }
 
-        void deserialize_eoe_hashes_from_string(std::string s){
+        void compare_eoe_hashes_from_string(std::string s){
+            // deserialize the string into hash
+            std::unordered_map<int, std::pair<std::string, int64_t>> tmp;
             std::stringstream ss(s);
             while(true)
             {
@@ -297,10 +293,33 @@ namespace asylo {
                 std::pair<std::string, int64_t> p;
                 p.first = value;
                 p.second = std::stoll(ts);
-                m_eoe_hashes[std::stoi(key)] = p;
+                tmp[std::stoi(key)] = p;
             }
+
+            for( const auto& [key, sync_pt_pair] : tmp ) {
+                auto m_current_hash_ts_pair = m_eoe_hashes[key];
+                if(sync_pt_pair.first != m_current_hash_ts_pair.first){
+                    if(sync_pt_pair.second > m_current_hash_ts_pair.second){
+                        LOG(INFO) << "INCONSISTENCY DETECTED!";
+                        LOG(INFO) << "SYNC " << sync_pt_pair.first << " " << sync_pt_pair.second;
+                        LOG(INFO) << "CURRENT " << m_current_hash_ts_pair.first << " " << m_current_hash_ts_pair.second;
+                        inconsistency_handler();
+                    }
+                }
+            }
+
         }
 
+        void update_client_hash(capsule_pdu* dc){
+            std::pair<std::string, int64_t> p;
+            p.first = dc-> prevHash;
+            p.second = dc->timestamp;
+            m_eoe_hashes[dc->sender] = p;
+        }
+
+        void inconsistency_handler(){
+            return;
+        }
 
 
         M_BENCHMARK_HERE
