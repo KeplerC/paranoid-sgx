@@ -14,7 +14,7 @@ def proc_get(line):
     global M_FINAL_SCRIPT
     M_FINAL_SCRIPT += ("\tget(\"{}\");\\\n".format(line[1]))
 
-M_FINAL_SCRIPT += "\t LOGD << \"Load started\\n\"; \\\n"
+M_FINAL_SCRIPT += "\t LOGD << \"Load started\"; \\\n"
 
 counter = 0
 with open("./tracea_load_a.txt") as f:
@@ -26,7 +26,7 @@ with open("./tracea_load_a.txt") as f:
         proc_put(line)
         counter += 1
 
-M_FINAL_SCRIPT += "\t LOGD << \"Loaded {} entries\\n\"; \\\n".format(counter)
+M_FINAL_SCRIPT += "\t LOGD << \"Loaded {} entries\"; \\\n".format(counter)
 
 counter_put = 0
 counter_get = 0
@@ -43,7 +43,7 @@ with open("./tracea_run_a.txt") as f:
             proc_put(line)
             counter_get += 1
 
-M_FINAL_SCRIPT += "\t LOGD << \"put {} and get {} end\\n\"; \\\n".format(counter_put, counter_get)
+M_FINAL_SCRIPT += "\t LOGD << \"put {} and get {} end\"; \\\n".format(counter_put, counter_get)
 
 M_FINAL_SCRIPT+= '''}
 

@@ -231,13 +231,15 @@ namespace asylo {
 
             sleep(2);
 
-            //benchmark();
+
             for( uint64_t i=0; i < 1; ++i ) {
                 //dc[i].id = i;
                 LOGI << "[ENCLAVE] ===CLIENT GET=== ";
                 capsule_pdu tmp_dc = memtable.get("default_key");
                 DUMP_CAPSULE((&tmp_dc));
             }
+
+            benchmark();
             return asylo::Status::OkStatus();
         }
 
@@ -269,6 +271,10 @@ namespace asylo {
             DUMP_CAPSULE(dc);
             put_internal(dc, to_memtable, to_network);
             delete dc;
+        }
+
+        void get(std::string key){
+            memtable.get(key);
         }
 
         std::string serialize_eoe_hashes(){
