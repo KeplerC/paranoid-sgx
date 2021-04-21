@@ -101,10 +101,12 @@ public:
         sgx_spin_unlock(&hotMsg->spinlock);
 
         zmq::context_t context (1);
+        // to router
         zmq::socket_t* socket_ptr  = new  zmq::socket_t( context, ZMQ_PUSH);
-        socket_ptr -> connect ("tcp://localhost:6667");
+        socket_ptr -> connect ("tcp://" + NET_SEED_SERVER_IP + ":6667");
+        // to sync server
         zmq::socket_t* socket_ptr_to_sync  = new  zmq::socket_t( context, ZMQ_PUSH);
-        socket_ptr_to_sync -> connect ("tcp://localhost:" + std::to_string(NET_SYNC_SERVER_PORT));
+        socket_ptr_to_sync -> connect ("tcp://" + NET_SYNC_SERVER_IP +":" + std::to_string(NET_SYNC_SERVER_PORT));
 
         while( true )
         {
