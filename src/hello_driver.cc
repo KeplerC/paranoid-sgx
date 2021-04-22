@@ -41,7 +41,7 @@
 
 
 #define PERFORMANCE_MEASUREMENT_NUM_REPEATS 10
-#define CLIENT_ONLY true
+#define RUN_BOTH_CLIENT_AND_SERVER true
 #define NET_CLIENT_BASE_PORT 5555
 #define NET_SYNC_SERVER_PORT 5556
 #define NET_SERVER_JOIN_PORT 6666
@@ -455,7 +455,7 @@ int main(int argc, char *argv[]) {
 //      LOG(QFATAL) << "Must supply a non-empty string for the DataCapsule payload --payload";
 //    }
 
-    if(CLIENT_ONLY) {
+    if(RUN_BOTH_CLIENT_AND_SERVER) {
         // thread assignments:
         // thread 0: multicast server
         // thread 1: coordinator
