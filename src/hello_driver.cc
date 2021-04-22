@@ -41,11 +41,8 @@
 
 
 #define PERFORMANCE_MEASUREMENT_NUM_REPEATS 10
-#define MULTI_CLIENT true
+#define CLIENT_ONLY true
 #define NET_CLIENT_BASE_PORT 5555
-#define NET_CLIENT_IP "localhost"
-#define NET_SEED_SERVER_IP "localhost"
-#define NET_SYNC_SERVER_IP "localhost"
 #define NET_SYNC_SERVER_PORT 5556
 #define NET_SERVER_JOIN_PORT 6666
 #define NET_SERVER_MCAST_PORT 6667
@@ -458,11 +455,7 @@ int main(int argc, char *argv[]) {
 //      LOG(QFATAL) << "Must supply a non-empty string for the DataCapsule payload --payload";
 //    }
 
-    // If you just want to test a single enclave, change to false
-
-    bool multi_client = MULTI_CLIENT;
-
-    if(multi_client) {
+    if(CLIENT_ONLY) {
         // thread assignments:
         // thread 0: multicast server
         // thread 1: coordinator
@@ -476,10 +469,10 @@ int main(int argc, char *argv[]) {
             if(thread_id == 1){
                 worker_threads.push_back(std::thread(thread_run_zmq_client, thread_id, sgx));
                 worker_threads.push_back(std::thread(thread_start_coordinator, sgx));
+                worker_threads.push_back(std::thread(thread_start_sync_thread, sgx));
             } else{
                 worker_threads.push_back(std::thread(thread_run_zmq_client, thread_id, sgx));
                 worker_threads.push_back(std::thread(thread_start_fake_client, sgx));
-                worker_threads.push_back(std::thread(thread_start_sync_thread, sgx));
             }
 
         }
@@ -489,10 +482,17 @@ int main(int argc, char *argv[]) {
         worker_threads.push_back(std::thread(thread_run_zmq_server, 0));
         sleep(1 * 1000 * 1000);
     } else {
-        std::vector<std::string> names =
-                absl::StrSplit(absl::GetFlag(FLAGS_payload), ',');
-        Asylo_SGX* sgx = new Asylo_SGX("hello_enclave");
-        sgx->run(names);
+        std::vector <std::thread> worker_threads;
+        //start clients
+        int num_threads = TOTAL_THREADS + 1;
+        for (unsigned thread_id = 1; thread_id < num_threads; thread_id++) {
+            Asylo_SGX* sgx = new Asylo_SGX( std::to_string(thread_id));
+            sgx->init();
+            sleep(1);
+            worker_threads.push_back(std::thread(thread_run_zmq_client, thread_id, sgx));
+            worker_threads.push_back(std::thread(thread_start_fake_client, sgx));
+        }
+        sleep(1 * 1000 * 1000);
     }
     return 0;
 }

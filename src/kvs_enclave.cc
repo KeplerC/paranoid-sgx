@@ -327,8 +327,7 @@ namespace asylo {
             return;
         }
 
-
-        M_BENCHMARK_HERE
+        M_BENCHMARK_CODE
     };
 
     TrustedApplication *BuildTrustedApplication() { return new HelloApplication; }
