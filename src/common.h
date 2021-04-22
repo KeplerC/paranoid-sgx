@@ -25,6 +25,13 @@
 #ifndef __COMMON_H
 #define __COMMON_H
 
+// ip of this machine
+#define NET_CLIENT_IP "localhost"
+// ip of seed server(router)
+#define NET_SEED_SERVER_IP "localhost"
+// ip of sync coordinator
+#define NET_SYNC_SERVER_IP "localhost"
+
 // Key for coordinator Request To Send(RTS)
 #define COORDINATOR_RTS_KEY "PARANOID_RTS"
 // Key for latest sync packet
@@ -38,6 +45,11 @@
 #define BENCHMARK_MODE false
 #define LOGI LOG_IF(INFO, !BENCHMARK_MODE)
 #define LOGD LOG_IF(INFO, BENCHMARK_MODE)<< get_current_time() << " "
+#if BENCHMARK_MODE
+    #define M_BENCHMARK_CODE M_BENCHMARK_HERE
+#else
+    #define M_BENCHMARK_CODE void benchmark(){}
+#endif
 
 enum OCALL_ID {
     OCALL_PUT,
