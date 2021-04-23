@@ -22,8 +22,6 @@ load("@rules_cc//cc:defs.bzl", "cc_proto_library")
 load("@rules_proto//proto:defs.bzl", "proto_library")
 load("@com_google_asylo//asylo/bazel:asylo.bzl", "cc_enclave_binary", "cc_unsigned_enclave", "debug_sign_enclave", "enclave_loader", "ASYLO_ALL_BACKEND_TAGS")
 load("@com_google_asylo//asylo/bazel:copts.bzl", "ASYLO_DEFAULT_COPTS")
-load("@rules_foreign_cc//foreign_cc:defs.bzl", "cmake")
-
 
 licenses(["notice"])
 
@@ -31,48 +29,10 @@ package(
     default_visibility = ["//visibility:public"],
 )
 
-
-cmake(
-    name = "assimp",
-    generate_args = ["-G \"Unix Makefiles\""],
-    lib_source = "@assimp//:all_srcs",
-    out_shared_libs = ["libassimp.so", "libassimp.so.5", "libassimp.so.5.0.0"],
-    out_static_libs = ["libIrrXML.a", ],
-)
-
-cmake(
-    name = "fcl",
-    install = True, 
-    generate_args = ["-DCMAKE_BUILD_TYPE=Release", "-DEIGEN3_INCLUDE_DIR=/opt/my-project/src/eigen3/"],
-    lib_source = "@fcl//:all_srcs",
-    out_shared_libs =["libfcl.so",  "libfcl.so.0.6",  "libfcl.so.0.6.1"],
-    deps = [":ccd", ":eigen3"],
-)
-
-cmake(
-    name = "ccd",
-    install = True, 
-    generate_args = ["-G \"Unix Makefiles\"", "-DCMAKE_BUILD_TYPE=Release",],
-    lib_source = "@ccd//:all_srcs",
-    out_shared_libs = ["libccd.so.2.0", "libccd.so.2", "libccd.so"],
-)
-
 cc_library(
     name = "mpl_hdrs",
     hdrs = glob(["mplambda/include/**"]),
     includes = ["mplambda/include"],
-)
-
-cc_library(
-    name = "eigen3",
-    hdrs = glob(["eigen3/Eigen/**"]),
-    includes = ["eigen3/"],
-)
-
-cc_library(
-    name = "nigh",
-    hdrs = glob(["nigh/**"]),
-    includes = ["nigh/src/"],
 )
 
 cc_binary(
@@ -84,16 +44,22 @@ cc_binary(
     copts = ["-std=c++17"],
     deps = [
         ":mpl_hdrs",
-        ":eigen3"
+        "@eigen//:eigen3",
     ]
 )
 
-cc_binary(
+debug_sign_enclave(
+    name = "mp_lambda_enclave.so",
+    config = ":grpc_client_config",
+    unsigned = "mp_lambda.so",
+)
+
+cc_unsigned_enclave(
     name = "mp_lambda.so",
-    data = [
-        "mplambda/resources/se3/Twistycool_env.dae",
-        "mplambda/resources/se3/Twistycool_robot.dae"
-    ],
+    # data = [
+    #     "mplambda/resources/se3/Twistycool_env.dae",
+    #     "mplambda/resources/se3/Twistycool_robot.dae"
+    # ],
     srcs = [
         "mplambda/src/mpl_lambda_pseudo.cpp",
         "mplambda/src/mpl/comm.cpp",
@@ -101,7 +67,26 @@ cc_binary(
         "mplambda/src/mpl/demo/lambda_common.cpp",
         "mplambda/src/mpl/demo/app_options.cpp",
         ],
-    args = [
+    deps = [
+        ":hello_cc_proto",
+        "@com_google_asylo//asylo:enclave_runtime",
+        ":mpl_hdrs",
+        "@eigen//:eigen3",
+        "@nigh//:nigh",
+        "@libccd//:libccd",
+        "@fcl//:fcl",
+        "@assimp//:assimp",
+    ],
+    copts = ASYLO_DEFAULT_COPTS,
+)
+
+enclave_loader(
+    name = "lambda_driver",
+    srcs = ["lambda_driver.cc"],
+    copts = ASYLO_DEFAULT_COPTS,
+    enclaves = {"enclave": ":mp_lambda_enclave.so"},
+    loader_args = [
+        "--enclave_path='{enclave}'",
         "--coordinator=localhost",
         "--algorithm=rrt", 
         "--scenario se3",
@@ -110,19 +95,21 @@ cc_binary(
         "--min=53.46,-21.25,-476.86",
         "--max=402.96,269.25,-91.0",
         "--robot Twistycool_robot.dae",
-        "--time-limit 60",
+        "--time_limit 60",
         "--env Twistycool_env.dae",
-    ],
+        ],
     deps = [
-        ":mpl_hdrs",
-        ":fcl",
-        ":assimp",
-        ":ccd",
-        ":eigen3",
-        ":nigh",
+        ":hello_cc_proto",
+        "@com_google_asylo//asylo:enclave_client",
+        "@com_google_asylo//asylo/identity/platform/sgx:sgx_identity_cc_proto",
+        "@com_google_asylo//asylo/util:logging",
+        "@com_google_asylo//asylo/util:proto_flag",
+        "@com_google_asylo//asylo/util:status",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:parse",
+        "@com_google_absl//absl/time",
+        "@com_google_protobuf//:protobuf",
     ],
-    copts = ASYLO_DEFAULT_COPTS + ["-fopenmp", "-std=c++17"],
-    linkopts = ["-lgomp"],
 )
 
 # Example for using the Asylo framework.
@@ -321,7 +308,7 @@ cc_unsigned_enclave(
 
 sgx.enclave_configuration(
     name = "grpc_client_config",
-    isvsvn = "1",
+    isvsvn = "3",
     prodid = "2",
 )
 

@@ -28,59 +28,65 @@ http_archive(
 load("@rules_foreign_cc//foreign_cc:repositories.bzl", "rules_foreign_cc_dependencies")
 
 
-rules_foreign_cc_dependencies()
-
-_ALL_CONTENT = """\
-filegroup(
-    name = "all_srcs",
-    srcs = glob(["**"]),
-    visibility = ["//visibility:public"]
-)
-"""
-
-
 # assimp source code repository
-http_archive(
-    name = "assimp",
-    build_file_content = _ALL_CONTENT,
-    strip_prefix = "assimp-5.0.1",
-    sha256 = "11310ec1f2ad2cd46b95ba88faca8f7aaa1efe9aa12605c55e3de2b977b3dbfc",
-    urls = [
-        "https://github.com/assimp/assimp/archive/refs/tags/v5.0.1.tar.gz",
-    ],
+new_local_repository(
+  name = "assimp",
+  path = "assimp",
+  build_file = "//src:BUILD.assimp",
 )
+
+new_local_repository(
+  name = "fcl",
+  path = "fcl",
+  build_file = "//src:BUILD.fcl",
+)
+
+
+# http_archive(
+#     name = "assimp",
+#     build_file = "//src:BUILD.assimp",
+#     # sha256 = "60080d8ab4daaab309f65b3cffd99f19eb1af8d05623fff469b9b652818e286e",
+#     strip_prefix = "assimp-4.0.1",
+#     urls = ["https://github.com/assimp/assimp/archive/v4.0.1.tar.gz"],
+# )
 
 #fcl 
-http_archive(
-    name = "fcl",
-    build_file_content = _ALL_CONTENT,
-    strip_prefix = "fcl-0.6.1",
-    sha256 = "c8a68de8d35a4a5cd563411e7577c0dc2c626aba1eef288cb1ca88561f8d8019",
-    urls = [
-        "https://github.com/flexible-collision-library/fcl/archive/refs/tags/v0.6.1.tar.gz",
-    ],
-)
+# http_archive(
+#     name = "fcl",
+#     strip_prefix = "fcl-0.6.1",
+#     sha256 = "c8a68de8d35a4a5cd563411e7577c0dc2c626aba1eef288cb1ca88561f8d8019",
+#     urls = [
+#         "https://github.com/flexible-collision-library/fcl/archive/refs/tags/v0.6.1.tar.gz",
+#     ],
+#     build_file = "//src:BUILD.fcl",
+# )
 
 #eigen3 
 http_archive(
     name = "eigen",
-    build_file_content = _ALL_CONTENT,
     strip_prefix = "eigen-git-mirror-3.3.7",
     urls = [
         "https://github.com/eigenteam/eigen-git-mirror/archive/refs/tags/3.3.7.tar.gz",
     ],
     sha256 = "a8d87c8df67b0404e97bcef37faf3b140ba467bc060e2b883192165b319cea8d",
+    build_file = "//src:BUILD.eigen",
 )
 
 http_archive(
-    name = "ccd",
-    build_file_content = _ALL_CONTENT,
+    name = "libccd",
+    build_file = "//src:BUILD.libccd",
     strip_prefix = "libccd-2.1",
     urls = [
         "https://github.com/danfis/libccd/archive/refs/tags/v2.1.tar.gz",
     ],
 )
 
+new_git_repository(
+    name = "nigh",
+    remote = "https://github.com/UNC-Robotics/nigh.git",
+    commit = "157eee0c5748fa6a192c84f46a6d202e10b1710d",
+    build_file = "//src:BUILD.nigh",
+)
 
 git_repository(
     name = "com_google_asylo",
@@ -117,8 +123,6 @@ grpc_deps()
 load("@com_github_grpc_grpc//bazel:grpc_extra_deps.bzl", "grpc_extra_deps")
 
 grpc_extra_deps()
-
-
 
 local_repository(
   name = "zmq",
