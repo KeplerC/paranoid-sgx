@@ -297,6 +297,7 @@ public:
         asylo::EnclaveOutput output;
         //Register OCALL buffer to enclave 
         input.MutableExtension(hello_world::buffer)->set_buffer((long int) circ_buffer_host);
+        input.MutableExtension(hello_world::buffer)->set_enclave_id(m_name);
 
         asylo::Status status = this->client->EnterAndRun(input, &output);
         if (!status.ok()) {
@@ -331,12 +332,12 @@ public:
 //            LOG(QFATAL) << "EnterAndRun failed: " << status;
 //        }
 
-        std::string input_js = absl::GetFlag(FLAGS_input_file);
-        std::ifstream t(input_js);
-        std::stringstream buffer;
-        buffer << t.rdbuf();
-
-        std::string code = buffer.str(); 
+//        std::string input_js = absl::GetFlag(FLAGS_input_file);
+//        std::ifstream t(input_js);
+//        std::stringstream buffer;
+//        buffer << t.rdbuf();
+//
+//        std::string code = buffer.str();
         //Execute JS file 
         //run_code(&code);
 
