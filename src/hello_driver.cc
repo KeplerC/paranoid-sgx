@@ -47,10 +47,6 @@
 
 
 ABSL_FLAG(std::string, enclave_path, "", "Path to enclave to load");
-ABSL_FLAG(std::string, names, "",
-          "A comma-separated list of names to pass to the enclave");
-ABSL_FLAG(std::string, payload, "",
-          "Data capsule payload to send to the enclave!");
 ABSL_FLAG(std::string, input_file, "",
           "JS input file to execute!");
 
