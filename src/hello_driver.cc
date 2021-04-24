@@ -323,7 +323,7 @@ public:
 
         std::string code = buffer.str(); 
         //Execute JS file 
-        run_code(&code);
+        //run_code(&code);
 
         //Sleep so that threads have time to process ALL requests
         sleep(1);
