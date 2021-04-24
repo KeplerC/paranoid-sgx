@@ -94,8 +94,6 @@ static inline int HotMsg_requestECall( HotMsg* hotMsg, int dataID, void *data )
         if( data_ptr-> isRead == true ) {
             data_ptr-> isRead  = false;
             data_ptr->data = data;
-            // data_capsule_t *clarg = (data_capsule_t *) data; 
-            // printf("[HotMsg_requestCall] data id: %d\n", arg->id);
             sgx_spin_unlock( &data_ptr->spinlock );
             break;
         }
@@ -141,7 +139,7 @@ static inline void HotMsg_waitForCall( HotMsg *hotMsg )  __attribute__((always_i
 //         if(data_ptr->data){
 //             //Message exists!
 //             data_capsule_t *arg = (data_capsule_t *) data_ptr->data; 
-//             printf("[HotMsg_waitForCall] FOUND MESSSAGE: dc_id: %d\n", arg->id);
+//             printf("[HotMsg_waitForCall] FOUND MESSSAGE: dc_id: %d\n");
 //             data_ptr->data = 0; 
 //         }
 
