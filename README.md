@@ -42,7 +42,7 @@ docker run -it --rm \
 ```
 After entering the docker, run the application: 
 ```bash
-bazel run //src:hello_world_sgx_sim -- --payload="visitor"
+bazel run //src:hello_world_sgx_sim -- 
 ```
 The dockerfile for building `keplerc/paranoid-asylo:latest` is located in `./docker`.  
 

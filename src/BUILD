@@ -147,23 +147,13 @@ cc_library(
     hdrs = ["duktape/duktape.h",  "duktape/duk_config.h"],
 )
 
-cc_library(
-    name = "memtable",
-    srcs = ["memtable/memtable.cc", "memtable/double_linked_list.cc"],
-    hdrs = ["memtable/memtable.hpp", "memtable/double_linked_list.hpp", "capsule.h"],
-    deps = [
-        "@com_google_absl//absl/strings",
-    ],
-)
-
 cc_unsigned_enclave(
     name = "hello_enclave_unsigned.so",
-    srcs = ["kvs_enclave.cc", "capsule.h", "util/proto_util.hpp", "util/proto_util.cc", "hot_msg_pass.h", "common.h", "benchmark.h"],
+    srcs = ["kvs_enclave.cc", "memtable.hpp", "memtable.cc", "capsule.h", "util/proto_util.hpp", "util/proto_util.cc", "hot_msg_pass.h", "common.h", "benchmark.h", "crypto.h"],
     backends = sgx.backend_labels,  # Has SGX identity dependencies
     deps = [
         ":hello_cc_proto",
-        ":duktape", 
-        ":memtable", 
+        ":duktape",
         ":translator_server",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/base:core_headers",
@@ -259,7 +249,7 @@ enclave_loader(
 
 enclave_loader(
     name = "hello_world",
-    srcs = ["sgx_spinlock.h", "spinlock.c", "hello_driver.cc", "capsule.h", "util/proto_util.hpp", "util/proto_util.cc", "hot_msg_pass.h",  "common.h", "benchmark.h"],
+    srcs = ["sgx_spinlock.h", "spinlock.c", "hello_driver.cc", "capsule.h", "util/proto_util.hpp", "util/proto_util.cc", "hot_msg_pass.h",  "common.h", "benchmark.h", "crypto.h"],
     backends = sgx.backend_labels,  # Has SGX loader dependencies
     enclaves = {"enclave": ":hello_enclave.so"},
     loader_args = ["--enclave_path='{enclave}'"],
