@@ -44,10 +44,8 @@ TranslatorServerImpl::TranslatorServerImpl(asylo::IdentityAclPredicate acl):
 
     //Lock list 
     for(int i = 0; i < MAX_WORKERS; i++){
-      printf("i: %d\n", i);
       if(key_pair_lst[i].valid == KEY_PAIR_INVALID){
         //Unlock
-        printf("Found free keypair\n");
         key_pair_lst[i].valid = KEY_PAIR_VALID; 
         return &key_pair_lst[i];
       }

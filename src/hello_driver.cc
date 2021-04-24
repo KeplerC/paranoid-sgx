@@ -46,13 +46,6 @@
 #include "asylo/identity/enclave_assertion_authority_configs.h"
 
 
-#define PERFORMANCE_MEASUREMENT_NUM_REPEATS 10
-#define RUN_BOTH_CLIENT_AND_SERVER true
-#define NET_CLIENT_BASE_PORT 5555
-#define NET_SYNC_SERVER_PORT 5556
-#define NET_SERVER_JOIN_PORT 6666
-#define NET_SERVER_MCAST_PORT 6667
-
 ABSL_FLAG(std::string, enclave_path, "", "Path to enclave to load");
 ABSL_FLAG(std::string, names, "",
           "A comma-separated list of names to pass to the enclave");
@@ -220,7 +213,7 @@ public:
             LOG(QFATAL) << "Load " << absl::GetFlag(FLAGS_enclave_path)
                         << " failed: " << status;
         }
-        std::cout << "Enclave " << this->m_name << " Initialized" << std::endl;
+        LOGI << "Enclave " << this->m_name << " Initialized" << std::endl;
 
         // Initialize the OCALL/ECALL circular buffers for switchless calls 
         circ_buffer_enclave = (HotMsg *) calloc(1, sizeof(HotMsg));   // HOTMSG_INITIALIZER;
@@ -232,7 +225,7 @@ public:
         //ID for ECALL requests
         requestedCallID = 0; 
 
-        std::cout << "OCALL and ECALL circular buffers initialized." << std::endl;
+        LOGI << "OCALL and ECALL circular buffers initialized." << std::endl;
 
         //Starts Enclave responder
         this->client = this->manager->GetClient(this->m_name);
@@ -318,7 +311,7 @@ public:
         input.MutableExtension(hello_world::kvs_server_config)->set_server_address(server_addr);
         input.MutableExtension(hello_world::kvs_server_config)->set_port(port);
 
-        printf("server_addr: %s, port: %d\n", server_addr.c_str(), port);
+        LOGI << "server_addr: %s, port: %d\n", server_addr.c_str(), port;
 
 
 //        asylo::EnclaveInput input;

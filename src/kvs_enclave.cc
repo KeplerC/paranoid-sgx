@@ -50,8 +50,6 @@
 #include <utility>
 #include <unordered_map>
 
-
-#define EPOCH_TIME 2
 namespace asylo {
 
     namespace {
@@ -70,7 +68,6 @@ namespace asylo {
         ::grpc::ClientContext context;
         ASYLO_RETURN_IF_ERROR(
             asylo::Status(stub->RetrieveKeyPair(&context, request, &response)));
-        printf("success\n");
         return response;
         }
 
@@ -203,7 +200,7 @@ namespace asylo {
 
                 numRetries++;
                 if( numRetries > MAX_RETRIES ){
-                    printf("exceeded tries\n");
+                    LOGI << "exceeded tries\n";
                     sgx_spin_unlock( &data_ptr->spinlock );
                     return -1;
                 }
@@ -280,7 +277,7 @@ namespace asylo {
                             duk_eval_string(ctx, code);
                             break;
                         default:
-                            printf("Invalid ECALL id: %d\n", arg->ecall_id);
+                            LOGI << "Invalid ECALL id: %d\n", arg->ecall_id;
                     }
                     delete dc;
                     primitives::TrustedPrimitives::UntrustedLocalFree(arg);
@@ -296,7 +293,6 @@ namespace asylo {
         }
 
         asylo::Status Initialize(const EnclaveConfig &config){
-            printf("Initialized\n");
             return asylo::Status::OkStatus();
         }
 
@@ -329,7 +325,6 @@ namespace asylo {
                 std::string server_addr = input.GetExtension(hello_world::kvs_server_config).server_address();
         
                 if (server_addr.empty()) {
-                    printf("error\n");
                     return absl::InvalidArgumentError(
                         "Input must provide a non-empty server address");
                 }
@@ -493,7 +488,7 @@ namespace asylo {
         }
 
         static duk_ret_t js_print(duk_context *ctx) {
-            printf("%s\n", duk_to_string(ctx, 0));
+            LOGI << duk_to_string(ctx, 0);
             return 0;  /* no return value (= undefined) */
         }
 
