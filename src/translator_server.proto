@@ -1,0 +1,21 @@
+syntax = "proto2";
+
+package examples.grpc_server;
+
+
+message RetrieveKeyPairRequest {
+    optional string identity = 1;
+  }
+
+message RetrieveKeyPairResponse {
+    optional string private_key = 1;
+    optional string public_key = 2;
+  }
+  
+  service Translator {
+
+    rpc RetrieveKeyPair(RetrieveKeyPairRequest) returns (RetrieveKeyPairResponse) {
+    }
+  }
+
+  

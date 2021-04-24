@@ -29,6 +29,8 @@
 #include "asylo/util/status_macros.h"
 #include "asylo/crypto/util/byte_container_view.h"
 #include "asylo/platform/primitives/trusted_primitives.h"
+#include "asylo/identity/platform/sgx/sgx_identity_util.h"
+#include "asylo/identity/attestation/sgx/sgx_local_assertion_generator.h"
 #include "capsule.h"
 #include "memtable.hpp"
 #include "hot_msg_pass.h"
@@ -36,11 +38,123 @@
 #include "src/proto/hello.pb.h"
 #include "src/util/proto_util.hpp"
 #include "benchmark.h"
+#include "duktape/duktape.h"
+
+//GRPC 
+#include "src/translator_server.grpc.pb.h"
+#include "asylo/grpc/auth/enclave_channel_credentials.h"
+#include "asylo/grpc/auth/sgx_local_credentials_options.h"
+#include "include/grpc/support/time.h"
+#include "include/grpcpp/grpcpp.h"
+
 #include <utility>
 #include <unordered_map>
 
+
 #define EPOCH_TIME 2
 namespace asylo {
+
+    namespace {
+
+        using examples::grpc_server::Translator;
+        using examples::grpc_server::RetrieveKeyPairResponse;
+        using examples::grpc_server::RetrieveKeyPairRequest;
+
+        const absl::Duration kChannelDeadline = absl::Seconds(5);
+
+        // Makes a GetKeyPair RPC with |request| to the server backed by *|stub|.
+        StatusOr<RetrieveKeyPairResponse> RetrieveKeyPair(
+            const RetrieveKeyPairRequest &request, Translator::Stub *stub) {
+        RetrieveKeyPairResponse response;
+
+        ::grpc::ClientContext context;
+        ASYLO_RETURN_IF_ERROR(
+            asylo::Status(stub->RetrieveKeyPair(&context, request, &response)));
+        printf("success\n");
+        return response;
+        }
+
+        // Dummy 128-bit AES key.
+        constexpr uint8_t kAesKey128[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05,
+                                          0x06, 0x07, 0x08, 0x09, 0x10, 0x11,
+                                          0x12, 0x13, 0x14, 0x15};
+        std::unique_ptr <SigningKey> signing_key;
+
+        // Helper function that adapts absl::BytesToHexString, allowing it to be used
+        // with ByteContainerView.
+        std::string BytesToHexString(ByteContainerView bytes) {
+            return absl::BytesToHexString(absl::string_view(
+                    reinterpret_cast<const char *>(bytes.data()), bytes.size()));
+        }
+
+        // signs the message with ecdsa signing key
+        const std::vector <uint8_t> SignMessage(const std::string &message) {
+            signing_key = EcdsaP256Sha256SigningKey::Create().ValueOrDie();
+            std::vector <uint8_t> signature;
+            ASYLO_CHECK_OK(signing_key->Sign(message, &signature));
+            return signature;
+        }
+
+        // verify the message with ecdsa verfying key
+        const Status VerifyMessage(const std::string &message, std::vector <uint8_t> signature) {
+            std::unique_ptr <VerifyingKey> verifying_key;
+            ASYLO_ASSIGN_OR_RETURN(verifying_key,
+                                   signing_key->GetVerifyingKey());
+            return verifying_key->Verify(message, signature);
+        }
+
+        // Encrypts a message against `kAesKey128` and returns a 12-byte nonce followed
+        // by authenticated ciphertext, encoded as a hex string.
+        const StatusOr <std::string> EncryptMessage(const std::string &message) {
+            std::unique_ptr <AeadCryptor> cryptor;
+            ASYLO_ASSIGN_OR_RETURN(cryptor,
+                                   AeadCryptor::CreateAesGcmSivCryptor(kAesKey128));
+
+            std::vector <uint8_t> additional_authenticated_data;
+            std::vector <uint8_t> nonce(cryptor->NonceSize());
+            std::vector <uint8_t> ciphertext(message.size() + cryptor->MaxSealOverhead());
+            size_t ciphertext_size;
+
+            ASYLO_RETURN_IF_ERROR(cryptor->Seal(
+                    message, additional_authenticated_data, absl::MakeSpan(nonce),
+                    absl::MakeSpan(ciphertext), &ciphertext_size));
+
+            return absl::StrCat(BytesToHexString(nonce), BytesToHexString(ciphertext));
+        }
+
+        const StatusOr <CleansingString> DecryptMessage(
+                const std::string &nonce_and_ciphertext) {
+            std::string input_bytes = absl::HexStringToBytes(nonce_and_ciphertext);
+
+            std::unique_ptr <AeadCryptor> cryptor;
+            ASYLO_ASSIGN_OR_RETURN(cryptor,
+                                   AeadCryptor::CreateAesGcmSivCryptor(kAesKey128));
+
+            if (input_bytes.size() < cryptor->NonceSize()) {
+                return Status(
+                        error::GoogleError::INVALID_ARGUMENT,
+                        absl::StrCat("Input too short: expected at least ",
+                                     cryptor->NonceSize(), " bytes, got ", input_bytes.size()));
+            }
+
+            std::vector <uint8_t> additional_authenticated_data;
+            std::vector <uint8_t> nonce = {input_bytes.begin(),
+                                           input_bytes.begin() + cryptor->NonceSize()};
+            std::vector <uint8_t> ciphertext = {input_bytes.begin() + cryptor->NonceSize(),
+                                                input_bytes.end()};
+
+            // The plaintext is always smaller than the ciphertext, so use
+            // `ciphertext.size()` as an upper bound on the plaintext buffer size.
+            CleansingVector <uint8_t> plaintext(ciphertext.size());
+            size_t plaintext_size;
+
+            ASYLO_RETURN_IF_ERROR(cryptor->Open(ciphertext, additional_authenticated_data,
+                                                nonce, absl::MakeSpan(plaintext),
+                                                &plaintext_size));
+
+            return CleansingString(plaintext.begin(), plaintext.end());
+        }
+    }
 
     class HelloApplication : public asylo::TrustedApplication {
     public:
@@ -65,14 +179,12 @@ namespace asylo {
 
             //Request call
             while( true ) {
-
                 HotData* data_ptr = (HotData*) hotMsg -> MsgQueue[data_index];
                 sgx_spin_lock( &data_ptr->spinlock );
 
                 if( data_ptr-> isRead == true ) {
                     data_ptr-> isRead  = false;
                     OcallParams *arg = (OcallParams *) data;
-
                     hello_world::CapsulePDU out_dc;
                     asylo::CapsuleToProto((capsule_pdu *) arg->data, &out_dc);
 
@@ -130,9 +242,11 @@ namespace asylo {
                 if(data_ptr->data){
                     //Message exists!
                     EcallParams *arg = (EcallParams *) data_ptr->data;
+
+                    char *code = (char *) arg->data;
                     capsule_pdu *dc = new capsule_pdu(); // freed below
                     CapsuleToCapsule(dc, (capsule_pdu *) arg->data);
-                    primitives::TrustedPrimitives::UntrustedLocalFree((capsule_pdu *) arg->data); 
+                    primitives::TrustedPrimitives::UntrustedLocalFree((capsule_pdu *) arg->data);
                     switch(arg->ecall_id){
                         case ECALL_PUT:
                             LOG(INFO) << "[CICBUF-ECALL] transmitted a data capsule pdu";
@@ -162,6 +276,9 @@ namespace asylo {
                                 memtable.put(dc);
                             }
                             break;
+                        case ECALL_RUN:
+                            duk_eval_string(ctx, code);
+                            break;
                         default:
                             printf("Invalid ECALL id: %d\n", arg->ecall_id);
                     }
@@ -178,6 +295,11 @@ namespace asylo {
             }
         }
 
+        asylo::Status Initialize(const EnclaveConfig &config){
+            printf("Initialized\n");
+            return asylo::Status::OkStatus();
+        }
+
         // Fake client
         asylo::Status Run(const asylo::EnclaveInput &input,
                           asylo::EnclaveOutput *output) override {
@@ -186,6 +308,80 @@ namespace asylo {
             requestedCallID = 0;
 
             if (input.HasExtension(hello_world::enclave_responder)) {
+
+                //Initialize JS engine
+                 ctx = duk_create_heap_default();
+
+                //Register 'put' and 'get' functions
+                duk_push_c_function(ctx, js_put, 2 /*nargs*/);
+                duk_put_global_string(ctx, "put");
+
+                duk_push_c_function(ctx, js_get, 1 /*nargs*/);
+                duk_put_global_string(ctx, "get");
+
+                duk_push_c_function(ctx, js_print, 1 /*nargs*/);
+                duk_put_global_string(ctx, "print");
+
+                //Register memtable as global object
+                duk_push_pointer(ctx, this); 
+                duk_put_global_string(ctx, "ctx");
+
+                // const std::string &server_addr = input.GetExtension(hello_world::kvs_server_config).server_address();
+                std::string server_addr = std::string("localhost");
+        
+                if (server_addr.empty()) {
+                    printf("error\n");
+                    return absl::InvalidArgumentError(
+                        "Input must provide a non-empty server address");
+                }
+
+                int32_t port = input.GetExtension(hello_world::kvs_server_config).port();
+                port = 3001; 
+
+                server_addr = absl::StrCat(server_addr, ":", port);
+
+                LOG(INFO) << "Configured with KVS Address: " << server_addr;
+
+                // The ::grpc::ChannelCredentials object configures the channel authentication
+                // mechanisms used by the client and server. This particular configuration
+                // enforces that both the client and server authenticate using SGX local
+                // attestation.
+                std::shared_ptr<::grpc::ChannelCredentials> channel_credentials =
+                    EnclaveChannelCredentials(
+                        asylo::BidirectionalSgxLocalCredentialsOptions());
+
+                // Connect a gRPC channel to the server specified in the EnclaveInput.
+                std::shared_ptr<::grpc::Channel> channel =
+                    ::grpc::CreateChannel(server_addr, channel_credentials);
+
+                gpr_timespec absolute_deadline = gpr_time_add(
+                    gpr_now(GPR_CLOCK_REALTIME),
+                    gpr_time_from_micros(absl::ToInt64Microseconds(kChannelDeadline),
+                                        GPR_TIMESPAN));
+                if (!channel->WaitForConnected(absolute_deadline)) {
+                    LOG(INFO) << "Failed to connect to server";  
+
+                    return absl::InternalError("Failed to connect to server");
+                }
+
+                printf("Successfully connected to server\n");
+
+                hello_world::GrpcClientEnclaveInput client_input; 
+                hello_world::GrpcClientEnclaveOutput client_output; 
+
+                std::unique_ptr<Translator::Stub> stub = Translator::NewStub(channel);
+
+                ASYLO_ASSIGN_OR_RETURN(
+                    *client_output.mutable_key_pair_response(),
+                    RetrieveKeyPair(client_input.key_pair_request(), stub.get()));
+
+                RetrieveKeyPairResponse resp = *client_output.mutable_key_pair_response();      
+
+                priv_key = resp.private_key();
+                pub_key = resp.public_key(); 
+
+                LOG(INFO) << "Worker enclave configured with private key: " << priv_key << " public key: " << pub_key;
+                
                 HotMsg *hotmsg = (HotMsg *) input.GetExtension(hello_world::enclave_responder).responder();
                 EnclaveMsgStartResponder(hotmsg);
                 return asylo::Status::OkStatus();
@@ -214,8 +410,18 @@ namespace asylo {
                 is_coordinator = false;
             }
 
+
+            // SgxIdentity identity = GetSelfSgxIdentity();
+            // asylo::sgx::CodeIdentity *y = identity.mutable_code_identity(); 
+            // Sha256HashProto *mrenclave = y->mutable_mrenclave();
+
+            // EnclaveIdentity x = SerializeSgxIdentity(identity).ValueOrDie();
+            // EnclaveIdentityDescription *enc_desc = x.mutable_description(); 
+            // printf("identity_type: %d, %s\n", enc_desc->identity_type(), mrenclave->mutable_hash());
+            
             //Then the client wants to put some messages
             buffer = (HotMsg *) input.GetExtension(hello_world::buffer).buffer();
+
             m_enclave_id = std::stoi(input.GetExtension(hello_world::buffer).enclave_id());
             sleep(3);
             // TODO: there still has some issues when the client starts before the client connects to the server
@@ -246,6 +452,10 @@ namespace asylo {
         MemTable memtable;
         HotMsg *buffer;
         int requestedCallID;
+        int counter;
+        duk_context *ctx;
+        std::string priv_key;
+        std::string pub_key;
         bool is_coordinator;
         int m_enclave_id;
         std::string m_prev_hash;
@@ -277,6 +487,39 @@ namespace asylo {
                ret +=  std::to_string(key) + "," + pair.first + "," +  std::to_string(pair.second) + "\n";
             }
             return ret;
+        }
+
+        static duk_ret_t js_print(duk_context *ctx) {
+            printf("%s\n", duk_to_string(ctx, 0));
+            return 0;  /* no return value (= undefined) */
+        }
+
+        static duk_ret_t js_put(duk_context *ctx){
+            std::string key = duk_to_string(ctx, 0);
+            std::string val = duk_to_string(ctx, 1);
+
+            duk_eval_string(ctx, "ctx");
+            HelloApplication *m = (HelloApplication *) duk_to_pointer(ctx, -1);
+            m->put(key, val);
+            return 0;           
+        }
+
+        static duk_ret_t js_get(duk_context *ctx){
+//            capsule_id id = duk_to_int(ctx, 0);
+//
+//            duk_eval_string(ctx, "ctx");
+//            HelloApplication *m = (HelloApplication *) duk_to_pointer(ctx, -1);
+
+//            duk_idx_t obj_idx = duk_push_object(ctx);
+//            capsule_pdu *dc = m->get(id);
+//
+//            duk_push_string(ctx, dc->payload.key.c_str());
+//            duk_put_prop_string(ctx, obj_idx, "key");
+//
+//            duk_push_string(ctx, dc->payload.value.c_str());
+//            duk_put_prop_string(ctx, obj_idx, "val");
+
+            return 1;           
         }
 
         void compare_eoe_hashes_from_string(std::string s){

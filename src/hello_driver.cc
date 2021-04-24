@@ -17,6 +17,8 @@
  */
 
 #include <iostream>
+#include <fstream>
+#include <sstream>
 #include <string>
 #include <thread>
 #include <vector>
@@ -30,6 +32,7 @@
 #include "asylo/enclave.pb.h"
 #include "asylo/platform/primitives/sgx/loader.pb.h"
 #include "asylo/util/logging.h"
+#include "asylo/util/status_macros.h"
 #include <thread>
 #include <mutex>
 #include <zmq.hpp>
@@ -38,6 +41,9 @@
 #include "capsule.h"
 #include "src/proto/hello.pb.h"
 #include "src/util/proto_util.hpp"
+
+// #include "asylo/identity/enclave_assertion_authority_config.proto.h"
+#include "asylo/identity/enclave_assertion_authority_configs.h"
 
 
 #define PERFORMANCE_MEASUREMENT_NUM_REPEATS 10
@@ -55,7 +61,11 @@ ABSL_FLAG(std::string, names, "",
           "A comma-separated list of names to pass to the enclave");
 ABSL_FLAG(std::string, payload, "",
           "Data capsule payload to send to the enclave!");
+ABSL_FLAG(std::string, input_file, "",
+          "JS input file to execute!");
 
+ABSL_FLAG(std::string, server_address, "", "Address of the KVS coordinator");
+ABSL_FLAG(int32_t, port, 0, "Port that the server listens to");
 
 struct enclave_responder_args {
      asylo::EnclaveClient *client;
@@ -161,6 +171,15 @@ public:
       }
     }
 
+    void run_code(std::string *code){
+      EcallParams *args = (EcallParams *) malloc(sizeof(OcallParams));
+      args->ecall_id = ECALL_RUN;
+      args->data = (char *) code->c_str(); 
+      args->data = (char *) calloc(code->size()+1, sizeof(char));
+      memcpy(args->data, code->c_str(), code->size()); 
+      HotMsg_requestECall( circ_buffer_enclave, requestedCallID++, args);
+    }
+
     void put_ecall(capsule_pdu *dc) {
       EcallParams *args = (EcallParams *) malloc(sizeof(OcallParams)); // freed in enclave
       args->ecall_id = ECALL_PUT;
@@ -180,6 +199,9 @@ public:
         // Create an EnclaveLoadConfig object.
         asylo::EnclaveLoadConfig load_config;
         load_config.set_name(this->m_name);
+
+        // Create a config that initializes the SGX assertion authority.
+        *load_config.mutable_config()->add_enclave_assertion_authority_configs() = std::move(asylo::CreateSgxLocalAssertionAuthorityConfig("A 16-byte string")).ValueOrDie();
 
         // Create an SgxLoadConfig object.
         asylo::SgxLoadConfig sgx_config;
@@ -259,16 +281,49 @@ public:
     //start a fake client
     void execute(){
 
-        asylo::EnclaveInput input;
-        input.MutableExtension(hello_world::buffer)->set_buffer((long int) circ_buffer_host);
-        input.MutableExtension(hello_world::buffer)->set_enclave_id(m_name);
-
+        //Test OCALL
+        asylo::EnclaveInput input;        
         asylo::EnclaveOutput output;
-        asylo::Status status = this->client->EnterAndRun(input, &output);
-        if (!status.ok()) {
-            LOG(QFATAL) << "EnterAndRun failed: " << status;
-        }
+        //Register OCALL buffer to enclave 
+        input.MutableExtension(hello_world::buffer)->set_buffer((long int) circ_buffer_host);
 
+        //Load server/port
+        std::string server_addr = absl::GetFlag(FLAGS_server_address);
+        LOG_IF(QFATAL, server_addr == "") << "--server_addr cannot be empty";
+
+        int32_t port = absl::GetFlag(FLAGS_port);
+        LOG_IF(QFATAL, port == 0) << "--port cannot be 0";
+
+        // hello_world::KVS_Server_Config kvs_server_config; 
+        // kvs_server_config.set_server_address(server_addr);
+        // kvs_server_config.set_port(port);
+
+        input.MutableExtension(hello_world::kvs_server_config)->set_server_address(server_addr);
+        input.MutableExtension(hello_world::kvs_server_config)->set_port(port);
+
+        printf("server_addr: %s, port: %d\n", server_addr.c_str(), port);
+
+
+//        asylo::EnclaveInput input;
+//        input.MutableExtension(hello_world::buffer)->set_buffer((long int) circ_buffer_host);
+//        input.MutableExtension(hello_world::buffer)->set_enclave_id(m_name);
+//
+//        asylo::EnclaveOutput output;
+
+//        asylo::Status status = this->client->EnterAndRun(input, &output);
+//        if (!status.ok()) {
+//            LOG(QFATAL) << "EnterAndRun failed: " << status;
+//        }
+
+        
+        std::string input_js = absl::GetFlag(FLAGS_input_file);
+        std::ifstream t(input_js);
+        std::stringstream buffer;
+        buffer << t.rdbuf();
+
+        std::string code = buffer.str(); 
+        //Execute JS file 
+        //run_code(&code);
 
         //Sleep so that threads have time to process ALL requests
         sleep(1);

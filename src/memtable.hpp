@@ -6,11 +6,11 @@
 #include "sgx_spinlock.h"
 
 class MemTable {
-  public:
+public:
     bool put(capsule_pdu *dc);
     capsule_pdu get(std::string key);
     MemTable(){ mt_spinlock = 0; }
-  private:
+private:
     absl::flat_hash_map<std::string, capsule_pdu> memtable;
     sgx_spinlock_t mt_spinlock;
 };

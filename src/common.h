@@ -34,24 +34,34 @@
 
 #define TOTAL_THREADS 3
 
+#define BENCHMARK_MODE false
+#define LOGI LOG_IF(INFO, !BENCHMARK_MODE)
+#define LOGD LOG_IF(INFO, BENCHMARK_MODE)<< get_current_time() << " "
+#if BENCHMARK_MODE
+#define M_BENCHMARK_CODE M_BENCHMARK_HERE
+#else
+#define M_BENCHMARK_CODE void benchmark(){}
+#endif
+
 enum OCALL_ID {
     OCALL_PUT,
 };
 
 enum ECALL_ID {
     ECALL_PUT,
+    ECALL_RUN,
 };
 
 typedef struct {
     uint64_t* cyclesCount;
     uint64_t  counter;
-    void*     data; 
-    OCALL_ID  ocall_id; 
+    void*     data;
+    OCALL_ID  ocall_id;
 } OcallParams;
 
 typedef struct {
-    void*     data; 
-    ECALL_ID  ecall_id; 
+    void*     data;
+    ECALL_ID  ecall_id;
 } EcallParams;
 
 
