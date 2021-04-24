@@ -36,8 +36,10 @@ message HelloOutput {
 message EnclaveResponder {
   optional int64 responder = 1;
 }
+
 message HotMsg {
   optional int64 buffer = 1;
+  optional string enclave_id = 2;
 }
 
 extend asylo.EnclaveLoadConfig {
@@ -87,13 +89,23 @@ message GrpcClientEnclaveOutput {
   optional examples.grpc_server.RetrieveKeyPairResponse key_pair_response = 1;
 }
 
+message CoordinatorParam {
+  optional int64 circ_buffer = 1;
+}
+
+message SyncParam {
+  optional int64 is_sync = 1;
+}
+
 extend asylo.EnclaveInput {
   optional HelloInput enclave_input_hello = 8086;
   optional CapsulePDU input_dc = 8087;
   optional HotMsg buffer = 8088;
-  optional EnclaveResponder enclave_responder = 8089; 
+  optional EnclaveResponder enclave_responder = 8089;
   optional KVS_Server_Config kvs_server_config = 8090;
   optional MP_Lambda_Input lambda_input = 8091;
+  optional CoordinatorParam is_coordinator = 8092;
+  optional SyncParam is_sync_thread = 8093;
 }
 
 extend asylo.EnclaveOutput {

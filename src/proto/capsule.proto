@@ -4,13 +4,16 @@ package hello_world;
 
 message CapsulePDU {
 
-  optional int64 id = 1;
   optional KVSPayload payload = 2;
+  optional int64 sender = 9;
   optional bytes signature = 3;
 
   optional bytes prevHash = 4; // Hash ptr to the previous record, not needed for the minimal prototype
   optional bytes metaHash = 5; // Hash of meta data
   optional bytes dataHash = 6; // Hash of data
+  optional bytes syncHash = 7; // Latest hash of sync point
+
+  optional int64 timestamp = 8; //timestamp
 
 }
 

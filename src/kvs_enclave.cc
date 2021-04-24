@@ -32,7 +32,7 @@
 #include "asylo/identity/platform/sgx/sgx_identity_util.h"
 #include "asylo/identity/attestation/sgx/sgx_local_assertion_generator.h"
 #include "capsule.h"
-#include "memtable/memtable.hpp"
+#include "memtable.hpp"
 #include "hot_msg_pass.h"
 #include "common.h"
 #include "src/proto/hello.pb.h"
@@ -47,8 +47,11 @@
 #include "include/grpc/support/time.h"
 #include "include/grpcpp/grpcpp.h"
 
+#include <utility>
+#include <unordered_map>
 
 
+#define EPOCH_TIME 2
 namespace asylo {
 
     namespace {
@@ -165,15 +168,7 @@ namespace asylo {
             args.ocall_id = OCALL_PUT;
             args.data = dc;
             HotMsg_requestOCall( buffer, requestedCallID++, &args);
-            //                LOG(INFO) << "= Encryption and Decryption =";
-            //                std::string result;
-            //                ASYLO_ASSIGN_OR_RETURN(result, EncryptMessage(visitor));
-            //                LOG(INFO) << "encrypted: " << result;
-            //                ASYLO_ASSIGN_OR_RETURN(result, DecryptMessage(result));
-            //                LOG(INFO) << "decrypted: " << result;
-            //                LOG(INFO) << "= Sign and Verify =";
-            //                LOG(INFO) << "signed: " << reinterpret_cast<const char*>(SignMessage(visitor).data());
-            //                LOG(INFO) << "verified: " << VerifyMessage(visitor, SignMessage(visitor));
+
         }
 
         int HotMsg_requestOCall( HotMsg* hotMsg, int dataID, void *data ) {
@@ -247,16 +242,39 @@ namespace asylo {
                 if(data_ptr->data){
                     //Message exists!
                     EcallParams *arg = (EcallParams *) data_ptr->data;
-                    capsule_pdu *dc = (capsule_pdu *) arg->data;
-                    char *code = (char *) arg->data;
 
+                    char *code = (char *) arg->data;
+                    capsule_pdu *dc = new capsule_pdu(); // freed below
+                    CapsuleToCapsule(dc, (capsule_pdu *) arg->data);
+                    primitives::TrustedPrimitives::UntrustedLocalFree((capsule_pdu *) arg->data);
                     switch(arg->ecall_id){
                         case ECALL_PUT:
-                            //printf("[ECALL] dc_id : %d\n", dc->id);
-                            LOG(INFO) << "[CICBUF-ECALL] transmitted a data capsule pdu";
-                            put_memtable((capsule_pdu *) arg->data);
-                            LOG(INFO) << "DataCapsule payload.key is " << dc->payload.key;
-                            LOG(INFO) << "DataCapsule payload.value is " << dc->payload.value;
+                            LOGI << "[CICBUF-ECALL] transmitted a data capsule pdu";
+                            DUMP_CAPSULE(dc);
+                            // once received RTS, send the latest EOE
+                            if (dc->payload.key == COORDINATOR_RTS_KEY && !is_coordinator) {
+                                put(COORDINATOR_EOE_KEY, m_prev_hash, false);
+                                break;
+                            }
+                            else if (dc->payload.key == COORDINATOR_EOE_KEY && is_coordinator){
+                                std::pair<std::string, int64_t> p;
+                                p.first = dc->payload.value;
+                                p.second = dc->timestamp;
+                                m_eoe_hashes[dc->sender] = p;
+                                if(m_eoe_hashes.size() == TOTAL_THREADS - 2) { //minus 2 for server thread and coordinator thread
+                                    LOGI << "coordinator received all EOEs, sending report" << serialize_eoe_hashes();
+                                    put(COORDINATOR_SYNC_KEY, serialize_eoe_hashes(), false);
+                                    m_eoe_hashes.clear();
+                                }
+                            }
+                            else if (dc->payload.key == COORDINATOR_SYNC_KEY){
+                                compare_eoe_hashes_from_string(dc->payload.value);
+                                LOGI << "Received the sync report " << serialize_eoe_hashes();
+                            }
+                            else {
+                                update_client_hash(dc);
+                                memtable.put(dc);
+                            }
                             break;
                         case ECALL_RUN:
                             duk_eval_string(ctx, code);
@@ -264,7 +282,8 @@ namespace asylo {
                         default:
                             printf("Invalid ECALL id: %d\n", arg->ecall_id);
                     }
-
+                    delete dc;
+                    primitives::TrustedPrimitives::UntrustedLocalFree(arg);
                     data_ptr->data = 0;
                 }
 
@@ -285,7 +304,9 @@ namespace asylo {
         asylo::Status Run(const asylo::EnclaveInput &input,
                           asylo::EnclaveOutput *output) override {
 
-            //Initialize Enclave (run only once)
+            m_prev_hash = "init";
+            requestedCallID = 0;
+
             if (input.HasExtension(hello_world::enclave_responder)) {
 
                 //Initialize JS engine
@@ -362,6 +383,29 @@ namespace asylo {
                 EnclaveMsgStartResponder(hotmsg);
                 return asylo::Status::OkStatus();
             }
+            else if (input.HasExtension(hello_world::is_coordinator)) {
+                LOGI << "[Coordinator] Up and Running";
+                m_enclave_id = 1;
+                buffer = (HotMsg *) input.GetExtension(hello_world::is_coordinator).circ_buffer();
+                is_coordinator = true;
+                // ideally, coordinator is a special form of client
+                // it does not keep special information, it should maintain the same level of information as other clients
+
+                sleep(3);
+
+                while (true){
+                    sleep(EPOCH_TIME);
+                    //send request to sync packet
+                    put(COORDINATOR_RTS_KEY, "RTS");
+                }
+                return asylo::Status::OkStatus();
+            } else if (input.HasExtension(hello_world::is_sync_thread)){
+                LOGI << "sync running";
+                return asylo::Status::OkStatus();
+            }
+            else{
+                is_coordinator = false;
+            }
 
 
             // SgxIdentity identity = GetSelfSgxIdentity();
@@ -374,9 +418,31 @@ namespace asylo {
             
             //Then the client wants to put some messages
             buffer = (HotMsg *) input.GetExtension(hello_world::buffer).buffer();
-            requestedCallID = 0;
-            counter = 0;
 
+            m_enclave_id = std::stoi(input.GetExtension(hello_world::buffer).enclave_id());
+            sleep(3);
+            // TODO: there still has some issues when the client starts before the client connects to the server
+            // if we want to consider it, probably we need to buffer the messages
+
+
+            for( uint64_t i=0; i < 1; ++i ) {
+                LOGI << "[ENCLAVE] ===CLIENT PUT=== ";
+                LOGI << "[ENCLAVE] Generating a new capsule PDU ";
+                put("default_key", "default_value");
+            }
+
+
+            sleep(2);
+
+
+            for( uint64_t i=0; i < 1; ++i ) {
+                //dc[i].id = i;
+                LOGI << "[ENCLAVE] ===CLIENT GET=== ";
+                capsule_pdu tmp_dc = memtable.get("default_key");
+                DUMP_CAPSULE((&tmp_dc));
+            }
+
+            benchmark();
             return asylo::Status::OkStatus();
         }
 
@@ -388,12 +454,42 @@ namespace asylo {
         int counter;
         duk_context *ctx;
         std::string priv_key;
-        std::string pub_key; 
+        std::string pub_key;
+        bool is_coordinator;
+        int m_enclave_id;
+        std::string m_prev_hash;
+        std::unordered_map<int, std::pair<std::string, int64_t>> m_eoe_hashes;
 
-        /* These functions willl be part of the CAAPI */
-        bool put_memtable(capsule_pdu *dc) {
-            memtable.put(dc);
-            return true;
+
+        void put_internal(capsule_pdu *dc, bool to_memtable = true, bool to_network = true) {
+            update_client_hash(dc);
+            if(to_memtable)
+                memtable.put(dc);
+            if(to_network)
+                put_ocall(dc);
+        }
+
+        void put(std::string key, std::string value, bool to_memtable = true, bool to_network = true) {
+            capsule_pdu *dc = new capsule_pdu();
+            asylo::KvToCapsule(dc, key, value, m_enclave_id);
+            dc -> prevHash = m_prev_hash;
+            m_prev_hash = dc->metaHash;
+            //dc->timestamp = get_current_time();
+            DUMP_CAPSULE(dc);
+            put_internal(dc, to_memtable, to_network);
+            delete dc;
+        }
+
+        void get(std::string key){
+            memtable.get(key);
+        }
+
+        std::string serialize_eoe_hashes(){
+            std::string ret = "";
+            for( const auto& [key, pair] : m_eoe_hashes ) {
+               ret +=  std::to_string(key) + "," + pair.first + "," +  std::to_string(pair.second) + "\n";
+            }
+            return ret;
         }
 
         static duk_ret_t js_print(duk_context *ctx) {
@@ -412,42 +508,66 @@ namespace asylo {
         }
 
         static duk_ret_t js_get(duk_context *ctx){
-            capsule_id id = duk_to_int(ctx, 0);
-            
-            duk_eval_string(ctx, "ctx");
-            HelloApplication *m = (HelloApplication *) duk_to_pointer(ctx, -1);
+//            capsule_id id = duk_to_int(ctx, 0);
+//
+//            duk_eval_string(ctx, "ctx");
+//            HelloApplication *m = (HelloApplication *) duk_to_pointer(ctx, -1);
 
-            duk_idx_t obj_idx = duk_push_object(ctx);
-            capsule_pdu *dc = m->get(id);
-
-            duk_push_string(ctx, dc->payload.key.c_str()); 
-            duk_put_prop_string(ctx, obj_idx, "key");
-
-            duk_push_string(ctx, dc->payload.value.c_str()); 
-            duk_put_prop_string(ctx, obj_idx, "val");
+//            duk_idx_t obj_idx = duk_push_object(ctx);
+//            capsule_pdu *dc = m->get(id);
+//
+//            duk_push_string(ctx, dc->payload.key.c_str());
+//            duk_put_prop_string(ctx, obj_idx, "key");
+//
+//            duk_push_string(ctx, dc->payload.value.c_str());
+//            duk_put_prop_string(ctx, obj_idx, "val");
 
             return 1;           
         }
 
-        void put(capsule_pdu *dc) {
-            put_memtable(dc);
-            put_ocall(dc);
-        }
-        void put(std::string key, std::string value) {
-            // capsule_pdu *dc = (capsule_pdu *) malloc(sizeof(capsule_pdu));
-            capsule_pdu *dc = new capsule_pdu();
-            asylo::KvToCapsule(dc, counter++, key, value);
-            put(dc);
-            delete dc; 
+        void compare_eoe_hashes_from_string(std::string s){
+            // deserialize the string into hash
+            std::unordered_map<int, std::pair<std::string, int64_t>> tmp;
+            std::stringstream ss(s);
+            while(true)
+            {
+                std::string key, value, ts;
+                //try to read key, if there is none, break
+                if (!getline(ss, key, ',')) break;
+                getline(ss, value, ',');
+                getline(ss, ts, '\n');
+                std::pair<std::string, int64_t> p;
+                p.first = value;
+                p.second = std::stoll(ts);
+                tmp[std::stoi(key)] = p;
+            }
+
+            for( const auto& [key, sync_pt_pair] : tmp ) {
+                auto m_current_hash_ts_pair = m_eoe_hashes[key];
+                if(sync_pt_pair.first != m_current_hash_ts_pair.first){
+                    if(sync_pt_pair.second > m_current_hash_ts_pair.second){
+                        LOGI << "INCONSISTENCY DETECTED!";
+                        LOGI << "SYNC " << sync_pt_pair.first << " " << sync_pt_pair.second;
+                        LOGI << "CURRENT " << m_current_hash_ts_pair.first << " " << m_current_hash_ts_pair.second;
+                        inconsistency_handler();
+                    }
+                }
+            }
+
         }
 
-        capsule_pdu *get(capsule_id id){
-            //capsule_pdu out_dc;
-            LOG(INFO) << "DataCapsule id is " << (int)id;
-            return memtable.get(id);
+        void update_client_hash(capsule_pdu* dc){
+            std::pair<std::string, int64_t> p;
+            p.first = dc-> prevHash;
+            p.second = dc->timestamp;
+            m_eoe_hashes[dc->sender] = p;
         }
 
-        M_BENCHMARK_HERE
+        void inconsistency_handler(){
+            return;
+        }
+
+        M_BENCHMARK_CODE
     };
 
     TrustedApplication *BuildTrustedApplication() { return new HelloApplication; }

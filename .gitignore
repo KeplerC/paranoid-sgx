@@ -4,6 +4,7 @@
 .project
 .settings/
 .idea/
+.DS_Store
 
 # make and build files
 *.lst
