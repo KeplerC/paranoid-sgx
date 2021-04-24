@@ -15,7 +15,7 @@ load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository", "new_git_r
 git_repository(
     name = "com_google_asylo",
     remote = "https://github.com/KeplerC/asylo.git",
-    commit = "afb306d0f9d5e3e550c477bc1ba2c38db31dcd2d",
+    commit = "89aa34697144f5b12a9b20da59b795fa702410a1",
 )
 
 load(
