@@ -51,6 +51,29 @@ message KVS_Server_Config {
   optional int32 port = 2;
 }
 
+message MP_Lambda_Input {
+  optional string coordinator = 1;
+  optional string algorithm = 2;
+
+  optional string scenario = 3;
+  optional string start = 4;
+
+  optional string goal = 5;
+  optional string min = 6;
+  optional string max = 7;
+  optional string robot = 8;
+  optional string time_limit = 9;
+  optional string env = 10;
+
+  optional string check_resolution = 11;
+  optional string discretization = 12;
+  optional string is_float = 13;
+  optional string problem_id = 14;
+  optional string goal_radius = 15;
+  optional string env_frame = 16;
+  optional string jobs = 17;
+}
+
 // Input for a GrpcClientEnclave.
 message GrpcClientEnclaveInput {
   // The address of the server to contact.
@@ -80,8 +103,9 @@ extend asylo.EnclaveInput {
   optional HotMsg buffer = 8088;
   optional EnclaveResponder enclave_responder = 8089;
   optional KVS_Server_Config kvs_server_config = 8090;
-  optional CoordinatorParam is_coordinator = 8091;
-  optional SyncParam is_sync_thread = 8092;
+  optional MP_Lambda_Input lambda_input = 8091;
+  optional CoordinatorParam is_coordinator = 8092;
+  optional SyncParam is_sync_thread = 8093;
 }
 
 extend asylo.EnclaveOutput {

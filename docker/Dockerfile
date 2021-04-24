@@ -1,6 +1,7 @@
 FROM gcr.io/asylo-framework/asylo
 
-
+ARG USER
+ARG PASS
 
 ADD https://github.com/intel/linux-sgx/archive/sgx_2.4.tar.gz /tmp/
 
@@ -48,5 +49,27 @@ RUN apt-get update && \
 ENV PATH=${PATH}:/opt/intel/sgxsdk/bin:/opt/intel/sgxsdk/bin/x64
 
 RUN apt-get install -y libzmq3-dev
+
+
+WORKDIR /
+RUN git clone https://${USER}:${PASS}@github.com/KeplerC/paranoid-sgx.git -b dev-mpl
+WORKDIR /paranoid-sgx
+
+WORKDIR /paranoid-sgx/src
+RUN git clone https://${USER}}:${PASS}@github.com/KeplerC/mplambda.git -b kvs
+
+WORKDIR /paranoid-sgx
+RUN git clone https://github.com/assimp/assimp.git -b v4.0.1
+WORKDIR /paranoid-sgx/assimp
+RUN cp ../mplambda_include/zconf.h ./contrib/zlib/
+
+WORKDIR /paranoid-sgx
+RUN git clone https://github.com/flexible-collision-library/fcl.git
+WORKDIR /paranoid-sgx/fcl
+RUN cp ../mplambda_include/export.h include/fcl/
+RUN cp ../mplambda_include/fcl.h include/fcl/
+RUN cp ../mplambda_include/config.h include/fcl/
+
+WORKDIR /paranoid-sgx/src
 
 CMD ["/bin/bash"]
