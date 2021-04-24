@@ -30,10 +30,6 @@ namespace secure_grpc {
 
 TranslatorServerImpl::TranslatorServerImpl(asylo::IdentityAclPredicate acl): 
       Service(),
-      // Initialize the translation map with a few known translations.
-      translation_map_({{"asylo", "sanctuary"},
-                        {"istio", "sail"},
-                        {"kubernetes", "helmsman"}}),
       acl_(std::move(acl)) {
         memset(key_pair_lst,0, MAX_WORKERS*sizeof(struct key_pair));
       }

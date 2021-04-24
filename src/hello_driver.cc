@@ -67,6 +67,8 @@ ABSL_FLAG(int32_t, port, 0, "Port that the server listens to");
 struct enclave_responder_args {
      asylo::EnclaveClient *client;
      HotMsg *hotMsg;
+     std::string server_addr;
+     uint32_t port; 
 };
 
 
@@ -91,6 +93,8 @@ public:
         asylo::EnclaveOutput output;
 
         input.MutableExtension(hello_world::enclave_responder)->set_responder((long int)  hotMsg);
+        input.MutableExtension(hello_world::kvs_server_config)->set_server_address(args->server_addr);
+        input.MutableExtension(hello_world::kvs_server_config)->set_port(args->port);
         params.client->EnterAndRun(input, &output);
 
         return NULL;
@@ -232,7 +236,15 @@ public:
 
         //Starts Enclave responder
         this->client = this->manager->GetClient(this->m_name);
-        struct enclave_responder_args e_responder_args = {this->client, circ_buffer_enclave};
+
+        //Load server/port
+        std::string server_addr = absl::GetFlag(FLAGS_server_address);
+        LOG_IF(QFATAL, server_addr == "") << "--server_addr cannot be empty";
+
+        int32_t port = absl::GetFlag(FLAGS_port);
+        LOG_IF(QFATAL, port == 0) << "--port cannot be 0";
+
+        struct enclave_responder_args e_responder_args = {this->client, circ_buffer_enclave, server_addr, port};
         pthread_create(&circ_buffer_enclave->responderThread, NULL, StartEnclaveResponder, (void*)&e_responder_args);
 
         //Start Host Responder
@@ -286,6 +298,11 @@ public:
         //Register OCALL buffer to enclave 
         input.MutableExtension(hello_world::buffer)->set_buffer((long int) circ_buffer_host);
 
+        asylo::Status status = this->client->EnterAndRun(input, &output);
+        if (!status.ok()) {
+            LOG(QFATAL) << "EnterAndRun failed: " << status;
+        }
+
         //Load server/port
         std::string server_addr = absl::GetFlag(FLAGS_server_address);
         LOG_IF(QFATAL, server_addr == "") << "--server_addr cannot be empty";
@@ -314,7 +331,6 @@ public:
 //            LOG(QFATAL) << "EnterAndRun failed: " << status;
 //        }
 
-        
         std::string input_js = absl::GetFlag(FLAGS_input_file);
         std::ifstream t(input_js);
         std::stringstream buffer;
