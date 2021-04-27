@@ -280,27 +280,27 @@ namespace asylo {
                 if (!channel->WaitForConnected(absolute_deadline)) {
                     LOG(INFO) << "Failed to connect to server";  
 
-                    return absl::InternalError("Failed to connect to server");
+                    //return absl::InternalError("Failed to connect to server");
+                } else {
+                    LOG(INFO) << "Successfully connected to server";
+
+                    hello_world::GrpcClientEnclaveInput client_input;
+                    hello_world::GrpcClientEnclaveOutput client_output;
+
+                    std::unique_ptr <Translator::Stub> stub = Translator::NewStub(channel);
+
+                    ASYLO_ASSIGN_OR_RETURN(
+                            *client_output.mutable_key_pair_response(),
+                            RetrieveKeyPair(client_input.key_pair_request(), stub.get()));
+
+                    RetrieveKeyPairResponse resp = *client_output.mutable_key_pair_response();
+
+                    priv_key = resp.private_key();
+                    pub_key = resp.public_key();
+
+                    LOG(INFO) << "Worker enclave configured with private key: " << priv_key << " public key: "
+                              << pub_key;
                 }
-
-                LOG(INFO) << "Successfully connected to server";
-
-                hello_world::GrpcClientEnclaveInput client_input; 
-                hello_world::GrpcClientEnclaveOutput client_output; 
-
-                std::unique_ptr<Translator::Stub> stub = Translator::NewStub(channel);
-
-                ASYLO_ASSIGN_OR_RETURN(
-                    *client_output.mutable_key_pair_response(),
-                    RetrieveKeyPair(client_input.key_pair_request(), stub.get()));
-
-                RetrieveKeyPairResponse resp = *client_output.mutable_key_pair_response();      
-
-                priv_key = resp.private_key();
-                pub_key = resp.public_key(); 
-
-                LOG(INFO) << "Worker enclave configured with private key: " << priv_key << " public key: " << pub_key;
-                
                 HotMsg *hotmsg = (HotMsg *) input.GetExtension(hello_world::enclave_responder).responder();
                 EnclaveMsgStartResponder(hotmsg);
                 return asylo::Status::OkStatus();

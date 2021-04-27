@@ -102,7 +102,7 @@ static inline int HotMsg_requestECall( HotMsg* hotMsg, int dataID, void *data )
 
         numRetries++;
         if( numRetries > MAX_RETRIES ){
-            printf("exceeded tries\n");
+            printf("exceeded tries");
             sgx_spin_unlock( &data_ptr->spinlock );
             return -1;
         }
