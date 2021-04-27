@@ -398,7 +398,6 @@ namespace asylo {
             //dc->timestamp = get_current_time();
             DUMP_CAPSULE(dc);
             put_internal(dc, to_memtable, update_hash, to_network);
-            LOGI << serialize_eoe_hashes();
             delete dc;
         }
 
