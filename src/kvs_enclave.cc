@@ -70,87 +70,6 @@ namespace asylo {
             asylo::Status(stub->RetrieveKeyPair(&context, request, &response)));
         return response;
         }
-
-        // Dummy 128-bit AES key.
-        constexpr uint8_t kAesKey128[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05,
-                                          0x06, 0x07, 0x08, 0x09, 0x10, 0x11,
-                                          0x12, 0x13, 0x14, 0x15};
-        std::unique_ptr <SigningKey> signing_key;
-
-        // Helper function that adapts absl::BytesToHexString, allowing it to be used
-        // with ByteContainerView.
-        std::string BytesToHexString(ByteContainerView bytes) {
-            return absl::BytesToHexString(absl::string_view(
-                    reinterpret_cast<const char *>(bytes.data()), bytes.size()));
-        }
-
-        // signs the message with ecdsa signing key
-        const std::vector <uint8_t> SignMessage(const std::string &message) {
-            signing_key = EcdsaP256Sha256SigningKey::Create().ValueOrDie();
-            std::vector <uint8_t> signature;
-            ASYLO_CHECK_OK(signing_key->Sign(message, &signature));
-            return signature;
-        }
-
-        // verify the message with ecdsa verfying key
-        const Status VerifyMessage(const std::string &message, std::vector <uint8_t> signature) {
-            std::unique_ptr <VerifyingKey> verifying_key;
-            ASYLO_ASSIGN_OR_RETURN(verifying_key,
-                                   signing_key->GetVerifyingKey());
-            return verifying_key->Verify(message, signature);
-        }
-
-        // Encrypts a message against `kAesKey128` and returns a 12-byte nonce followed
-        // by authenticated ciphertext, encoded as a hex string.
-        const StatusOr <std::string> EncryptMessage(const std::string &message) {
-            std::unique_ptr <AeadCryptor> cryptor;
-            ASYLO_ASSIGN_OR_RETURN(cryptor,
-                                   AeadCryptor::CreateAesGcmSivCryptor(kAesKey128));
-
-            std::vector <uint8_t> additional_authenticated_data;
-            std::vector <uint8_t> nonce(cryptor->NonceSize());
-            std::vector <uint8_t> ciphertext(message.size() + cryptor->MaxSealOverhead());
-            size_t ciphertext_size;
-
-            ASYLO_RETURN_IF_ERROR(cryptor->Seal(
-                    message, additional_authenticated_data, absl::MakeSpan(nonce),
-                    absl::MakeSpan(ciphertext), &ciphertext_size));
-
-            return absl::StrCat(BytesToHexString(nonce), BytesToHexString(ciphertext));
-        }
-
-        const StatusOr <CleansingString> DecryptMessage(
-                const std::string &nonce_and_ciphertext) {
-            std::string input_bytes = absl::HexStringToBytes(nonce_and_ciphertext);
-
-            std::unique_ptr <AeadCryptor> cryptor;
-            ASYLO_ASSIGN_OR_RETURN(cryptor,
-                                   AeadCryptor::CreateAesGcmSivCryptor(kAesKey128));
-
-            if (input_bytes.size() < cryptor->NonceSize()) {
-                return Status(
-                        error::GoogleError::INVALID_ARGUMENT,
-                        absl::StrCat("Input too short: expected at least ",
-                                     cryptor->NonceSize(), " bytes, got ", input_bytes.size()));
-            }
-
-            std::vector <uint8_t> additional_authenticated_data;
-            std::vector <uint8_t> nonce = {input_bytes.begin(),
-                                           input_bytes.begin() + cryptor->NonceSize()};
-            std::vector <uint8_t> ciphertext = {input_bytes.begin() + cryptor->NonceSize(),
-                                                input_bytes.end()};
-
-            // The plaintext is always smaller than the ciphertext, so use
-            // `ciphertext.size()` as an upper bound on the plaintext buffer size.
-            CleansingVector <uint8_t> plaintext(ciphertext.size());
-            size_t plaintext_size;
-
-            ASYLO_RETURN_IF_ERROR(cryptor->Open(ciphertext, additional_authenticated_data,
-                                                nonce, absl::MakeSpan(plaintext),
-                                                &plaintext_size));
-
-            return CleansingString(plaintext.begin(), plaintext.end());
-        }
     }
 
     class HelloApplication : public asylo::TrustedApplication {
@@ -250,7 +169,7 @@ namespace asylo {
                             DUMP_CAPSULE(dc);
                             // once received RTS, send the latest EOE
                             if (dc->payload.key == COORDINATOR_RTS_KEY && !is_coordinator) {
-                                put(COORDINATOR_EOE_KEY, m_prev_hash, false);
+                                put(COORDINATOR_EOE_KEY, m_prev_hash, false, false);
                                 break;
                             }
                             else if (dc->payload.key == COORDINATOR_EOE_KEY && is_coordinator){
@@ -260,13 +179,19 @@ namespace asylo {
                                 m_eoe_hashes[dc->sender] = p;
                                 if(m_eoe_hashes.size() == TOTAL_THREADS - 2) { //minus 2 for server thread and coordinator thread
                                     LOGI << "coordinator received all EOEs, sending report" << serialize_eoe_hashes();
-                                    put(COORDINATOR_SYNC_KEY, serialize_eoe_hashes(), false);
+                                    put(COORDINATOR_SYNC_KEY, serialize_eoe_hashes(), false, true);
                                     m_eoe_hashes.clear();
                                 }
                             }
-                            else if (dc->payload.key == COORDINATOR_SYNC_KEY){
+                            else if (dc->payload.key == COORDINATOR_SYNC_KEY && !is_coordinator ){
                                 compare_eoe_hashes_from_string(dc->payload.value);
                                 LOGI << "Received the sync report " << serialize_eoe_hashes();
+                                m_prev_hash = dc -> metaHash;
+                                // the following writes hash points to the prev sync point
+                                std::pair<std::string, int64_t> p;
+                                p.first = dc->metaHash;
+                                p.second = dc->timestamp;
+                                m_eoe_hashes[m_enclave_id] = p;
                             }
                             else {
                                 update_client_hash(dc);
@@ -391,7 +316,7 @@ namespace asylo {
                 while (true){
                     sleep(EPOCH_TIME);
                     //send request to sync packet
-                    put(COORDINATOR_RTS_KEY, "RTS");
+                    put(COORDINATOR_RTS_KEY, "RTS", false, false);
                 }
                 return asylo::Status::OkStatus();
             } else if (input.HasExtension(hello_world::is_sync_thread)){
@@ -456,22 +381,24 @@ namespace asylo {
         std::unordered_map<int, std::pair<std::string, int64_t>> m_eoe_hashes;
 
 
-        void put_internal(capsule_pdu *dc, bool to_memtable = true, bool to_network = true) {
-            update_client_hash(dc);
+        void put_internal(capsule_pdu *dc, bool to_memtable = true, bool update_hash = true, bool to_network = true) {
+            if(update_hash)
+                update_client_hash(dc);
             if(to_memtable)
                 memtable.put(dc);
             if(to_network)
                 put_ocall(dc);
         }
 
-        void put(std::string key, std::string value, bool to_memtable = true, bool to_network = true) {
+        void put(std::string key, std::string value, bool to_memtable = true, bool update_hash = true, bool to_network = true) {
             capsule_pdu *dc = new capsule_pdu();
             asylo::KvToCapsule(dc, key, value, m_enclave_id);
             dc -> prevHash = m_prev_hash;
             m_prev_hash = dc->metaHash;
             //dc->timestamp = get_current_time();
             DUMP_CAPSULE(dc);
-            put_internal(dc, to_memtable, to_network);
+            put_internal(dc, to_memtable, update_hash, to_network);
+            LOGI << serialize_eoe_hashes();
             delete dc;
         }
 
@@ -541,7 +468,7 @@ namespace asylo {
                 auto m_current_hash_ts_pair = m_eoe_hashes[key];
                 if(sync_pt_pair.first != m_current_hash_ts_pair.first){
                     if(sync_pt_pair.second > m_current_hash_ts_pair.second){
-                        LOGI << "INCONSISTENCY DETECTED!";
+                        LOGI << "INCONSISTENCY DETECTED! " << key << " " << m_enclave_id;
                         LOGI << "SYNC " << sync_pt_pair.first << " " << sync_pt_pair.second;
                         LOGI << "CURRENT " << m_current_hash_ts_pair.first << " " << m_current_hash_ts_pair.second;
                         inconsistency_handler();
@@ -553,7 +480,7 @@ namespace asylo {
 
         void update_client_hash(capsule_pdu* dc){
             std::pair<std::string, int64_t> p;
-            p.first = dc-> prevHash;
+            p.first = dc-> metaHash;
             p.second = dc->timestamp;
             m_eoe_hashes[dc->sender] = p;
         }
