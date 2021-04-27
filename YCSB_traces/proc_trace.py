@@ -12,13 +12,14 @@ def proc_put(line):
 
 def proc_get(line):
     global M_FINAL_SCRIPT
-    M_FINAL_SCRIPT += ("\tget(\"{}\");\\\n".format(line[1]))
+    #M_FINAL_SCRIPT += ("\tget(\"{}\");\\\n".format(line[1]))
 
 M_FINAL_SCRIPT += "\t LOGD << \"Load started\"; \\\n"
 
 counter = 0
+num_times = 10
 with open("./tracea_load_a.txt") as f:
-    text = f.read()
+    text = f.read() * num_times
     for line in text.split("\n"):
         if not line:
             continue 
