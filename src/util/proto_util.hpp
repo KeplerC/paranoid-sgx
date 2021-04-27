@@ -4,10 +4,23 @@
 #include <string>
 #include "src/capsule.h"
 #include "src/proto/hello.pb.h"
+#include "asylo/crypto/ecdsa_p256_sha256_signing_key.h"
+
+#define ASSIGN_OR_RETURN(lhs, rexpr)                \
+do {                                                      \
+  auto _asylo_status_or_value = (rexpr);                  \
+  if (ABSL_PREDICT_FALSE(!_asylo_status_or_value.ok())) { \
+    return 1;               \
+  }                                                       \
+  lhs = std::move(_asylo_status_or_value).ValueOrDie();   \
+} while (false)
+
 namespace asylo {
 
+bool verify_dc(const capsule_pdu *dc, const std::unique_ptr <VerifyingKey> &verifying_key);
 
-void KvToCapsule(capsule_pdu *dc, const std::string key, const std::string value, const int enclave_id);
+void KvToCapsule(capsule_pdu *dc, const std::string &key, const std::string &value, const int64_t lamport_timer,
+                const int enclave_id, const std::unique_ptr <SigningKey> &signing_key);
 
 void CapsuleToProto(const capsule_pdu *dc, hello_world::CapsulePDU *dcProto);
 

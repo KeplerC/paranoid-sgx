@@ -168,6 +168,11 @@ namespace asylo {
                         case ECALL_PUT:
                             LOGI << "[CICBUF-ECALL] transmitted a data capsule pdu";
                             DUMP_CAPSULE(dc);
+                            if (verify_dc(dc, verifying_key)) {
+                                LOGI << "dc verification successful.";
+                            } else {
+                                LOGI << "dc verification failed!!!";
+                            }
                             // once received RTS, send the latest EOE
                             if (dc->payload.key == COORDINATOR_RTS_KEY && !is_coordinator) {
                                 put(COORDINATOR_EOE_KEY, m_prev_hash, false, false);
@@ -229,6 +234,14 @@ namespace asylo {
             m_prev_hash = "init";
             requestedCallID = 0;
             m_lamport_timer = 0;
+
+            // Assign signing and verifying key
+            if (input.HasExtension(hello_world::crypto_param)) {
+                ASYLO_ASSIGN_OR_RETURN(signing_key,
+                        EcdsaP256Sha256SigningKey::CreateFromDer(input.GetExtension(hello_world::crypto_param).key()));
+                ASYLO_ASSIGN_OR_RETURN(verifying_key,
+                    signing_key->GetVerifyingKey());
+            }
 
             if (input.HasExtension(hello_world::enclave_responder)) {
 
@@ -379,6 +392,8 @@ namespace asylo {
         std::string pub_key;
         bool is_coordinator;
         int m_enclave_id;
+        std::unique_ptr <SigningKey> signing_key;
+        std::unique_ptr <VerifyingKey> verifying_key;
         std::string m_prev_hash;
         std::unordered_map<int, std::pair<std::string, int64_t>> m_eoe_hashes;
         int64_t m_lamport_timer;
@@ -396,11 +411,9 @@ namespace asylo {
         void put(std::string key, std::string value, bool to_memtable = true, bool update_hash = true, bool to_network = true) {
             m_lamport_timer += 1;
             capsule_pdu *dc = new capsule_pdu();
-            asylo::KvToCapsule(dc, key, value, m_enclave_id);
+            asylo::KvToCapsule(dc, key, value, m_lamport_timer, m_enclave_id, signing_key);
             dc -> prevHash = m_prev_hash;
-            dc -> timestamp = m_lamport_timer;
             m_prev_hash = dc->metaHash;
-            //dc->timestamp = get_current_time();
             DUMP_CAPSULE(dc);
             put_internal(dc, to_memtable, update_hash, to_network);
             delete dc;

@@ -13,32 +13,50 @@ namespace asylo {
         return tp.tv_sec * 1000 + tp.tv_usec / 1000;
     }
 
-    std::string get_data_hash(std::string key, std::string value){
-        return SignMessage(key+value);
+    std::string get_data_hash(const std::string &key, const std::string &value, 
+                                const std::unique_ptr <SigningKey> &signing_key){
+        return SignMessage(key+value, signing_key);
     }
 
-    std::string get_meta_data_hash(capsule_pdu *dc){
+    std::string get_meta_data_hash(const capsule_pdu *dc, const std::unique_ptr <SigningKey> &signing_key){
         std::string aggregated = std::to_string(dc->timestamp) + std::to_string(dc->sender);
-        std::reverse(aggregated.begin(),aggregated.end());
-        return SignMessage(aggregated);
+        return SignMessage(aggregated, signing_key);
     }
 
-    bool verify_data_hash(std::string key, std::string value, std::string signature){
-        return VerifyMessage(key + value, signature);
+    bool verify_data_hash(const std::string &key, const std::string &value, const std::string &signature,
+                            const std::unique_ptr <VerifyingKey> &verifying_key){
+        return VerifyMessage(key + value, signature, verifying_key);
     }
 
-    bool verify_meta_data_hash(capsule_pdu *dc, std::string signature){
+    bool verify_meta_data_hash(const capsule_pdu *dc, const std::string &signature,
+                                const std::unique_ptr <VerifyingKey> &verifying_key){
         std::string aggregated = std::to_string(dc->timestamp) + std::to_string(dc->sender);
-        return VerifyMessage(aggregated, signature);
+        return VerifyMessage(aggregated, signature, verifying_key);
     }
 
-    void KvToCapsule(capsule_pdu *dc, const std::string key, const std::string value, const int enclave_id) {
+    bool verify_dc(const capsule_pdu *dc, const std::unique_ptr <VerifyingKey> &verifying_key){
+        bool data_result = verify_data_hash(dc->payload.key, dc->payload.value, 
+                                            dc->dataHash, verifying_key);
+        if (!data_result) {
+            LOGI << "dataHash verification failed!!!";
+        }
+
+        bool meta_result = verify_meta_data_hash(dc, dc->metaHash, verifying_key);
+        if (!meta_result) {
+            LOGI << "metaHash verification failed!!!";
+        }
+
+        return data_result && meta_result;
+    }
+
+    void KvToCapsule(capsule_pdu *dc, const std::string &key, const std::string &value, const int64_t timer,
+                    const int enclave_id, const std::unique_ptr <SigningKey> &signing_key) {
         dc->payload.key = key;
         dc->payload.value = value;
-        //dc->timestamp = get_current_time();
+        dc->timestamp = timer;
         dc->sender = enclave_id;
-        dc->dataHash = get_data_hash(key, value);
-        dc->metaHash = get_meta_data_hash(dc);
+        dc->dataHash = get_data_hash(key, value, signing_key);
+        dc->metaHash = get_meta_data_hash(dc, signing_key);
     }
 
     void CapsuleToProto(const capsule_pdu *dc, hello_world::CapsulePDU *dcProto){

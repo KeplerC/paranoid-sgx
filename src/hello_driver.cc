@@ -29,6 +29,9 @@
 #include "absl/strings/str_split.h"
 #include "asylo/client.h"
 #include "asylo/crypto/sha256_hash_util.h"
+#include "asylo/util/cleansing_types.h"
+#include "asylo/crypto/ecdsa_p256_sha256_signing_key.h"
+#include "asylo/crypto/util/byte_container_util.h"
 #include "asylo/enclave.pb.h"
 #include "asylo/platform/primitives/sgx/loader.pb.h"
 #include "asylo/util/logging.h"
@@ -63,9 +66,10 @@ struct enclave_responder_args {
 
 class Asylo_SGX{
 public:
-    Asylo_SGX(std::string enclave_name){
+    Asylo_SGX(std::string enclave_name, asylo::CleansingVector<uint8_t> serialized_signing_key){
         //enclave name has to be unique
         this->m_name = enclave_name;
+        this->serialized_signing_key = serialized_signing_key;
     }
 
     static void* StartEnclaveResponder( void* hotMsgAsVoidP ) {
@@ -261,6 +265,7 @@ public:
         asylo::EnclaveOutput output;
 
         input.MutableExtension(hello_world::is_coordinator)->set_circ_buffer((long int) circ_buffer_host);;
+        *(input.MutableExtension(hello_world::crypto_param)->mutable_key()) = asylo::CopyToByteContainer<std::string>(serialized_signing_key);
         this->client->EnterAndRun(input, &output);
     }
 
@@ -281,6 +286,7 @@ public:
         //Register OCALL buffer to enclave 
         input.MutableExtension(hello_world::buffer)->set_buffer((long int) circ_buffer_host);
         input.MutableExtension(hello_world::buffer)->set_enclave_id(m_name);
+        *(input.MutableExtension(hello_world::crypto_param)->mutable_key()) = asylo::CopyToByteContainer<std::string>(serialized_signing_key);
 
         asylo::Status status = this->client->EnterAndRun(input, &output);
         if (!status.ok()) {
@@ -343,6 +349,7 @@ private:
     asylo::EnclaveManager *manager;
     asylo::EnclaveClient *client;
     std::string m_name;
+    asylo::CleansingVector<uint8_t> serialized_signing_key;
     HotMsg *circ_buffer_enclave;
     HotMsg *circ_buffer_host; 
     int requestedCallID;
@@ -493,6 +500,10 @@ void thread_start_sync_thread(Asylo_SGX* sgx){
 int main(int argc, char *argv[]) {
   // Part 0: Setup
     absl::ParseCommandLine(argc, argv);
+    std::unique_ptr <asylo::SigningKey> signing_key = asylo::EcdsaP256Sha256SigningKey::Create().ValueOrDie();
+    asylo::CleansingVector<uint8_t> serialized_signing_key;
+    ASSIGN_OR_RETURN(serialized_signing_key,
+                            signing_key->SerializeToDer());
 
 //    if (absl::GetFlag(FLAGS_payload).empty()) {
 //      LOG(QFATAL) << "Must supply a non-empty string for the DataCapsule payload --payload";
@@ -506,7 +517,7 @@ int main(int argc, char *argv[]) {
         std::vector <std::thread> worker_threads;
         //start clients
         for (unsigned thread_id = 1; thread_id < TOTAL_THREADS; thread_id++) {
-            Asylo_SGX* sgx = new Asylo_SGX( std::to_string(thread_id));
+            Asylo_SGX* sgx = new Asylo_SGX( std::to_string(thread_id), serialized_signing_key);
             sgx->init();
             sleep(1);
             if(thread_id == 1){
@@ -528,7 +539,7 @@ int main(int argc, char *argv[]) {
         //start clients
         int num_threads = TOTAL_THREADS + 1;
         for (unsigned thread_id = 1; thread_id < num_threads; thread_id++) {
-            Asylo_SGX* sgx = new Asylo_SGX( std::to_string(thread_id));
+            Asylo_SGX* sgx = new Asylo_SGX( std::to_string(thread_id), serialized_signing_key);
             sgx->init();
             sleep(1);
             worker_threads.push_back(std::thread(thread_run_zmq_client, thread_id, sgx));
