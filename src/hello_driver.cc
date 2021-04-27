@@ -226,14 +226,8 @@ public:
         //Starts Enclave responder
         this->client = this->manager->GetClient(this->m_name);
 
-        //Load server/port
-        std::string server_addr = absl::GetFlag(FLAGS_server_address);
-        LOG_IF(QFATAL, server_addr == "") << "--server_addr cannot be empty";
 
-        int32_t port = absl::GetFlag(FLAGS_port);
-        LOG_IF(QFATAL, port == 0) << "--port cannot be 0";
-
-        struct enclave_responder_args e_responder_args = {this->client, circ_buffer_enclave, server_addr, port};
+        struct enclave_responder_args e_responder_args = {this->client, circ_buffer_enclave, NET_KEY_DIST_SERVER_IP, NET_KEY_DIST_SERVER_PORT};
         pthread_create(&circ_buffer_enclave->responderThread, NULL, StartEnclaveResponder, (void*)&e_responder_args);
 
         //Start Host Responder
@@ -294,20 +288,8 @@ public:
         }
 
         //Load server/port
-        std::string server_addr = absl::GetFlag(FLAGS_server_address);
-        LOG_IF(QFATAL, server_addr == "") << "--server_addr cannot be empty";
-
-        int32_t port = absl::GetFlag(FLAGS_port);
-        LOG_IF(QFATAL, port == 0) << "--port cannot be 0";
-
-        // hello_world::KVS_Server_Config kvs_server_config; 
-        // kvs_server_config.set_server_address(server_addr);
-        // kvs_server_config.set_port(port);
-
-        input.MutableExtension(hello_world::kvs_server_config)->set_server_address(server_addr);
-        input.MutableExtension(hello_world::kvs_server_config)->set_port(port);
-
-        LOGI << "server_addr: %s, port: %d\n", server_addr.c_str(), port;
+        input.MutableExtension(hello_world::kvs_server_config)->set_server_address(NET_KEY_DIST_SERVER_IP);
+        input.MutableExtension(hello_world::kvs_server_config)->set_port(NET_KEY_DIST_SERVER_PORT);
 
 
 //        asylo::EnclaveInput input;
@@ -530,7 +512,6 @@ int main(int argc, char *argv[]) {
             if(thread_id == 1){
                 worker_threads.push_back(std::thread(thread_run_zmq_client, thread_id, sgx));
                 worker_threads.push_back(std::thread(thread_start_coordinator, sgx));
-                worker_threads.push_back(std::thread(thread_start_sync_thread, sgx));
             } else{
                 worker_threads.push_back(std::thread(thread_run_zmq_client, thread_id, sgx));
                 worker_threads.push_back(std::thread(thread_start_fake_client, sgx));

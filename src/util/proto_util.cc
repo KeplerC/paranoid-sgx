@@ -35,7 +35,7 @@ namespace asylo {
     void KvToCapsule(capsule_pdu *dc, const std::string key, const std::string value, const int enclave_id) {
         dc->payload.key = key;
         dc->payload.value = value;
-        dc->timestamp = get_current_time();
+        //dc->timestamp = get_current_time();
         dc->sender = enclave_id;
         dc->dataHash = get_data_hash(key, value);
         dc->metaHash = get_meta_data_hash(dc);

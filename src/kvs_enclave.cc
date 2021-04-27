@@ -163,6 +163,7 @@ namespace asylo {
                     capsule_pdu *dc = new capsule_pdu(); // freed below
                     CapsuleToCapsule(dc, (capsule_pdu *) arg->data);
                     primitives::TrustedPrimitives::UntrustedLocalFree((capsule_pdu *) arg->data);
+                    m_lamport_timer = std::max(m_lamport_timer, dc->timestamp) + 1;
                     switch(arg->ecall_id){
                         case ECALL_PUT:
                             LOGI << "[CICBUF-ECALL] transmitted a data capsule pdu";
@@ -227,6 +228,7 @@ namespace asylo {
 
             m_prev_hash = "init";
             requestedCallID = 0;
+            m_lamport_timer = 0;
 
             if (input.HasExtension(hello_world::enclave_responder)) {
 
@@ -379,6 +381,7 @@ namespace asylo {
         int m_enclave_id;
         std::string m_prev_hash;
         std::unordered_map<int, std::pair<std::string, int64_t>> m_eoe_hashes;
+        int64_t m_lamport_timer;
 
 
         void put_internal(capsule_pdu *dc, bool to_memtable = true, bool update_hash = true, bool to_network = true) {
@@ -391,14 +394,15 @@ namespace asylo {
         }
 
         void put(std::string key, std::string value, bool to_memtable = true, bool update_hash = true, bool to_network = true) {
+            m_lamport_timer += 1;
             capsule_pdu *dc = new capsule_pdu();
             asylo::KvToCapsule(dc, key, value, m_enclave_id);
             dc -> prevHash = m_prev_hash;
+            dc -> timestamp = m_lamport_timer;
             m_prev_hash = dc->metaHash;
             //dc->timestamp = get_current_time();
             DUMP_CAPSULE(dc);
             put_internal(dc, to_memtable, update_hash, to_network);
-            LOGI << serialize_eoe_hashes();
             delete dc;
         }
 
@@ -468,9 +472,9 @@ namespace asylo {
                 auto m_current_hash_ts_pair = m_eoe_hashes[key];
                 if(sync_pt_pair.first != m_current_hash_ts_pair.first){
                     if(sync_pt_pair.second > m_current_hash_ts_pair.second){
-                        LOGI << "INCONSISTENCY DETECTED! " << key << " " << m_enclave_id;
-                        LOGI << "SYNC " << sync_pt_pair.first << " " << sync_pt_pair.second;
-                        LOGI << "CURRENT " << m_current_hash_ts_pair.first << " " << m_current_hash_ts_pair.second;
+                        LOG(INFO) << "INCONSISTENCY DETECTED! " << key << " " << m_enclave_id;
+                        LOG(INFO) << "SYNC " << sync_pt_pair.first << " " << sync_pt_pair.second;
+                        LOG(INFO) << "CURRENT " << m_current_hash_ts_pair.first << " " << m_current_hash_ts_pair.second;
                         inconsistency_handler();
                     }
                 }
