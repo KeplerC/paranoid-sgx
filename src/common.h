@@ -31,6 +31,8 @@
 #define NET_SEED_SERVER_IP "localhost"
 // ip of sync coordinator
 #define NET_SYNC_SERVER_IP "localhost"
+// ip of key distribution server
+#define NET_KEY_DIST_SERVER_IP "localhost"
 
 // Key for coordinator Request To Send(RTS)
 #define COORDINATOR_RTS_KEY "PARANOID_RTS"
@@ -47,6 +49,7 @@
 #define NET_SYNC_SERVER_PORT 5556
 #define NET_SERVER_JOIN_PORT 6666
 #define NET_SERVER_MCAST_PORT 6667
+#define NET_KEY_DIST_SERVER_PORT 3001
 
 
 #define BENCHMARK_MODE false

@@ -19,7 +19,7 @@ bool MemTable::put(capsule_pdu *dc) {
         //the timestamp of this capsule is earlier, skip the change
         // TODO (Hanming): add client id into comparison for same timestamp dc's
         if (dc->timestamp <= prev_timestamp){
-            LOG(INFO) << "[EARLIER DISCARDED] Timestamp of incoming capsule key: " << dc->payload.key
+            LOGI << "[EARLIER DISCARDED] Timestamp of incoming capsule key: " << dc->payload.key
                       << ", timestamp: " << dc->timestamp << " ealier than "  << prev_timestamp;
             sgx_spin_unlock(&mt_spinlock);
             return false;
