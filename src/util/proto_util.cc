@@ -49,13 +49,32 @@ namespace asylo {
         return data_result && meta_result;
     }
 
+    bool encrypt_payload(capsule_pdu *dc) {
+        std::string encrypted_key;
+        std::string encrypted_value;
+        ASSIGN_OR_RETURN_FALSE(encrypted_key, EncryptMessage(dc->payload.key));
+        ASSIGN_OR_RETURN_FALSE(encrypted_value, EncryptMessage(dc->payload.value));
+        dc->payload.key = encrypted_key;
+        dc->payload.value = encrypted_value;
+        return true;
+    }
+
+    bool decrypt_payload(capsule_pdu *dc) {
+        std::string decrypted_key;
+        std::string decrypted_value;
+        ASSIGN_OR_RETURN_FALSE(decrypted_key, DecryptMessage(dc->payload.key));
+        ASSIGN_OR_RETURN_FALSE(decrypted_value, DecryptMessage(dc->payload.value));
+        dc->payload.key = decrypted_key;
+        dc->payload.value = decrypted_value;
+        return true;
+    }
+
     void KvToCapsule(capsule_pdu *dc, const std::string &key, const std::string &value, const int64_t timer,
                     const int enclave_id, const std::unique_ptr <SigningKey> &signing_key) {
         dc->payload.key = key;
         dc->payload.value = value;
         dc->timestamp = timer;
         dc->sender = enclave_id;
-        dc->dataHash = get_data_hash(key, value, signing_key);
         dc->metaHash = get_meta_data_hash(dc, signing_key);
     }
 

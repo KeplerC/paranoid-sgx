@@ -10,14 +10,30 @@
 do {                                                      \
   auto _asylo_status_or_value = (rexpr);                  \
   if (ABSL_PREDICT_FALSE(!_asylo_status_or_value.ok())) { \
-    return 1;               \
+    return -1;               \
+  }                                                       \
+  lhs = std::move(_asylo_status_or_value).ValueOrDie();   \
+} while (false)
+
+#define ASSIGN_OR_RETURN_FALSE(lhs, rexpr)                \
+do {                                                      \
+  auto _asylo_status_or_value = (rexpr);                  \
+  if (ABSL_PREDICT_FALSE(!_asylo_status_or_value.ok())) { \
+    return false;               \
   }                                                       \
   lhs = std::move(_asylo_status_or_value).ValueOrDie();   \
 } while (false)
 
 namespace asylo {
 
+std::string get_data_hash(const std::string &key, const std::string &value, 
+                          const std::unique_ptr <SigningKey> &signing_key);
+
 bool verify_dc(const capsule_pdu *dc, const std::unique_ptr <VerifyingKey> &verifying_key);
+
+bool encrypt_payload(capsule_pdu *dc);
+
+bool decrypt_payload(capsule_pdu *dc);
 
 void KvToCapsule(capsule_pdu *dc, const std::string &key, const std::string &value, const int64_t lamport_timer,
                 const int enclave_id, const std::unique_ptr <SigningKey> &signing_key);

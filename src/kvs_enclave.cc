@@ -172,7 +172,16 @@ namespace asylo {
                                 LOGI << "dc verification successful.";
                             } else {
                                 LOGI << "dc verification failed!!!";
+                                break;
                             }
+                            // decrypt payload
+                            if (decrypt_payload(dc)) {
+                                LOGI << "dc payload decryption successful";
+                            } else {
+                                LOGI << "dc payload decryption failed!!!";
+                                break;
+                            }
+                            DUMP_CAPSULE(dc);
                             // once received RTS, send the latest EOE
                             if (dc->payload.key == COORDINATOR_RTS_KEY && !is_coordinator) {
                                 put(COORDINATOR_EOE_KEY, m_prev_hash, false, false);
@@ -398,16 +407,6 @@ namespace asylo {
         std::unordered_map<int, std::pair<std::string, int64_t>> m_eoe_hashes;
         int64_t m_lamport_timer;
 
-
-        void put_internal(capsule_pdu *dc, bool to_memtable = true, bool update_hash = true, bool to_network = true) {
-            if(update_hash)
-                update_client_hash(dc);
-            if(to_memtable)
-                memtable.put(dc);
-            if(to_network)
-                put_ocall(dc);
-        }
-
         void put(std::string key, std::string value, bool to_memtable = true, bool update_hash = true, bool to_network = true) {
             m_lamport_timer += 1;
             capsule_pdu *dc = new capsule_pdu();
@@ -415,7 +414,24 @@ namespace asylo {
             dc -> prevHash = m_prev_hash;
             m_prev_hash = dc->metaHash;
             DUMP_CAPSULE(dc);
-            put_internal(dc, to_memtable, update_hash, to_network);
+            
+            // update hash map
+            if(update_hash)
+                update_client_hash(dc);
+
+            // store in memtable
+            if(to_memtable)
+                memtable.put(dc);
+
+            // encrypt and send
+            if(to_network) {
+                bool success = encrypt_payload(dc);
+                if (!success) {
+                    LOGI << "payload encryption failed!!!";
+                }
+                dc->dataHash = get_data_hash(dc->payload.key, dc->payload.value, signing_key);
+                put_ocall(dc);
+            }
             delete dc;
         }
 
