@@ -429,7 +429,6 @@ namespace asylo {
                 if (!success) {
                     LOGI << "payload encryption failed!!!";
                 }
-                dc->dataHash = get_data_hash(dc->payload.key, dc->payload.value, signing_key);
                 put_ocall(dc);
             }
             delete dc;

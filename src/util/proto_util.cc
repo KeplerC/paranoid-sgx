@@ -13,11 +13,6 @@ namespace asylo {
         return tp.tv_sec * 1000 + tp.tv_usec / 1000;
     }
 
-    std::string get_data_hash(const std::string &key, const std::string &value, 
-                                const std::unique_ptr <SigningKey> &signing_key){
-        return SignMessage(key+value, signing_key);
-    }
-
     std::string get_meta_data_hash(const capsule_pdu *dc, const std::unique_ptr <SigningKey> &signing_key){
         std::string aggregated = std::to_string(dc->timestamp) + std::to_string(dc->sender);
         return SignMessage(aggregated, signing_key);
@@ -35,18 +30,13 @@ namespace asylo {
     }
 
     bool verify_dc(const capsule_pdu *dc, const std::unique_ptr <VerifyingKey> &verifying_key){
-        bool data_result = verify_data_hash(dc->payload.key, dc->payload.value, 
-                                            dc->dataHash, verifying_key);
-        if (!data_result) {
-            LOGI << "dataHash verification failed!!!";
-        }
 
         bool meta_result = verify_meta_data_hash(dc, dc->metaHash, verifying_key);
         if (!meta_result) {
             LOGI << "metaHash verification failed!!!";
         }
 
-        return data_result && meta_result;
+        return meta_result;
     }
 
     bool encrypt_payload(capsule_pdu *dc) {
@@ -87,8 +77,6 @@ namespace asylo {
 
         dcProto->set_prevhash(dc->prevHash);
         dcProto->set_metahash(dc->metaHash);
-        dcProto->set_datahash(dc->dataHash);
-        dcProto->set_synchash(dc->syncHash);
 
         dcProto->set_timestamp(dc->timestamp);
 
@@ -103,8 +91,6 @@ namespace asylo {
 
         dc->prevHash = dcProto->prevhash();
         dc->metaHash = dcProto->metahash();
-        dc->dataHash = dcProto->datahash();
-        dc->syncHash = dcProto->synchash();
 
         dc->timestamp = dcProto->timestamp();
     }
@@ -117,15 +103,13 @@ namespace asylo {
 
         dc_new->prevHash = dc->prevHash;
         dc_new->metaHash = dc->metaHash;
-        dc_new->dataHash = dc->dataHash;
-        dc_new->syncHash = dc->syncHash;
 
         dc_new->timestamp = dc->timestamp;
     }
 
     void dumpProtoCapsule(const hello_world::CapsulePDU *dcProto){
         LOGI << "Sender: "<< dcProto->sender() << ", Key: " << dcProto->payload().key() << ", Value: "
-                  << dcProto->payload().value() << ", Timestamp: " << (int64_t) dcProto->timestamp() << ", dataHash: " << dcProto->datahash() <<  ", metaHash: " << dcProto->metahash();//", syncHash: " << dcProto->synchash();
+                  << dcProto->payload().value() << ", Timestamp: " << (int64_t) dcProto->timestamp() << ", metaHash: " << dcProto->metahash();
     }
 
 } // namespace asylo

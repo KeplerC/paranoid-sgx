@@ -26,9 +26,6 @@ do {                                                      \
 
 namespace asylo {
 
-std::string get_data_hash(const std::string &key, const std::string &value, 
-                          const std::unique_ptr <SigningKey> &signing_key);
-
 bool verify_dc(const capsule_pdu *dc, const std::unique_ptr <VerifyingKey> &verifying_key);
 
 bool encrypt_payload(capsule_pdu *dc);
