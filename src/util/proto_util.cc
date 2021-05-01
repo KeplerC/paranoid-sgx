@@ -18,11 +18,6 @@ namespace asylo {
         return SignMessage(aggregated, signing_key);
     }
 
-    bool verify_data_hash(const std::string &key, const std::string &value, const std::string &signature,
-                            const std::unique_ptr <VerifyingKey> &verifying_key){
-        return VerifyMessage(key + value, signature, verifying_key);
-    }
-
     bool verify_meta_data_hash(const capsule_pdu *dc, const std::string &signature,
                                 const std::unique_ptr <VerifyingKey> &verifying_key){
         std::string aggregated = std::to_string(dc->timestamp) + std::to_string(dc->sender);
