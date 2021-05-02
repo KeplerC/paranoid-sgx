@@ -26,6 +26,8 @@ do {                                                      \
 
 namespace asylo {
 
+bool generate_meta_data_hash(capsule_pdu *dc);
+
 bool verify_dc(const capsule_pdu *dc, const std::unique_ptr <VerifyingKey> &verifying_key);
 
 bool encrypt_payload(capsule_pdu *dc);
@@ -33,7 +35,7 @@ bool encrypt_payload(capsule_pdu *dc);
 bool decrypt_payload(capsule_pdu *dc);
 
 void KvToCapsule(capsule_pdu *dc, const std::string &key, const std::string &value, const int64_t lamport_timer,
-                const int enclave_id, const std::unique_ptr <SigningKey> &signing_key);
+                const int enclave_id);
 
 void CapsuleToProto(const capsule_pdu *dc, hello_world::CapsulePDU *dcProto);
 

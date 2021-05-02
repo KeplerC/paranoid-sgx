@@ -13,23 +13,36 @@ namespace asylo {
         return tp.tv_sec * 1000 + tp.tv_usec / 1000;
     }
 
-    std::string get_meta_data_hash(const capsule_pdu *dc, const std::unique_ptr <SigningKey> &signing_key){
-        std::string aggregated = std::to_string(dc->timestamp) + std::to_string(dc->sender);
-        return SignMessage(aggregated, signing_key);
+    bool generate_meta_data_hash(capsule_pdu *dc){
+        const std::string aggregated = std::to_string(dc->sender) + std::to_string(dc->timestamp)
+                                 + dc->payload.key + dc->payload.value;
+        std::vector<uint8_t> digest;
+        bool success = DoHash(aggregated, &digest);
+        if (!success) return false;
+        dc->metaHash = BytesToHexString(digest);
+        return true;
     }
 
-    bool verify_meta_data_hash(const capsule_pdu *dc, const std::string &signature,
-                                const std::unique_ptr <VerifyingKey> &verifying_key){
-        std::string aggregated = std::to_string(dc->timestamp) + std::to_string(dc->sender);
-        return VerifyMessage(aggregated, signature, verifying_key);
+    bool verify_meta_data_hash(const capsule_pdu *dc){
+        const std::string aggregated = std::to_string(dc->sender) + std::to_string(dc->timestamp)
+                                 + dc->payload.key + dc->payload.value;
+        std::vector<uint8_t> digest;
+        bool success = DoHash(aggregated, &digest);
+        if (!success) return false;
+        return dc->metaHash == BytesToHexString(digest);
     }
 
     bool verify_dc(const capsule_pdu *dc, const std::unique_ptr <VerifyingKey> &verifying_key){
-
-        bool meta_result = verify_meta_data_hash(dc, dc->metaHash, verifying_key);
+        
+        // verify metaHash matches
+        bool meta_result = verify_meta_data_hash(dc);
         if (!meta_result) {
             LOGI << "metaHash verification failed!!!";
         }
+
+        // verify signature
+
+        // verify prevHash matches
 
         return meta_result;
     }
@@ -55,12 +68,11 @@ namespace asylo {
     }
 
     void KvToCapsule(capsule_pdu *dc, const std::string &key, const std::string &value, const int64_t timer,
-                    const int enclave_id, const std::unique_ptr <SigningKey> &signing_key) {
+                    const int enclave_id) {
         dc->payload.key = key;
         dc->payload.value = value;
         dc->timestamp = timer;
         dc->sender = enclave_id;
-        dc->metaHash = get_meta_data_hash(dc, signing_key);
     }
 
     void CapsuleToProto(const capsule_pdu *dc, hello_world::CapsulePDU *dcProto){

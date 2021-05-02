@@ -7,6 +7,7 @@
 
 #include "asylo/crypto/ecdsa_p256_sha256_signing_key.h"
 #include "asylo/crypto/aead_cryptor.h"
+#include "asylo/crypto/sha256_hash.h"
 
 namespace asylo{
     // Dummy 128-bit AES key.
@@ -14,11 +15,21 @@ namespace asylo{
     0x06, 0x07, 0x08, 0x09, 0x10, 0x11,
     0x12, 0x13, 0x14, 0x15};
 
+    Sha256Hash hasher;
+
     // Helper function that adapts absl::BytesToHexString, allowing it to be used
     // with ByteContainerView.
     std::string BytesToHexString(ByteContainerView bytes) {
        return absl::BytesToHexString(absl::string_view(
                reinterpret_cast<const char *>(bytes.data()), bytes.size()));
+    }
+
+    // digest is the hash of message
+    bool DoHash(const ByteContainerView &message, std::vector<uint8_t> *digest) {
+        hasher.Init();
+        hasher.Update(message);
+        Status status = hasher.CumulativeHash(digest);
+        return status.ok() ? true : false;
     }
 
     // signs the message with ecdsa signing key

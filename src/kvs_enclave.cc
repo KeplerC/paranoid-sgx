@@ -410,27 +410,40 @@ namespace asylo {
         void put(std::string key, std::string value, bool to_memtable = true, bool update_hash = true, bool to_network = true) {
             m_lamport_timer += 1;
             capsule_pdu *dc = new capsule_pdu();
-            asylo::KvToCapsule(dc, key, value, m_lamport_timer, m_enclave_id, signing_key);
-            dc -> prevHash = m_prev_hash;
-            m_prev_hash = dc->metaHash;
+            asylo::KvToCapsule(dc, key, value, m_lamport_timer, m_enclave_id);
             DUMP_CAPSULE(dc);
-            
+
+            // store in memtable before encrypting
+            if(to_memtable)
+                memtable.put(dc);
+
+            // generate metaHash if needed
+            if (update_hash || to_network) {
+                bool success = encrypt_payload(dc);
+                if (!success) {
+                    LOGI << "payload encryption failed!!!";
+                    delete dc;
+                    return;
+                }
+                // generate metaHash and update prev_hash
+                success = generate_meta_data_hash(dc);
+                if (!success) {
+                    LOGI << "metaHash generation failed!!!";
+                    delete dc;
+                    return;
+                }
+                dc->prevHash = m_prev_hash;
+                m_prev_hash = dc->metaHash;
+            }
+
             // update hash map
             if(update_hash)
                 update_client_hash(dc);
 
-            // store in memtable
-            if(to_memtable)
-                memtable.put(dc);
-
-            // encrypt and send
-            if(to_network) {
-                bool success = encrypt_payload(dc);
-                if (!success) {
-                    LOGI << "payload encryption failed!!!";
-                }
+            // send
+            if(to_network) 
                 put_ocall(dc);
-            }
+
             delete dc;
         }
 
