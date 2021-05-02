@@ -23,6 +23,12 @@ namespace asylo {
         return true;
     }
 
+    bool sign_dc(capsule_pdu *dc, const std::unique_ptr <SigningKey> &signing_key) {
+        std::string aggregated = dc->metaHash + dc->prevHash;
+        dc->signature = SignMessage(aggregated, signing_key);
+        return true;
+    }
+
     bool verify_meta_data_hash(const capsule_pdu *dc){
         const std::string aggregated = std::to_string(dc->sender) + std::to_string(dc->timestamp)
                                  + dc->payload.key + dc->payload.value;
@@ -30,6 +36,10 @@ namespace asylo {
         bool success = DoHash(aggregated, &digest);
         if (!success) return false;
         return dc->metaHash == BytesToHexString(digest);
+    }
+
+    bool verify_signature(const capsule_pdu *dc, const std::unique_ptr <VerifyingKey> &verifying_key) {
+        return VerifyMessage(dc->metaHash + dc->prevHash, dc->signature, verifying_key);
     }
 
     bool verify_dc(const capsule_pdu *dc, const std::unique_ptr <VerifyingKey> &verifying_key){
@@ -41,10 +51,14 @@ namespace asylo {
         }
 
         // verify signature
+        bool sig_result = verify_signature(dc, verifying_key);
+        if (!sig_result) {
+            LOGI << "signature verification failed!!!";
+        }
 
-        // verify prevHash matches
+        // TODO: verify prevHash matches
 
-        return meta_result;
+        return meta_result && sig_result;
     }
 
     bool encrypt_payload(capsule_pdu *dc) {
@@ -116,7 +130,9 @@ namespace asylo {
 
     void dumpProtoCapsule(const hello_world::CapsulePDU *dcProto){
         LOGI << "Sender: "<< dcProto->sender() << ", Key: " << dcProto->payload().key() << ", Value: "
-                  << dcProto->payload().value() << ", Timestamp: " << (int64_t) dcProto->timestamp() << ", metaHash: " << dcProto->metahash();
+                  << dcProto->payload().value() << ", Timestamp: " << (int64_t) dcProto->timestamp() 
+                  << ", metaHash: " << dcProto->metahash() << ", prevHash: " << dcProto->prevhash()
+                  << ", signature: " << dcProto->signature();
     }
 
 } // namespace asylo

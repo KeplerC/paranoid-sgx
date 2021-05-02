@@ -441,8 +441,16 @@ namespace asylo {
                 update_client_hash(dc);
 
             // send
-            if(to_network) 
+            if(to_network) {
+                // sign dc
+                bool success = sign_dc(dc, signing_key);
+                if (!success) {
+                    LOGI << "sign dc failed!!!";
+                    delete dc;
+                    return;
+                }
                 put_ocall(dc);
+            }
 
             delete dc;
         }

@@ -25,6 +25,6 @@ typedef struct {
 } capsule_pdu;
 
 
-#define DUMP_CAPSULE(dc) LOGI << "Sender: "<< dc->sender << ", Key: " << dc->payload.key << ", Value: " << dc->payload.value << ", Timestamp: " << (int64_t) dc->timestamp << ", metaHash: " << dc->metaHash  << ", prevHash: " << dc->prevHash;
+#define DUMP_CAPSULE(dc) LOGI << "Sender: "<< dc->sender << ", Key: " << dc->payload.key << ", Value: " << dc->payload.value << ", Timestamp: " << (int64_t) dc->timestamp << ", metaHash: " << dc->metaHash  << ", prevHash: " << dc->prevHash << ", signature: " << dc->signature;
 
 #endif 
