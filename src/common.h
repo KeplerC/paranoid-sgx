@@ -58,7 +58,7 @@
 #if BENCHMARK_MODE
     #define M_BENCHMARK_CODE M_BENCHMARK_HERE
 #else
-    #define M_BENCHMARK_CODE void benchmark(){}
+    #define M_BENCHMARK_CODE void KVSClient::benchmark(){}
 #endif
 
 enum OCALL_ID {

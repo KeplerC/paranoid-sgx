@@ -223,10 +223,9 @@ public:
 
         LOGI << "OCALL and ECALL circular buffers initialized." << std::endl;
 
-        //Starts Enclave responder
         this->client = this->manager->GetClient(this->m_name);
 
-
+        //Starts Enclave responder
         struct enclave_responder_args e_responder_args = {this->client, circ_buffer_enclave, NET_KEY_DIST_SERVER_IP, NET_KEY_DIST_SERVER_PORT};
         pthread_create(&circ_buffer_enclave->responderThread, NULL, StartEnclaveResponder, (void*)&e_responder_args);
 

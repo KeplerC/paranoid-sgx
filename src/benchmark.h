@@ -2,7 +2,7 @@
 #ifndef PARANOID_SGX_BENCHMARK_H
 #define PARANOID_SGX_BENCHMARK_H
 
-#define M_BENCHMARK_HERE void benchmark(){ \
+#define M_BENCHMARK_HERE void KVSClient::benchmark(){ \
 	 LOGD << "Load started"; \
 	put("6284781860667377", ":Sg3Ow5-v.6f>Q7)");\
 	put("8517097267634966", "'Uw'.6(&1");\
