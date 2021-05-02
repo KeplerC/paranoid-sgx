@@ -16,8 +16,8 @@
  *
  */
 
-#include "kvs_enclave.hpp"
-#include "benchmark.h"
+#include <kvs_enclave.hpp>
+#include "kvs_eapp.hpp"
 
 // #define USE_KEY_MANAGER
 
@@ -35,8 +35,8 @@ namespace asylo {
             delete dc;
         }
 
-        void KVSClient::get(std::string key){
-            memtable.get(key);
+        capsule_pdu KVSClient::get(std::string key){
+            return memtable.get(key);
         }
 
         asylo::Status KVSClient::Initialize(const EnclaveConfig &config){
@@ -138,8 +138,6 @@ namespace asylo {
                 is_coordinator = false;
             }
 
-            LOG(INFO) << "[ENCLAVE] HI ";
-
             //Register OCALL buffer
             buffer = (HotMsg *) input.GetExtension(hello_world::buffer).buffer();
             m_enclave_id = std::stoi(input.GetExtension(hello_world::buffer).enclave_id());
@@ -150,26 +148,7 @@ namespace asylo {
             // TODO: there still has some issues when the client starts before the client connects to the server
             // if we want to consider it, probably we need to buffer the messages
 
-
-            for( uint64_t i=0; i < 1; ++i ) {
-                LOG(INFO) << "[ENCLAVE] ===CLIENT PUT=== ";
-                LOG(INFO) << "[ENCLAVE] Generating a new capsule PDU ";
-                put("default_key", "default_value");
-            }
-
-
-            sleep(2);
-
-
-            for( uint64_t i=0; i < 1; ++i ) {
-                //dc[i].id = i;
-                LOG(INFO) << "[ENCLAVE] ===CLIENT GET=== ";
-                capsule_pdu tmp_dc = memtable.get("default_key");
-                DUMP_CAPSULE((&tmp_dc));
-            }
-
-            benchmark();
-            return asylo::Status::OkStatus();
+            return start_eapp(this, input);
         }
 
 

@@ -1,3 +1,5 @@
+#pragma once
+
 #include <cstdint>
 #include "absl/base/macros.h"
 #include "absl/strings/str_cat.h"
@@ -13,13 +15,13 @@
 #include "asylo/platform/primitives/trusted_primitives.h"
 #include "asylo/identity/platform/sgx/sgx_identity_util.h"
 #include "asylo/identity/attestation/sgx/sgx_local_assertion_generator.h"
-#include "capsule.h"
-#include "memtable.hpp"
-#include "hot_msg_pass.h"
-#include "common.h"
+#include "../kvs_include/capsule.h"
+#include "../memtable.hpp"
+#include "../hot_msg_pass.h"
+#include "../common.h"
 #include "src/proto/hello.pb.h"
 #include "src/util/proto_util.hpp"
-#include "duktape/duktape.h"
+#include "../duktape/duktape.h"
 
 //GRPC 
 #include "src/translator_server.grpc.pb.h"
@@ -37,9 +39,10 @@
     public:
         KVSClient(){}
         void put(std::string key, std::string value, bool to_memtable, bool update_hash, bool to_network);
-        void get(std::string key);
+        capsule_pdu get(std::string key);
         asylo::Status Initialize(const EnclaveConfig &config);
         asylo::Status Run(const asylo::EnclaveInput &input, asylo::EnclaveOutput *output) override;
+        void benchmark();
 
      private:
         MemTable memtable;
@@ -65,8 +68,6 @@
 
         int HotMsg_requestOCall( HotMsg* hotMsg, int dataID, void *data );
         void EnclaveMsgStartResponder( HotMsg *hotMsg );
-
-        void benchmark();
     };
 
     namespace {

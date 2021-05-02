@@ -38,7 +38,7 @@
 #include <zmq.hpp>
 #include "hot_msg_pass.h"
 #include "common.h"
-#include "capsule.h"
+#include "kvs_include/capsule.h"
 #include "src/proto/hello.pb.h"
 #include "src/util/proto_util.hpp"
 
@@ -52,6 +52,30 @@ ABSL_FLAG(std::string, input_file, "",
 
 ABSL_FLAG(std::string, server_address, "", "Address of the KVS coordinator");
 ABSL_FLAG(int32_t, port, 0, "Port that the server listens to");
+
+ABSL_FLAG(std::string, scenario, "", "Path to enclave to load");
+ABSL_FLAG(std::string, algorithm, "", "Path to enclave to load");
+ABSL_FLAG(std::string, coordinator, "", "Path to enclave to load");
+
+ABSL_FLAG(std::string, jobs, "4", "Path to enclave to load");
+ABSL_FLAG(std::string, env, "", "Path to enclave to load");
+ABSL_FLAG(std::string, env_frame, "", "Path to enclave to load");
+
+ABSL_FLAG(std::string, robot, "", "Path to enclave to load");
+ABSL_FLAG(std::string, goal, "", "Path to enclave to load");
+ABSL_FLAG(std::string, goal_radius, "", "Path to enclave to load");
+
+
+ABSL_FLAG(std::string, start, "", "Path to enclave to load");
+ABSL_FLAG(std::string, min, "", "Path to enclave to load");
+ABSL_FLAG(std::string, max, "", "Path to enclave to load");
+
+ABSL_FLAG(std::string, problem_id, "", "Path to enclave to load");
+ABSL_FLAG(std::string, time_limit, "", "Path to enclave to load");
+ABSL_FLAG(std::string, check_resolution, "", "Path to enclave to load");
+
+ABSL_FLAG(std::string, discretization, "", "Path to enclave to load");
+ABSL_FLAG(std::string, is_float, "", "Path to enclave to load");
 
 struct enclave_responder_args {
      asylo::EnclaveClient *client;
@@ -280,6 +304,33 @@ public:
         //Register OCALL buffer to enclave 
         input.MutableExtension(hello_world::buffer)->set_buffer((long int) circ_buffer_host);
         input.MutableExtension(hello_world::buffer)->set_enclave_id(m_name);
+
+        hello_world::MP_Lambda_Input lambda_input;
+        lambda_input.set_scenario(absl::GetFlag(FLAGS_scenario));
+        lambda_input.set_algorithm(absl::GetFlag(FLAGS_algorithm));
+        lambda_input.set_coordinator(absl::GetFlag(FLAGS_coordinator));
+
+        lambda_input.set_jobs(absl::GetFlag(FLAGS_jobs));
+        lambda_input.set_env(absl::GetFlag(FLAGS_env));
+        lambda_input.set_env_frame(absl::GetFlag(FLAGS_env_frame));
+
+
+        lambda_input.set_robot(absl::GetFlag(FLAGS_robot));
+        lambda_input.set_goal(absl::GetFlag(FLAGS_goal));
+        lambda_input.set_goal_radius(absl::GetFlag(FLAGS_goal_radius));
+
+        lambda_input.set_start(absl::GetFlag(FLAGS_start));
+        lambda_input.set_min(absl::GetFlag(FLAGS_min));
+        lambda_input.set_max(absl::GetFlag(FLAGS_max));
+
+        lambda_input.set_problem_id(absl::GetFlag(FLAGS_problem_id));
+        lambda_input.set_time_limit(absl::GetFlag(FLAGS_time_limit));
+        lambda_input.set_check_resolution(absl::GetFlag(FLAGS_check_resolution));
+
+        lambda_input.set_discretization(absl::GetFlag(FLAGS_discretization));
+        lambda_input.set_is_float(absl::GetFlag(FLAGS_is_float));
+
+        *input.MutableExtension(hello_world::lambda_input) = lambda_input;
 
         asylo::Status status = this->client->EnterAndRun(input, &output);
         if (!status.ok()) {

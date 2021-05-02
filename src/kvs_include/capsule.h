@@ -2,7 +2,7 @@
 #define _CAPSULE_H_
 
 #include <string>
-#include "common.h"
+#include "../common.h"
 // Size of DC payload 
 #define DC_PAYLOAD_SZ 256
 

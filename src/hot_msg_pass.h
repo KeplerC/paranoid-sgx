@@ -30,7 +30,7 @@
 #include <stdbool.h>
 #include "common.h"
 #include "sgx_spinlock.h"
-#include "capsule.h"
+#include "kvs_include/capsule.h"
 
 #pragma GCC diagnostic ignored "-Wunused-function"
 #define MAX_QUEUE_LENGTH 1000
