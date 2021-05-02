@@ -48,17 +48,33 @@ namespace asylo {
         bool meta_result = verify_meta_data_hash(dc);
         if (!meta_result) {
             LOGI << "metaHash verification failed!!!";
+            return false;
         }
 
         // verify signature
         bool sig_result = verify_signature(dc, verifying_key);
         if (!sig_result) {
             LOGI << "signature verification failed!!!";
+            return false;
         }
 
-        // TODO: verify prevHash matches
+        // TODO: verify prevHash matches. Need to clean up m_eoe_hash logic before implementation.
+        // if (dc->prevHash == "init") return true; // sender's first pdu
+        // auto got = m_eoe_hashes->find(dc->sender);
+        // if (got == m_eoe_hashes->end()){
+        //     LOGI << "prevHash verification failed!!! expected prevHash not found.";
+        //     return false;
+        // } else {
+        //     bool prev_hash_result = got->second.first == dc->prevHash;
+        //     if (!prev_hash_result) {
+        //         LOGI << "prevHash verification failed!!!";
+        //         LOGI << "expected: " << got->second.first;
+        //         LOGI << "received: " << dc->prevHash;
+        //         return false;
+        //     }
+        // }
 
-        return meta_result && sig_result;
+        return true;
     }
 
     bool encrypt_payload(capsule_pdu *dc) {

@@ -172,7 +172,6 @@ namespace asylo {
                                 LOGI << "dc verification successful.";
                             } else {
                                 LOGI << "dc verification failed!!!";
-                                break;
                             }
                             // decrypt payload
                             if (decrypt_payload(dc)) {
@@ -188,13 +187,16 @@ namespace asylo {
                                 break;
                             }
                             else if (dc->payload.key == COORDINATOR_EOE_KEY && is_coordinator){
+                                // store EOE for future sync
                                 std::pair<std::string, int64_t> p;
                                 p.first = dc->payload.value;
                                 p.second = dc->timestamp;
                                 m_eoe_hashes[dc->sender] = p;
+                                // if EOE from all enclaves received, start sync 
                                 if(m_eoe_hashes.size() == TOTAL_THREADS - 2) { //minus 2 for server thread and coordinator thread
                                     LOGI << "coordinator received all EOEs, sending report" << serialize_eoe_hashes();
                                     put(COORDINATOR_SYNC_KEY, serialize_eoe_hashes(), false, true);
+                                    // clear this epoch's EOE
                                     m_eoe_hashes.clear();
                                 }
                             }
