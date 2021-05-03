@@ -78,22 +78,27 @@ namespace asylo {
     }
 
     bool encrypt_payload(capsule_pdu *dc) {
-        std::string encrypted_key;
-        std::string encrypted_value;
-        ASSIGN_OR_RETURN_FALSE(encrypted_key, EncryptMessage(dc->payload.key));
-        ASSIGN_OR_RETURN_FALSE(encrypted_value, EncryptMessage(dc->payload.value));
-        dc->payload.key = encrypted_key;
-        dc->payload.value = encrypted_value;
+        // TODO: encode key value pair to prevent key has comma
+        std::string aggregated = dc->payload.key + "," + dc->payload.value;
+        std::string encrypted_string;
+
+        //ASSIGN_OR_RETURN_FALSE(encrypted_key, EncryptMessage(dc->payload.key));
+        ASSIGN_OR_RETURN_FALSE(encrypted_string, EncryptMessage(aggregated));
+        dc->payload.key = "";
+        dc->payload.value = encrypted_string;
         return true;
     }
 
     bool decrypt_payload(capsule_pdu *dc) {
         std::string decrypted_key;
         std::string decrypted_value;
-        ASSIGN_OR_RETURN_FALSE(decrypted_key, DecryptMessage(dc->payload.key));
-        ASSIGN_OR_RETURN_FALSE(decrypted_value, DecryptMessage(dc->payload.value));
-        dc->payload.key = decrypted_key;
-        dc->payload.value = decrypted_value;
+        std::string decrypted_aggregated;
+        ASSIGN_OR_RETURN_FALSE(decrypted_aggregated, DecryptMessage(dc->payload.value));
+        std::stringstream ss(decrypted_aggregated);
+
+        getline(ss, dc->payload.key, ',');
+        getline(ss, dc->payload.value);
+
         return true;
     }
 
