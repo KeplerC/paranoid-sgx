@@ -14,8 +14,7 @@ namespace asylo {
     }
 
     bool generate_meta_data_hash(capsule_pdu *dc){
-        const std::string aggregated = std::to_string(dc->sender) + std::to_string(dc->timestamp)
-                                 + dc->payload.key + dc->payload.value;
+        const std::string aggregated = std::to_string(dc->sender) + std::to_string(dc->timestamp);
         std::vector<uint8_t> digest;
         bool success = DoHash(aggregated, &digest);
         if (!success) return false;
@@ -30,8 +29,7 @@ namespace asylo {
     }
 
     bool verify_meta_data_hash(const capsule_pdu *dc){
-        const std::string aggregated = std::to_string(dc->sender) + std::to_string(dc->timestamp)
-                                 + dc->payload.key + dc->payload.value;
+        const std::string aggregated = std::to_string(dc->sender) + std::to_string(dc->timestamp);
         std::vector<uint8_t> digest;
         bool success = DoHash(aggregated, &digest);
         if (!success) return false;
@@ -84,8 +82,7 @@ namespace asylo {
 
         //ASSIGN_OR_RETURN_FALSE(encrypted_key, EncryptMessage(dc->payload.key));
         ASSIGN_OR_RETURN_FALSE(encrypted_string, EncryptMessage(aggregated));
-        dc->payload.key = "";
-        dc->payload.value = encrypted_string;
+        dc->payload_in_transit = encrypted_string;
         return true;
     }
 
@@ -93,7 +90,7 @@ namespace asylo {
         std::string decrypted_key;
         std::string decrypted_value;
         std::string decrypted_aggregated;
-        ASSIGN_OR_RETURN_FALSE(decrypted_aggregated, DecryptMessage(dc->payload.value));
+        ASSIGN_OR_RETURN_FALSE(decrypted_aggregated, DecryptMessage(dc->payload_in_transit));
         std::stringstream ss(decrypted_aggregated);
 
         getline(ss, dc->payload.key, ',');
@@ -112,8 +109,9 @@ namespace asylo {
 
     void CapsuleToProto(const capsule_pdu *dc, hello_world::CapsulePDU *dcProto){
 
-        dcProto->mutable_payload()->set_key(dc->payload.key);
-        dcProto->mutable_payload()->set_value(dc->payload.value);
+        //dcProto->mutable_payload()->set_key(dc->payload.key);
+        //dcProto->mutable_payload()->set_value(dc->payload.value);
+        dcProto->set_payload_in_transit(dc->payload_in_transit);
         dcProto->set_signature(dc->signature);
         dcProto->set_sender(dc->sender);
 
@@ -126,10 +124,9 @@ namespace asylo {
 
     void CapsuleFromProto(capsule_pdu *dc, const hello_world::CapsulePDU *dcProto) {
 
-        dc->payload.key = dcProto->payload().key();
-        dc->payload.value = dcProto->payload().value();
         dc->signature = dcProto->signature();
         dc->sender = dcProto->sender();
+        dc->payload_in_transit = dcProto->payload_in_transit();
 
         dc->prevHash = dcProto->prevhash();
         dc->metaHash = dcProto->metahash();
@@ -138,10 +135,9 @@ namespace asylo {
     }
 
     void CapsuleToCapsule(capsule_pdu *dc_new, const capsule_pdu *dc) {
-        dc_new->payload.key = dc->payload.key;
-        dc_new->payload.value = dc->payload.value;
         dc_new->signature = dc->signature;
         dc_new->sender = dc->sender;
+        dc_new->payload_in_transit = dc->payload_in_transit;
 
         dc_new->prevHash = dc->prevHash;
         dc_new->metaHash = dc->metaHash;
@@ -150,8 +146,7 @@ namespace asylo {
     }
 
     void dumpProtoCapsule(const hello_world::CapsulePDU *dcProto){
-        LOGI << "Sender: "<< dcProto->sender() << ", Key: " << dcProto->payload().key() << ", Value: "
-                  << dcProto->payload().value() << ", Timestamp: " << (int64_t) dcProto->timestamp() 
+        LOGI << "Sender: "<< dcProto->sender()  << "payload :" << dcProto->payload_in_transit() << ", Timestamp: " << (int64_t) dcProto->timestamp()
                   << ", metaHash: " << dcProto->metahash() << ", prevHash: " << dcProto->prevhash()
                   << ", signature: " << dcProto->signature();
     }

@@ -4,7 +4,8 @@ package hello_world;
 
 message CapsulePDU {
 
-  optional KVSPayload payload = 2;
+  // optional KVSPayload payload = 2;
+  optional string payload_in_transit = 2;
   optional int64 sender = 9;
   optional bytes signature = 3;
 

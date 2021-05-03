@@ -144,11 +144,13 @@ public:
                     in_dc.SerializeToString(&out_s);
                     zmq::message_t msg(out_s.size());
                     memcpy(msg.data(), out_s.c_str(), out_s.size());
-                    if(in_dc.payload().key() == COORDINATOR_EOE_KEY){
-                        socket_ptr_to_sync->send(msg);
-                    }else {
-                        socket_ptr->send(msg);
-                    }
+//                    if(in_dc.payload().key() == COORDINATOR_EOE_KEY){
+//                        socket_ptr_to_sync->send(msg);
+//                    }else {
+//                        socket_ptr->send(msg);
+//                    }
+//TODO: need to distinguish EOE or not
+                    socket_ptr->send(msg);
                     break;
                 }
                 default:

@@ -14,6 +14,7 @@ typedef struct {
 typedef struct {
     
     kvs_payload payload;
+    std::string payload_in_transit;
     std::string signature;
     int sender;
     
@@ -25,6 +26,6 @@ typedef struct {
 } capsule_pdu;
 
 
-#define DUMP_CAPSULE(dc) LOGI << "Sender: "<< dc->sender << ", Key: " << dc->payload.key << ", Value: " << dc->payload.value << ", Timestamp: " << (int64_t) dc->timestamp << ", metaHash: " << dc->metaHash  << ", prevHash: " << dc->prevHash << ", signature: " << dc->signature;
+#define DUMP_CAPSULE(dc) LOGI << "Sender: "<< dc->sender << ", Key: " << dc->payload.key << ", Value: " << dc->payload.value << ", Timestamp: " << (int64_t) dc->timestamp << ", metaHash: " << dc->metaHash  << ", prevHash: " << dc->prevHash << ", signature: " << dc->signature << " payload_in_transit: " << dc->payload_in_transit;
 
 #endif 
