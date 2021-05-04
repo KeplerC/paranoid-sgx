@@ -9,7 +9,7 @@ capsule_pdu MemTable::get(std::string key){
     if(memtable.contains(key)){
         got = memtable.at(key);
     } else {
-        LOG(ERROR) << "Couldn't find key: " << key;
+        // LOG(ERROR) << "Couldn't find key: " << key;
         got.payload.key = ""; 
     }
     sgx_spin_unlock(&mt_spinlock);
