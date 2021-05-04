@@ -3,8 +3,15 @@
 #include "common.h"
 // need to make sure key exists. O/w exception is thrown by at
 capsule_pdu MemTable::get(std::string key){
+    capsule_pdu got; 
     sgx_spin_lock(&mt_spinlock);
-    capsule_pdu got = memtable.at(key);
+
+    if(memtable.contains(key)){
+        got = memtable.at(key);
+    } else {
+        LOG(ERROR) << "Couldn't find key: " << key;
+        got.payload.key = ""; 
+    }
     sgx_spin_unlock(&mt_spinlock);
     return got;
 }

@@ -52,11 +52,13 @@
 #define NET_KEY_DIST_SERVER_PORT 3001
 
 
-#define BENCHMARK_MODE false
+#define BENCHMARK_MODE true
 #define LOGI LOG_IF(INFO, !BENCHMARK_MODE)
 #define LOGD LOG_IF(INFO, BENCHMARK_MODE)<< get_current_time() << " "
 #if BENCHMARK_MODE
-    #define M_BENCHMARK_CODE M_BENCHMARK_HERE
+    #define M_BENCHMARK_CODE void KVSClient::benchmark(){}
+
+    // #define M_BENCHMARK_CODE M_BENCHMARK_HERE
 #else
     #define M_BENCHMARK_CODE void KVSClient::benchmark(){}
 #endif

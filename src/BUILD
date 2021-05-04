@@ -30,6 +30,14 @@ package(
 )
 
 cc_library(
+    name = "mpl_data",
+    data = [
+        "src/mplambda/resources/se3/Twistycool_env.dae",
+        "src/mplambda/resources/se3/Twistycool_robot.dae"
+    ],
+)
+
+cc_library(
     name = "mpl_hdrs",
     hdrs = glob(["mplambda/include/**"]),
     includes = ["mplambda/include", "kvs_include"],
@@ -56,10 +64,6 @@ debug_sign_enclave(
 
 cc_unsigned_enclave(
     name = "mp_lambda.so",
-    # data = [
-    #     "mplambda/resources/se3/Twistycool_env.dae",
-    #     "mplambda/resources/se3/Twistycool_robot.dae"
-    # ],
     srcs = [
         "mplambda/src/mpl_lambda_pseudo.cpp",
         "mplambda/src/mpl/comm.cpp",
@@ -256,6 +260,7 @@ cc_unsigned_enclave(
     deps = [
         ":hello_cc_proto",
         ":mpl_hdrs",
+        ":mpl_data",
         "@eigen//:eigen3",
         "@nigh//:nigh",
         "@libccd//:libccd",
@@ -364,19 +369,33 @@ enclave_loader(
     enclaves = {"enclave": ":hello_enclave.so"},
     loader_args = [
         "--enclave_path='{enclave}'",
+        #Fetch params
+        "--scenario fetch",
+        "--algorithm cforest",
         "--coordinator=localhost",
-        "--algorithm=rrt", 
-        "--scenario se3",
-        "--start=0,0,0,1,270,160,-200",
-        "--goal=0,0,0,1,270,160,-400",
-        "--min=53.46,-21.25,-476.86",
-        "--max=402.96,269.25,-91.0",
-        "--robot Twistycool_robot.dae",
-        "--time_limit 60",
-        "--env Twistycool_env.dae",
+        "--env AUTOLAB.dae",
+        "--env_frame=0.57,-0.90,0.00,0,0,-1.570796326794897",
+        "--goal=-1.07,0.16,0.88,0,0,0",
+        "--goal_radius=0.01,0.01,0.01,0.01,0.01,3.141592653589793",
+        "--start=0.1,1.570796326794897,1.570796326794897,0,1.570796326794897,0,1.570796326794897,0",
+        "--time_limit 300000",
+        "--check_resolution 0.01",
+
+        #se3 params
+        # "--coordinator=localhost",
+        # "--algorithm=pcforest", 
+        # "--scenario se3",
+        # "--start=0,0,0,1,270,160,-200",
+        # "--goal=0,0,0,1,270,160,-400",
+        # "--min=53.46,-21.25,-476.86",
+        # "--max=402.96,269.25,-91.0",
+        # "--robot Twistycool_robot.dae",
+        # "--time_limit 600",
+        # "--env Twistycool_env.dae",
         ],
     linkopts = [ "-L/usr/local/lib", "-lzmq" ],
     deps = [
+        ":mpl_data",
         ":hello_cc_proto",
         "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/flags:parse",
