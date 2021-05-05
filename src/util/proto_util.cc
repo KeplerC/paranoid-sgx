@@ -78,8 +78,9 @@ namespace asylo {
     }
 
     bool encrypt_payload(capsule_pdu *dc) {
-        // TODO: encode key value pair to prevent key has comma
-        std::string aggregated = dc->payload.key + "," + dc->payload.value;
+        // TODO: encode payload to prevent any payload has comma
+        std::string aggregated = std::to_string(dc->payload.txn_timestamp) + "," + dc->payload.txn_msgType + "," 
+                                + dc->payload.key + "," + dc->payload.value;
         std::string encrypted_aggregated;
 
         ASSIGN_OR_RETURN_FALSE(encrypted_aggregated, EncryptMessage(aggregated));
@@ -92,6 +93,10 @@ namespace asylo {
         ASSIGN_OR_RETURN_FALSE(decrypted_aggregated, DecryptMessage(dc->payload_in_transit));
         std::stringstream ss(decrypted_aggregated);
 
+        std::string tmp_ts;
+        getline(ss, tmp_ts, ',');
+        dc->payload.txn_timestamp = std::stoi(tmp_ts);
+        getline(ss, dc->payload.txn_msgType, ',');
         getline(ss, dc->payload.key, ',');
         getline(ss, dc->payload.value);
 
@@ -143,6 +148,9 @@ namespace asylo {
     void CapsuleToCapsule(capsule_pdu *dc_new, const capsule_pdu *dc) {
         dc_new->payload.key = dc->payload.key;
         dc_new->payload.value = dc->payload.value;
+        dc_new->payload.txn_msgType = dc->payload.txn_msgType;
+        dc_new->payload.txn_timestamp = dc->payload.txn_timestamp;
+
         dc_new->signature = dc->signature;
         dc_new->sender = dc->sender;
         dc_new->payload_in_transit = dc->payload_in_transit;

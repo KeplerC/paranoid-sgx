@@ -168,7 +168,6 @@ namespace asylo {
                     switch(arg->ecall_id){
                         case ECALL_PUT:
                             LOGI << "[CICBUF-ECALL] transmitted a data capsule pdu";
-                            DUMP_CAPSULE(dc);
                             if (verify_dc(dc, verifying_key)) {
                                 LOGI << "dc verification successful.";
                             } else {
@@ -213,7 +212,7 @@ namespace asylo {
                             }
                             else {
                                 update_client_hash(dc);
-                                memtable.put(dc);
+                                memtable.put(&(dc->payload));
                             }
                             break;
                         case ECALL_RUN:
@@ -372,10 +371,10 @@ namespace asylo {
             // if we want to consider it, probably we need to buffer the messages
 
 
-            for( uint64_t i=0; i < 1; ++i ) {
+            for( uint64_t i=0; i < 3; ++i ) {
                 LOGI << "[ENCLAVE] ===CLIENT PUT=== ";
                 LOGI << "[ENCLAVE] Generating a new capsule PDU ";
-                put("default_key", "default_value");
+                put("default_key", "default_value" + std::to_string(i));
             }
 
 
@@ -385,8 +384,8 @@ namespace asylo {
             for( uint64_t i=0; i < 1; ++i ) {
                 //dc[i].id = i;
                 LOGI << "[ENCLAVE] ===CLIENT GET=== ";
-                capsule_pdu tmp_dc = memtable.get("default_key");
-                DUMP_CAPSULE((&tmp_dc));
+                kvs_payload tmp_payload = get("default_key");
+                DUMP_PAYLOAD((&tmp_payload));
             }
 
             benchmark();
@@ -413,12 +412,11 @@ namespace asylo {
 
         void put(std::string key, std::string value, std::string msgType = "") {
             m_lamport_timer += 1;
-            kvs_payload *payload = new kvs_payload(); // freed below
-            asylo::KvToPayload(payload, key, value, m_lamport_timer, msgType);
-            DUMP_PAYLOAD(payload);
+            kvs_payload payload;
+            asylo::KvToPayload(&payload, key, value, m_lamport_timer, msgType);
+            DUMP_PAYLOAD((&payload));
             // enqueue to pqueue
-            pqueue.enqueue(payload);
-            delete payload;  
+            pqueue.enqueue(&payload);
 
             // handle can be called by multi-threading
             handle();
@@ -426,11 +424,10 @@ namespace asylo {
 
         void handle() {
             // dequeue msg/txn from pqueue and then handle
-            kvs_payload *payload = new kvs_payload();
             capsule_pdu *dc = new capsule_pdu();
 
-            *payload = pqueue.dequeue();
-            asylo::PayloadToCapsule(dc, payload, m_enclave_id);
+            kvs_payload payload = pqueue.dequeue();
+            asylo::PayloadToCapsule(dc, &payload, m_enclave_id);
 
             // generate hash for update_hash and/or ocall
             bool success = encrypt_payload(dc);
@@ -460,14 +457,14 @@ namespace asylo {
             DUMP_CAPSULE(dc);
 
             // to_memtable and/or update_hash based on msgType
-            bool to_memtable = (payload->txn_msgType == "")? true : false;
+            bool to_memtable = (payload.txn_msgType == "")? true : false;
 
-            bool update_hash = (payload->txn_msgType == "" ||
-                                payload->txn_msgType == COORDINATOR_SYNC_TYPE )? true : false;
+            bool update_hash = (payload.txn_msgType == "" ||
+                                payload.txn_msgType == COORDINATOR_SYNC_TYPE )? true : false;
 
             // store in memtable
             if(to_memtable)
-                memtable.put(dc);
+                memtable.put(&payload);
             
             // update hash map
             if(update_hash)
@@ -477,11 +474,10 @@ namespace asylo {
             put_ocall(dc);
             
             delete dc;
-            delete payload;
         }
 
-        void get(std::string key){
-            memtable.get(key);
+        kvs_payload get(const std::string &key){
+            return memtable.get(key);
         }
 
         std::string serialize_eoe_hashes(){
