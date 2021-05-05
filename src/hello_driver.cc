@@ -144,13 +144,11 @@ public:
                     in_dc.SerializeToString(&out_s);
                     zmq::message_t msg(out_s.size());
                     memcpy(msg.data(), out_s.c_str(), out_s.size());
-//                    if(in_dc.payload().key() == COORDINATOR_EOE_KEY){
-//                        socket_ptr_to_sync->send(msg);
-//                    }else {
-//                        socket_ptr->send(msg);
-//                    }
-//TODO: need to distinguish EOE or not
-                    socket_ptr->send(msg);
+                    if(in_dc.msgtype() == COORDINATOR_EOE_TYPE){
+                        socket_ptr_to_sync->send(msg);
+                    }else {
+                        socket_ptr->send(msg);
+                    }
                     break;
                 }
                 default:
@@ -539,7 +537,7 @@ int main(int argc, char *argv[]) {
     } else {
         std::vector <std::thread> worker_threads;
         //start clients
-        int num_threads = TOTAL_THREADS + 1;
+        unsigned num_threads = TOTAL_THREADS + 1;
         for (unsigned thread_id = 1; thread_id < num_threads; thread_id++) {
             Asylo_SGX* sgx = new Asylo_SGX( std::to_string(thread_id), serialized_signing_key);
             sgx->init();

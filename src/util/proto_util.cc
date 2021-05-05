@@ -99,11 +99,12 @@ namespace asylo {
     }
 
     void KvToCapsule(capsule_pdu *dc, const std::string &key, const std::string &value, const int64_t timer,
-                    const int enclave_id) {
+                    const int enclave_id, const std::string &msgType) {
         dc->payload.key = key;
         dc->payload.value = value;
         dc->timestamp = timer;
         dc->sender = enclave_id;
+        dc->msgType = msgType;
     }
 
     void CapsuleToProto(const capsule_pdu *dc, hello_world::CapsulePDU *dcProto){
@@ -116,6 +117,7 @@ namespace asylo {
         dcProto->set_hash(dc->hash);
 
         dcProto->set_timestamp(dc->timestamp);
+        dcProto->set_msgtype(dc->msgType);
 
     }
 
@@ -129,6 +131,7 @@ namespace asylo {
         dc->hash = dcProto->hash();
 
         dc->timestamp = dcProto->timestamp();
+        dc->msgType = dcProto->msgtype();
     }
 
     void CapsuleToCapsule(capsule_pdu *dc_new, const capsule_pdu *dc) {
@@ -142,12 +145,13 @@ namespace asylo {
         dc_new->hash = dc->hash;
 
         dc_new->timestamp = dc->timestamp;
+        dc_new->msgType = dc->msgType;
     }
 
     void dumpProtoCapsule(const hello_world::CapsulePDU *dcProto){
         LOGI << "Sender: "<< dcProto->sender() << ", payload_in_transit: " << dcProto->payload_in_transit() << ", Timestamp: " << (int64_t) dcProto->timestamp()
                   << ", hash: " << dcProto->hash() << ", prevHash: " << dcProto->prevhash()
-                  << ", signature: " << dcProto->signature();
+                  << ", signature: " << dcProto->signature() << " message type: " << dcProto->msgtype();
     }
 
 } // namespace asylo

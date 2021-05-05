@@ -12,5 +12,6 @@ message CapsulePDU {
   optional bytes hash = 5; // Hash of pdu
 
   optional int64 timestamp = 6; //timestamp
+  optional string msgType = 7; // type of msg (e.g. EOE, RTS, SYNC)
 
 }

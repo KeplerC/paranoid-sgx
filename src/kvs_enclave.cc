@@ -182,11 +182,11 @@ namespace asylo {
                             }
                             DUMP_CAPSULE(dc);
                             // once received RTS, send the latest EOE
-                            if (dc->payload.key == COORDINATOR_RTS_KEY && !is_coordinator) {
-                                put(COORDINATOR_EOE_KEY, m_prev_hash, false, false);
+                            if (dc->msgType == COORDINATOR_RTS_TYPE && !is_coordinator) {
+                                put(COORDINATOR_EOE_TYPE, m_prev_hash, false, false, true, COORDINATOR_EOE_TYPE);
                                 break;
                             }
-                            else if (dc->payload.key == COORDINATOR_EOE_KEY && is_coordinator){
+                            else if (dc->msgType == COORDINATOR_EOE_TYPE && is_coordinator){
                                 // store EOE for future sync
                                 std::pair<std::string, int64_t> p;
                                 p.first = dc->payload.value;
@@ -195,12 +195,12 @@ namespace asylo {
                                 // if EOE from all enclaves received, start sync 
                                 if(m_eoe_hashes.size() == TOTAL_THREADS - 2) { //minus 2 for server thread and coordinator thread
                                     LOGI << "coordinator received all EOEs, sending report" << serialize_eoe_hashes();
-                                    put(COORDINATOR_SYNC_KEY, serialize_eoe_hashes(), false, true);
+                                    put(COORDINATOR_SYNC_TYPE, serialize_eoe_hashes(), false, true, true, COORDINATOR_SYNC_TYPE);
                                     // clear this epoch's EOE
                                     m_eoe_hashes.clear();
                                 }
                             }
-                            else if (dc->payload.key == COORDINATOR_SYNC_KEY && !is_coordinator ){
+                            else if (dc->msgType == COORDINATOR_SYNC_TYPE && !is_coordinator ){
                                 compare_eoe_hashes_from_string(dc->payload.value);
                                 LOGI << "Received the sync report " << serialize_eoe_hashes();
                                 m_prev_hash = dc -> hash;
@@ -342,7 +342,7 @@ namespace asylo {
                 while (true){
                     sleep(EPOCH_TIME);
                     //send request to sync packet
-                    put(COORDINATOR_RTS_KEY, "RTS", false, false);
+                    put(COORDINATOR_RTS_TYPE, "RTS", false, false, true, COORDINATOR_RTS_TYPE);
                 }
                 return asylo::Status::OkStatus();
             } else if (input.HasExtension(hello_world::is_sync_thread)){
@@ -409,10 +409,12 @@ namespace asylo {
         std::unordered_map<int, std::pair<std::string, int64_t>> m_eoe_hashes;
         int64_t m_lamport_timer;
 
-        void put(std::string key, std::string value, bool to_memtable = true, bool update_hash = true, bool to_network = true) {
+        void put(std::string key, std::string value, 
+                bool to_memtable = true, bool update_hash = true, bool to_network = true,
+                std::string msgType = "") {
             m_lamport_timer += 1;
             capsule_pdu *dc = new capsule_pdu();
-            asylo::KvToCapsule(dc, key, value, m_lamport_timer, m_enclave_id);
+            asylo::KvToCapsule(dc, key, value, m_lamport_timer, m_enclave_id, msgType);
             DUMP_CAPSULE(dc);
 
             // store in memtable before encrypting

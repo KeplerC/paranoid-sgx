@@ -37,7 +37,7 @@ bool encrypt_payload(capsule_pdu *dc);
 bool decrypt_payload(capsule_pdu *dc);
 
 void KvToCapsule(capsule_pdu *dc, const std::string &key, const std::string &value, const int64_t lamport_timer,
-                const int enclave_id);
+                const int enclave_id, const std::string &msgType);
 
 void CapsuleToProto(const capsule_pdu *dc, hello_world::CapsulePDU *dcProto);
 

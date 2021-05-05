@@ -35,11 +35,11 @@
 #define NET_KEY_DIST_SERVER_IP "localhost"
 
 // Key for coordinator Request To Send(RTS)
-#define COORDINATOR_RTS_KEY "PARANOID_RTS"
+#define COORDINATOR_RTS_TYPE "PARANOID_RTS"
 // Key for latest sync packet
-#define COORDINATOR_SYNC_KEY "PARANOID_SYNC"
+#define COORDINATOR_SYNC_TYPE "PARANOID_SYNC"
 // Key for latest EOE
-#define COORDINATOR_EOE_KEY "PARANOID_EOE"
+#define COORDINATOR_EOE_TYPE "PARANOID_EOE"
 
 #define TOTAL_THREADS 3
 #define EPOCH_TIME 2
