@@ -13,39 +13,41 @@ namespace asylo {
         return tp.tv_sec * 1000 + tp.tv_usec / 1000;
     }
 
-    bool generate_meta_data_hash(capsule_pdu *dc){
-        const std::string aggregated = std::to_string(dc->sender) + std::to_string(dc->timestamp);
+    bool generate_hash(capsule_pdu *dc){
+        const std::string aggregated = std::to_string(dc->sender) + std::to_string(dc->timestamp)
+                                        +dc->payload_in_transit;
         std::vector<uint8_t> digest;
         bool success = DoHash(aggregated, &digest);
         if (!success) return false;
-        dc->metaHash = BytesToHexString(digest);
+        dc->hash = BytesToHexString(digest);
         return true;
     }
 
     bool sign_dc(capsule_pdu *dc, const std::unique_ptr <SigningKey> &signing_key) {
-        std::string aggregated = dc->metaHash + dc->prevHash;
+        std::string aggregated = dc->hash + dc->prevHash;
         dc->signature = SignMessage(aggregated, signing_key);
         return true;
     }
 
-    bool verify_meta_data_hash(const capsule_pdu *dc){
-        const std::string aggregated = std::to_string(dc->sender) + std::to_string(dc->timestamp);
+    bool verify_hash(const capsule_pdu *dc){
+        const std::string aggregated = std::to_string(dc->sender) + std::to_string(dc->timestamp)
+                                        +dc->payload_in_transit;
         std::vector<uint8_t> digest;
         bool success = DoHash(aggregated, &digest);
         if (!success) return false;
-        return dc->metaHash == BytesToHexString(digest);
+        return dc->hash == BytesToHexString(digest);
     }
 
     bool verify_signature(const capsule_pdu *dc, const std::unique_ptr <VerifyingKey> &verifying_key) {
-        return VerifyMessage(dc->metaHash + dc->prevHash, dc->signature, verifying_key);
+        return VerifyMessage(dc->hash + dc->prevHash, dc->signature, verifying_key);
     }
 
     bool verify_dc(const capsule_pdu *dc, const std::unique_ptr <VerifyingKey> &verifying_key){
         
-        // verify metaHash matches
-        bool meta_result = verify_meta_data_hash(dc);
-        if (!meta_result) {
-            LOGI << "metaHash verification failed!!!";
+        // verify hash matches
+        bool hash_result = verify_hash(dc);
+        if (!hash_result) {
+            LOGI << "hash verification failed!!!";
             return false;
         }
 
@@ -78,17 +80,14 @@ namespace asylo {
     bool encrypt_payload(capsule_pdu *dc) {
         // TODO: encode key value pair to prevent key has comma
         std::string aggregated = dc->payload.key + "," + dc->payload.value;
-        std::string encrypted_string;
+        std::string encrypted_aggregated;
 
-        //ASSIGN_OR_RETURN_FALSE(encrypted_key, EncryptMessage(dc->payload.key));
-        ASSIGN_OR_RETURN_FALSE(encrypted_string, EncryptMessage(aggregated));
-        dc->payload_in_transit = encrypted_string;
+        ASSIGN_OR_RETURN_FALSE(encrypted_aggregated, EncryptMessage(aggregated));
+        dc->payload_in_transit = encrypted_aggregated;
         return true;
     }
 
     bool decrypt_payload(capsule_pdu *dc) {
-        std::string decrypted_key;
-        std::string decrypted_value;
         std::string decrypted_aggregated;
         ASSIGN_OR_RETURN_FALSE(decrypted_aggregated, DecryptMessage(dc->payload_in_transit));
         std::stringstream ss(decrypted_aggregated);
@@ -109,14 +108,12 @@ namespace asylo {
 
     void CapsuleToProto(const capsule_pdu *dc, hello_world::CapsulePDU *dcProto){
 
-        //dcProto->mutable_payload()->set_key(dc->payload.key);
-        //dcProto->mutable_payload()->set_value(dc->payload.value);
         dcProto->set_payload_in_transit(dc->payload_in_transit);
         dcProto->set_signature(dc->signature);
         dcProto->set_sender(dc->sender);
 
         dcProto->set_prevhash(dc->prevHash);
-        dcProto->set_metahash(dc->metaHash);
+        dcProto->set_hash(dc->hash);
 
         dcProto->set_timestamp(dc->timestamp);
 
@@ -129,25 +126,27 @@ namespace asylo {
         dc->payload_in_transit = dcProto->payload_in_transit();
 
         dc->prevHash = dcProto->prevhash();
-        dc->metaHash = dcProto->metahash();
+        dc->hash = dcProto->hash();
 
         dc->timestamp = dcProto->timestamp();
     }
 
     void CapsuleToCapsule(capsule_pdu *dc_new, const capsule_pdu *dc) {
+        dc_new->payload.key = dc->payload.key;
+        dc_new->payload.value = dc->payload.value;
         dc_new->signature = dc->signature;
         dc_new->sender = dc->sender;
         dc_new->payload_in_transit = dc->payload_in_transit;
 
         dc_new->prevHash = dc->prevHash;
-        dc_new->metaHash = dc->metaHash;
+        dc_new->hash = dc->hash;
 
         dc_new->timestamp = dc->timestamp;
     }
 
     void dumpProtoCapsule(const hello_world::CapsulePDU *dcProto){
-        LOGI << "Sender: "<< dcProto->sender()  << "payload :" << dcProto->payload_in_transit() << ", Timestamp: " << (int64_t) dcProto->timestamp()
-                  << ", metaHash: " << dcProto->metahash() << ", prevHash: " << dcProto->prevhash()
+        LOGI << "Sender: "<< dcProto->sender() << ", payload_in_transit: " << dcProto->payload_in_transit() << ", Timestamp: " << (int64_t) dcProto->timestamp()
+                  << ", hash: " << dcProto->hash() << ", prevHash: " << dcProto->prevhash()
                   << ", signature: " << dcProto->signature();
     }
 

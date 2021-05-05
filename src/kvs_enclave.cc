@@ -203,10 +203,10 @@ namespace asylo {
                             else if (dc->payload.key == COORDINATOR_SYNC_KEY && !is_coordinator ){
                                 compare_eoe_hashes_from_string(dc->payload.value);
                                 LOGI << "Received the sync report " << serialize_eoe_hashes();
-                                m_prev_hash = dc -> metaHash;
+                                m_prev_hash = dc -> hash;
                                 // the following writes hash points to the prev sync point
                                 std::pair<std::string, int64_t> p;
-                                p.first = dc->metaHash;
+                                p.first = dc->hash;
                                 p.second = dc->timestamp;
                                 m_eoe_hashes[m_enclave_id] = p;
                             }
@@ -419,7 +419,7 @@ namespace asylo {
             if(to_memtable)
                 memtable.put(dc);
 
-            // generate metaHash if needed
+            // generate hash if needed
             if (update_hash || to_network) {
                 bool success = encrypt_payload(dc);
                 if (!success) {
@@ -427,15 +427,15 @@ namespace asylo {
                     delete dc;
                     return;
                 }
-                // generate metaHash and update prev_hash
-                success = generate_meta_data_hash(dc);
+                // generate hash and update prev_hash
+                success = generate_hash(dc);
                 if (!success) {
-                    LOGI << "metaHash generation failed!!!";
+                    LOGI << "hash generation failed!!!";
                     delete dc;
                     return;
                 }
                 dc->prevHash = m_prev_hash;
-                m_prev_hash = dc->metaHash;
+                m_prev_hash = dc->hash;
             }
 
             // update hash map
@@ -535,7 +535,7 @@ namespace asylo {
 
         void update_client_hash(capsule_pdu* dc){
             std::pair<std::string, int64_t> p;
-            p.first = dc-> metaHash;
+            p.first = dc-> hash;
             p.second = dc->timestamp;
             m_eoe_hashes[dc->sender] = p;
         }

@@ -26,7 +26,7 @@ do {                                                      \
 
 namespace asylo {
 
-bool generate_meta_data_hash(capsule_pdu *dc);
+bool generate_hash(capsule_pdu *dc);
 
 bool sign_dc(capsule_pdu *dc, const std::unique_ptr <SigningKey> &signing_key);
 
