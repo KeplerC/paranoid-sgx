@@ -4,20 +4,14 @@ package hello_world;
 
 message CapsulePDU {
 
-  optional KVSPayload payload = 2;
-  optional int64 sender = 9;
+  optional string payload_in_transit = 1; // encrypted payload
+  optional int64 sender = 2;
   optional bytes signature = 3;
 
   optional bytes prevHash = 4; // Hash ptr to the previous record, not needed for the minimal prototype
-  optional bytes metaHash = 5; // Hash of meta data
-  optional bytes dataHash = 6; // Hash of data
-  optional bytes syncHash = 7; // Latest hash of sync point
+  optional bytes hash = 5; // Hash of pdu
 
-  optional int64 timestamp = 8; //timestamp
+  optional int64 timestamp = 6; //timestamp
+  optional string msgType = 7; // type of msg (e.g. EOE, RTS, SYNC)
 
-}
-
-message KVSPayload{
-  optional bytes key = 1;
-  optional bytes value = 2;
 }

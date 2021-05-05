@@ -17,7 +17,7 @@ bool MemTable::put(capsule_pdu *dc) {
         // dc with same key exists
         int64_t prev_timestamp = prev_dc_iter->second.timestamp;
         //the timestamp of this capsule is earlier, skip the change
-        // TODO (Hanming): add client id into comparison for same timestamp dc's
+        // TODO: add client id into comparison for same timestamp dc's
         if (dc->timestamp <= prev_timestamp){
             LOGI << "[EARLIER DISCARDED] Timestamp of incoming capsule key: " << dc->payload.key
                       << ", timestamp: " << dc->timestamp << " ealier than "  << prev_timestamp;

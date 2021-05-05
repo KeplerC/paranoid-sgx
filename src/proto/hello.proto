@@ -97,6 +97,10 @@ message SyncParam {
   optional int64 is_sync = 1;
 }
 
+message CryptoParam {
+  optional bytes key = 3;
+}
+
 extend asylo.EnclaveInput {
   optional HelloInput enclave_input_hello = 8086;
   optional CapsulePDU input_dc = 8087;
@@ -106,6 +110,7 @@ extend asylo.EnclaveInput {
   optional MP_Lambda_Input lambda_input = 8091;
   optional CoordinatorParam is_coordinator = 8092;
   optional SyncParam is_sync_thread = 8093;
+  optional CryptoParam crypto_param = 8094; 
 }
 
 extend asylo.EnclaveOutput {

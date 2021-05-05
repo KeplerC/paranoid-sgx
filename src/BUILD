@@ -348,6 +348,7 @@ enclave_loader(
         "@com_google_asylo//asylo/platform/primitives/sgx:loader_cc_proto",
         "@com_google_asylo//asylo/util:logging",
         "@com_google_asylo//asylo/crypto:sha256_hash_util",
+        "@com_google_asylo//asylo/crypto:aead_cryptor",
         "@com_google_asylo//asylo/identity:enclave_assertion_authority_configs",
     ],
 )
