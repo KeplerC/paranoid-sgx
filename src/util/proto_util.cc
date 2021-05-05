@@ -98,13 +98,19 @@ namespace asylo {
         return true;
     }
 
-    void KvToCapsule(capsule_pdu *dc, const std::string &key, const std::string &value, const int64_t timer,
-                    const int enclave_id, const std::string &msgType) {
-        dc->payload.key = key;
-        dc->payload.value = value;
-        dc->timestamp = timer;
+    void KvToPayload(kvs_payload *payload, const std::string &key, const std::string &value, const int64_t timer,
+                    const std::string &msgType) {
+        payload->key = key;
+        payload->value = value;
+        payload->txn_timestamp = timer;
+        payload->txn_msgType = msgType;
+    }
+
+    void PayloadToCapsule(capsule_pdu *dc, const kvs_payload *payload, const int enclave_id) {
+        dc->payload = *payload;
+        dc->timestamp = payload->txn_timestamp;
+        dc->msgType = payload->txn_msgType;
         dc->sender = enclave_id;
-        dc->msgType = msgType;
     }
 
     void CapsuleToProto(const capsule_pdu *dc, hello_world::CapsulePDU *dcProto){

@@ -33,6 +33,7 @@
 #include "asylo/identity/attestation/sgx/sgx_local_assertion_generator.h"
 #include "capsule.h"
 #include "memtable.hpp"
+#include "pqueue.hpp"
 #include "hot_msg_pass.h"
 #include "common.h"
 #include "src/proto/hello.pb.h"
@@ -183,7 +184,7 @@ namespace asylo {
                             DUMP_CAPSULE(dc);
                             // once received RTS, send the latest EOE
                             if (dc->msgType == COORDINATOR_RTS_TYPE && !is_coordinator) {
-                                put(COORDINATOR_EOE_TYPE, m_prev_hash, false, false, true, COORDINATOR_EOE_TYPE);
+                                put(COORDINATOR_EOE_TYPE, m_prev_hash, COORDINATOR_EOE_TYPE);
                                 break;
                             }
                             else if (dc->msgType == COORDINATOR_EOE_TYPE && is_coordinator){
@@ -195,7 +196,7 @@ namespace asylo {
                                 // if EOE from all enclaves received, start sync 
                                 if(m_eoe_hashes.size() == TOTAL_THREADS - 2) { //minus 2 for server thread and coordinator thread
                                     LOGI << "coordinator received all EOEs, sending report" << serialize_eoe_hashes();
-                                    put(COORDINATOR_SYNC_TYPE, serialize_eoe_hashes(), false, true, true, COORDINATOR_SYNC_TYPE);
+                                    put(COORDINATOR_SYNC_TYPE, serialize_eoe_hashes(), COORDINATOR_SYNC_TYPE);
                                     // clear this epoch's EOE
                                     m_eoe_hashes.clear();
                                 }
@@ -342,7 +343,7 @@ namespace asylo {
                 while (true){
                     sleep(EPOCH_TIME);
                     //send request to sync packet
-                    put(COORDINATOR_RTS_TYPE, "RTS", false, false, true, COORDINATOR_RTS_TYPE);
+                    put(COORDINATOR_RTS_TYPE, "RTS", COORDINATOR_RTS_TYPE);
                 }
                 return asylo::Status::OkStatus();
             } else if (input.HasExtension(hello_world::is_sync_thread)){
@@ -395,6 +396,7 @@ namespace asylo {
     private:
         uint64_t visitor_count_;
         MemTable memtable;
+        PQueue pqueue;
         HotMsg *buffer;
         int requestedCallID;
         int counter;
@@ -409,54 +411,73 @@ namespace asylo {
         std::unordered_map<int, std::pair<std::string, int64_t>> m_eoe_hashes;
         int64_t m_lamport_timer;
 
-        void put(std::string key, std::string value, 
-                bool to_memtable = true, bool update_hash = true, bool to_network = true,
-                std::string msgType = "") {
+        void put(std::string key, std::string value, std::string msgType = "") {
             m_lamport_timer += 1;
+            kvs_payload *payload = new kvs_payload(); // freed below
+            asylo::KvToPayload(payload, key, value, m_lamport_timer, msgType);
+            DUMP_PAYLOAD(payload);
+            // enqueue to pqueue
+            pqueue.enqueue(payload);
+            delete payload;  
+
+            // handle can be called by multi-threading
+            handle();
+        }
+
+        void handle() {
+            // dequeue msg/txn from pqueue and then handle
+            kvs_payload *payload = new kvs_payload();
             capsule_pdu *dc = new capsule_pdu();
-            asylo::KvToCapsule(dc, key, value, m_lamport_timer, m_enclave_id, msgType);
-            DUMP_CAPSULE(dc);
 
-            // store in memtable before encrypting
-            if(to_memtable)
-                memtable.put(dc);
+            *payload = pqueue.dequeue();
+            asylo::PayloadToCapsule(dc, payload, m_enclave_id);
 
-            // generate hash if needed
-            if (update_hash || to_network) {
-                bool success = encrypt_payload(dc);
-                if (!success) {
-                    LOGI << "payload encryption failed!!!";
-                    delete dc;
-                    return;
-                }
-                // generate hash and update prev_hash
-                success = generate_hash(dc);
-                if (!success) {
-                    LOGI << "hash generation failed!!!";
-                    delete dc;
-                    return;
-                }
-                dc->prevHash = m_prev_hash;
-                m_prev_hash = dc->hash;
+            // generate hash for update_hash and/or ocall
+            bool success = encrypt_payload(dc);
+            if (!success) {
+                LOGI << "payload encryption failed!!!";
+                delete dc;
+                return;
             }
 
+            // generate hash and update prev_hash
+            success = generate_hash(dc);
+            if (!success) {
+                LOGI << "hash generation failed!!!";
+                delete dc;
+                return;
+            }
+            dc->prevHash = m_prev_hash;
+            m_prev_hash = dc->hash;
+
+            // sign dc
+            success = sign_dc(dc, signing_key);
+            if (!success) {
+                LOGI << "sign dc failed!!!";
+                delete dc;
+                return;
+            }
+            DUMP_CAPSULE(dc);
+
+            // to_memtable and/or update_hash based on msgType
+            bool to_memtable = (payload->txn_msgType == "")? true : false;
+
+            bool update_hash = (payload->txn_msgType == "" ||
+                                payload->txn_msgType == COORDINATOR_SYNC_TYPE )? true : false;
+
+            // store in memtable
+            if(to_memtable)
+                memtable.put(dc);
+            
             // update hash map
             if(update_hash)
                 update_client_hash(dc);
 
-            // send
-            if(to_network) {
-                // sign dc
-                bool success = sign_dc(dc, signing_key);
-                if (!success) {
-                    LOGI << "sign dc failed!!!";
-                    delete dc;
-                    return;
-                }
-                put_ocall(dc);
-            }
-
+            // send dc
+            put_ocall(dc);
+            
             delete dc;
+            delete payload;
         }
 
         void get(std::string key){

@@ -2,18 +2,19 @@
 #define _CAPSULE_H_
 
 #include <string>
+// #include <vector>
 #include "common.h"
-// Size of DC payload 
-#define DC_PAYLOAD_SZ 256
 
 typedef struct {
     std::string key;
     std::string value;
+    int64_t txn_timestamp;
+    std::string txn_msgType;
 } kvs_payload;
 
 typedef struct {
     
-    kvs_payload payload;
+    kvs_payload payload; // TODO: change to vector<kvs_payload> for batching
     std::string payload_in_transit;
     std::string signature;
     int sender;
@@ -27,6 +28,8 @@ typedef struct {
 } capsule_pdu;
 
 
-#define DUMP_CAPSULE(dc) LOGI << "Sender: "<< dc->sender << ", Key: " << dc->payload.key << ", Value: " << dc->payload.value << ", Timestamp: " << (int64_t) dc->timestamp << ", hash: " << dc->hash  << ", prevHash: " << dc->prevHash << ", signature: " << dc->signature << " payload_in_transit: " << dc->payload_in_transit << " message type: " << dc->msgType;
+#define DUMP_CAPSULE(dc) LOGI << "DC Sender: "<< dc->sender << ", Key: " << dc->payload.key << ", Value: " << dc->payload.value << ", Timestamp: " << (int64_t) dc->timestamp << ", hash: " << dc->hash  << ", prevHash: " << dc->prevHash << ", signature: " << dc->signature << " payload_in_transit: " << dc->payload_in_transit << " message type: " << dc->msgType;
+
+#define DUMP_PAYLOAD(payload) LOGI << "Payload Key: " << payload->key << ", Value: " << payload->value << ", Timestamp: " << (int64_t) payload->txn_timestamp << ", MsgType: " << payload->txn_msgType;
 
 #endif 
