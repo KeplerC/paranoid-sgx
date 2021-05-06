@@ -523,7 +523,8 @@ int main(int argc, char *argv[]) {
             if(thread_id == 1){
                 worker_threads.push_back(std::thread(thread_run_zmq_client, thread_id, sgx));
                 worker_threads.push_back(std::thread(thread_start_coordinator, sgx));
-                worker_threads.push_back(std::thread(thread_crypt_actor_thread, sgx));
+                for(int i = 0; i < NUM_CRYPTO_ACTORS; i++)
+                   worker_threads.push_back(std::thread(thread_crypt_actor_thread, sgx));
             } else{
                 worker_threads.push_back(std::thread(thread_run_zmq_client, thread_id, sgx));
                 worker_threads.push_back(std::thread(thread_start_fake_client, sgx));
