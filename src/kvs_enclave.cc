@@ -346,7 +346,9 @@ namespace asylo {
                 }
                 return asylo::Status::OkStatus();
             } else if (input.HasExtension(hello_world::is_sync_thread)){
-                LOGI << "sync running";
+                while(true){
+                    handle();
+                }
                 return asylo::Status::OkStatus();
             }
             else{
@@ -418,15 +420,16 @@ namespace asylo {
             // enqueue to pqueue
             pqueue.enqueue(&payload);
 
-            // handle can be called by multi-threading
-            handle();
         }
 
         void handle() {
             // dequeue msg/txn from pqueue and then handle
-            capsule_pdu *dc = new capsule_pdu();
-
             kvs_payload payload = pqueue.dequeue();
+//            DUMP_PAYLOAD((&payload));
+            if (payload.key == ""){
+                return;
+            }
+            capsule_pdu *dc = new capsule_pdu();
             asylo::PayloadToCapsule(dc, &payload, m_enclave_id);
 
             // generate hash for update_hash and/or ocall

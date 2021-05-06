@@ -269,7 +269,7 @@ public:
         this->client->EnterAndRun(input, &output);
     }
 
-    void start_sync_epoch_thread() {
+    void start_crypt_actor_thread() {
         asylo::EnclaveInput input;
         asylo::EnclaveOutput output;
 
@@ -493,8 +493,8 @@ void thread_start_coordinator(Asylo_SGX* sgx){
     sgx->execute_coordinator();
 }
 
-void thread_start_sync_thread(Asylo_SGX* sgx){
-    sgx->start_sync_epoch_thread();
+void thread_crypt_actor_thread(Asylo_SGX* sgx){
+    sgx->start_crypt_actor_thread();
 }
 
 int main(int argc, char *argv[]) {
@@ -523,9 +523,11 @@ int main(int argc, char *argv[]) {
             if(thread_id == 1){
                 worker_threads.push_back(std::thread(thread_run_zmq_client, thread_id, sgx));
                 worker_threads.push_back(std::thread(thread_start_coordinator, sgx));
+                worker_threads.push_back(std::thread(thread_crypt_actor_thread, sgx));
             } else{
                 worker_threads.push_back(std::thread(thread_run_zmq_client, thread_id, sgx));
                 worker_threads.push_back(std::thread(thread_start_fake_client, sgx));
+                worker_threads.push_back(std::thread(thread_crypt_actor_thread, sgx));
             }
 
         }
