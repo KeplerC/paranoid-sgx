@@ -15,8 +15,6 @@ namespace asylo{
     0x06, 0x07, 0x08, 0x09, 0x10, 0x11,
     0x12, 0x13, 0x14, 0x15};
 
-    Sha256Hash hasher;
-
     // Helper function that adapts absl::BytesToHexString, allowing it to be used
     // with ByteContainerView.
     std::string BytesToHexString(ByteContainerView bytes) {
@@ -26,6 +24,7 @@ namespace asylo{
 
     // digest is the hash of message
     bool DoHash(const ByteContainerView &message, std::vector<uint8_t> *digest) {
+        Sha256Hash hasher;
         hasher.Init();
         hasher.Update(message);
         Status status = hasher.CumulativeHash(digest);
