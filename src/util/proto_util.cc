@@ -13,6 +13,33 @@ namespace asylo {
         return tp.tv_sec * 1000 + tp.tv_usec / 1000;
     }
 
+    std::string serialize_payload_l(const std::vector<kvs_payload> &payload_l) {
+        std::string payload_l_s;
+        for( const kvs_payload& payload : payload_l ) {
+            payload_l_s += std::to_string(payload.txn_timestamp) + ";" + payload.txn_msgType + ";" 
+                            + payload.key + ";" + payload.value + ";";
+        }
+        return payload_l_s;
+    }
+
+    std::vector<kvs_payload> deserialize_payload_l(const std::string &payload_l_s) {
+        std::vector<kvs_payload> payload_l;
+        std::stringstream ss(payload_l_s);
+        while(true)
+        {
+            std::string txn_timestamp, txn_msgType, key, value;
+            kvs_payload payload;
+            //try to read key, if there is none, break
+            if (!getline(ss, txn_timestamp, ';')) break;
+            getline(ss, txn_msgType, ';');
+            getline(ss, key, ';');
+            getline(ss, value, ';');
+            KvToPayload(&payload, key, value, std::stoi(txn_timestamp), txn_msgType);
+            payload_l.push_back(payload);
+        }
+        return payload_l;
+    }
+
     bool generate_hash(capsule_pdu *dc){
         const std::string aggregated = std::to_string(dc->sender) + std::to_string(dc->timestamp)
                                         +dc->payload_in_transit;
@@ -77,10 +104,8 @@ namespace asylo {
         return true;
     }
 
-    bool encrypt_payload(capsule_pdu *dc) {
-        // TODO: encode payload to prevent any payload has comma
-        std::string aggregated = std::to_string(dc->payload.txn_timestamp) + "," + dc->payload.txn_msgType + "," 
-                                + dc->payload.key + "," + dc->payload.value;
+    bool encrypt_payload_l(capsule_pdu *dc) {
+        std::string aggregated = serialize_payload_l(dc->payload_l);
         std::string encrypted_aggregated;
 
         ASSIGN_OR_RETURN_FALSE(encrypted_aggregated, EncryptMessage(aggregated));
@@ -88,18 +113,11 @@ namespace asylo {
         return true;
     }
 
-    bool decrypt_payload(capsule_pdu *dc) {
+    bool decrypt_payload_l(capsule_pdu *dc) {
         std::string decrypted_aggregated;
+
         ASSIGN_OR_RETURN_FALSE(decrypted_aggregated, DecryptMessage(dc->payload_in_transit));
-        std::stringstream ss(decrypted_aggregated);
-
-        std::string tmp_ts;
-        getline(ss, tmp_ts, ',');
-        dc->payload.txn_timestamp = std::stoi(tmp_ts);
-        getline(ss, dc->payload.txn_msgType, ',');
-        getline(ss, dc->payload.key, ',');
-        getline(ss, dc->payload.value);
-
+        dc->payload_l = deserialize_payload_l(decrypted_aggregated);
         return true;
     }
 
@@ -111,10 +129,10 @@ namespace asylo {
         payload->txn_msgType = msgType;
     }
 
-    void PayloadToCapsule(capsule_pdu *dc, const kvs_payload *payload, const int enclave_id) {
-        dc->payload = *payload;
-        dc->timestamp = payload->txn_timestamp;
-        dc->msgType = payload->txn_msgType;
+    void PayloadListToCapsule(capsule_pdu *dc, const std::vector<kvs_payload> *payload_l, const int enclave_id) {
+        dc->payload_l = *payload_l;
+        dc->timestamp = payload_l->back().txn_timestamp;
+        dc->msgType = payload_l->back().txn_msgType;
         dc->sender = enclave_id;
     }
 
@@ -146,10 +164,7 @@ namespace asylo {
     }
 
     void CapsuleToCapsule(capsule_pdu *dc_new, const capsule_pdu *dc) {
-        dc_new->payload.key = dc->payload.key;
-        dc_new->payload.value = dc->payload.value;
-        dc_new->payload.txn_msgType = dc->payload.txn_msgType;
-        dc_new->payload.txn_timestamp = dc->payload.txn_timestamp;
+        dc_new->payload_l = dc->payload_l;
 
         dc_new->signature = dc->signature;
         dc_new->sender = dc->sender;

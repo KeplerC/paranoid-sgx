@@ -173,11 +173,11 @@ namespace asylo {
                             } else {
                                 LOGI << "dc verification failed!!!";
                             }
-                            // decrypt payload
-                            if (decrypt_payload(dc)) {
-                                LOGI << "dc payload decryption successful";
+                            // decrypt payload_l
+                            if (decrypt_payload_l(dc)) {
+                                LOGI << "dc payload_l decryption successful";
                             } else {
-                                LOGI << "dc payload decryption failed!!!";
+                                LOGI << "dc payload_l decryption failed!!!";
                                 break;
                             }
                             DUMP_CAPSULE(dc);
@@ -189,7 +189,7 @@ namespace asylo {
                             else if (dc->msgType == COORDINATOR_EOE_TYPE && is_coordinator){
                                 // store EOE for future sync
                                 std::pair<std::string, int64_t> p;
-                                p.first = dc->payload.value;
+                                p.first = dc->payload_l[0].value;
                                 p.second = dc->timestamp;
                                 m_eoe_hashes[dc->sender] = p;
                                 // if EOE from all enclaves received, start sync 
@@ -201,7 +201,7 @@ namespace asylo {
                                 }
                             }
                             else if (dc->msgType == COORDINATOR_SYNC_TYPE && !is_coordinator ){
-                                compare_eoe_hashes_from_string(dc->payload.value);
+                                compare_eoe_hashes_from_string(dc->payload_l[0].value);
                                 LOGI << "Received the sync report " << serialize_eoe_hashes();
                                 m_prev_hash = dc -> hash;
                                 // the following writes hash points to the prev sync point
@@ -212,7 +212,9 @@ namespace asylo {
                             }
                             else {
                                 update_client_hash(dc);
-                                memtable.put(&(dc->payload));
+                                for (int i = 0; i < dc->payload_l.size(); i++) {
+                                    memtable.put(&(dc->payload_l[i]));
+                                }
                             }
                             break;
                         case ECALL_RUN:
@@ -373,7 +375,7 @@ namespace asylo {
             // if we want to consider it, probably we need to buffer the messages
 
 
-            for( uint64_t i=0; i < 3; ++i ) {
+            for( uint64_t i=0; i < 10; ++i ) {
                 LOGI << "[ENCLAVE] ===CLIENT PUT=== ";
                 LOGI << "[ENCLAVE] Generating a new capsule PDU ";
                 put("default_key", "default_value" + std::to_string(i));
@@ -424,18 +426,17 @@ namespace asylo {
 
         void handle() {
             // dequeue msg/txn from pqueue and then handle
-            kvs_payload payload = pqueue.dequeue();
-//            DUMP_PAYLOAD((&payload));
-            if (payload.key == ""){
+            std::vector<kvs_payload> payload_l = pqueue.dequeue(BATCH_SIZE);
+            if (payload_l.size() == 0){
                 return;
             }
             capsule_pdu *dc = new capsule_pdu();
-            asylo::PayloadToCapsule(dc, &payload, m_enclave_id);
+            asylo::PayloadListToCapsule(dc, &payload_l, m_enclave_id);
 
             // generate hash for update_hash and/or ocall
-            bool success = encrypt_payload(dc);
+            bool success = encrypt_payload_l(dc);
             if (!success) {
-                LOGI << "payload encryption failed!!!";
+                LOGI << "payload_l encryption failed!!!";
                 delete dc;
                 return;
             }
@@ -460,14 +461,17 @@ namespace asylo {
             DUMP_CAPSULE(dc);
 
             // to_memtable and/or update_hash based on msgType
-            bool to_memtable = (payload.txn_msgType == "")? true : false;
+            bool to_memtable = (dc->msgType == "")? true : false;
 
-            bool update_hash = (payload.txn_msgType == "" ||
-                                payload.txn_msgType == COORDINATOR_SYNC_TYPE )? true : false;
+            bool update_hash = (dc->msgType == "" ||
+                                dc->msgType == COORDINATOR_SYNC_TYPE )? true : false;
 
             // store in memtable
-            if(to_memtable)
-                memtable.put(&payload);
+            if(to_memtable) {
+                for (int i = 0; i < dc->payload_l.size(); i++) {
+                    memtable.put(&(dc->payload_l[i]));
+                }
+            }
             
             // update hash map
             if(update_hash)

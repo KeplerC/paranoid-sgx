@@ -1,23 +1,22 @@
-#include <vector>
 #include "pqueue.hpp"
 #include "asylo/util/logging.h"
 #include "common.h"
 
-kvs_payload PQueue::dequeue() {
-    kvs_payload payload;
+std::vector<kvs_payload> PQueue::dequeue(long unsigned int maxlen) {
+    std::vector<kvs_payload> payload_l;
     sgx_spin_lock(&mq_spinlock);
     if (!msgqueue.empty()) {
         // prioritize special messages
-        payload = dequeue_msgqueue();
+        dequeue_msgqueue(&payload_l);
         sgx_spin_unlock(&mq_spinlock);
     } else {
         // no special messages, dequeue txns
         sgx_spin_unlock(&mq_spinlock);
         sgx_spin_lock(&tq_spinlock);
-        payload = dequeue_txnqueue();
+        dequeue_txnqueue(&payload_l, maxlen);
         sgx_spin_unlock(&tq_spinlock);
     }
-    return payload;
+    return payload_l;
 }
 
 bool PQueue::enqueue(const kvs_payload *payload) {
@@ -34,29 +33,20 @@ bool PQueue::enqueue(const kvs_payload *payload) {
     return true;
 }
 
-kvs_payload PQueue::dequeue_txnqueue(){
-    kvs_payload payload;
+void PQueue::dequeue_txnqueue(std::vector<kvs_payload> *payload_l, long unsigned int maxlen){
+    unsigned int len_to_get = std::min(txnqueue.size(), maxlen);
     if (!txnqueue.empty()){
-        payload = txnqueue.front();
-        txnqueue.pop_front();
+        *payload_l = {txnqueue.begin(), txnqueue.begin()+len_to_get};
+        txnqueue.erase(txnqueue.begin(), txnqueue.begin()+len_to_get);
     }
-    return payload;
-
-    // TODO: change to return vector<kvs_payload>
-    // std::vector<kvs_payload> payload_l;
-    // while (!txnqueue.empty() && maxlen > 0) {
-    //     payload_l.push_back(txnqueue.front());
-    //     txnqueue.pop_front()
-    //     maxlen -= 1;
-    // }
-    // return payload_l;
+    return;
 }
 
-kvs_payload PQueue::dequeue_msgqueue(){
-    kvs_payload payload;
+void PQueue::dequeue_msgqueue(std::vector<kvs_payload> *payload_l){
     if (!msgqueue.empty()){
-        payload = msgqueue.front();
+        // return 1 special msg
+        payload_l->push_back(msgqueue.front());
         msgqueue.pop_front();
     }
-    return payload;
+    return;
 }

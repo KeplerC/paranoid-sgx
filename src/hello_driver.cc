@@ -505,10 +505,6 @@ int main(int argc, char *argv[]) {
     ASSIGN_OR_RETURN(serialized_signing_key,
                             signing_key->SerializeToDer());
 
-//    if (absl::GetFlag(FLAGS_payload).empty()) {
-//      LOG(QFATAL) << "Must supply a non-empty string for the DataCapsule payload --payload";
-//    }
-
     if(RUN_BOTH_CLIENT_AND_SERVER) {
         // thread assignments:
         // thread 0: multicast server
