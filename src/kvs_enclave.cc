@@ -345,7 +345,7 @@ namespace asylo {
                     put(COORDINATOR_RTS_TYPE, "RTS", COORDINATOR_RTS_TYPE);
                 }
                 return asylo::Status::OkStatus();
-            } else if (input.HasExtension(hello_world::is_sync_thread)){
+            } else if (input.HasExtension(hello_world::is_actor_thread)){
                 while(true){
                     handle();
                 }

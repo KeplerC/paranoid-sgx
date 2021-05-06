@@ -273,7 +273,7 @@ public:
         asylo::EnclaveInput input;
         asylo::EnclaveOutput output;
 
-        input.MutableExtension(hello_world::is_sync_thread)->set_is_sync(1);;
+        input.MutableExtension(hello_world::is_actor_thread)->set_is_actor(1);;
         this->client->EnterAndRun(input, &output);
     }
 
@@ -524,11 +524,12 @@ int main(int argc, char *argv[]) {
                 worker_threads.push_back(std::thread(thread_run_zmq_client, thread_id, sgx));
                 worker_threads.push_back(std::thread(thread_start_coordinator, sgx));
                 for(int i = 0; i < NUM_CRYPTO_ACTORS; i++)
-                   worker_threads.push_back(std::thread(thread_crypt_actor_thread, sgx));
+                    worker_threads.push_back(std::thread(thread_crypt_actor_thread, sgx));
             } else{
                 worker_threads.push_back(std::thread(thread_run_zmq_client, thread_id, sgx));
                 worker_threads.push_back(std::thread(thread_start_fake_client, sgx));
-                worker_threads.push_back(std::thread(thread_crypt_actor_thread, sgx));
+                for(int i = 0; i < NUM_CRYPTO_ACTORS; i++)
+                    worker_threads.push_back(std::thread(thread_crypt_actor_thread, sgx));
             }
 
         }
