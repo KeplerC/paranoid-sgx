@@ -364,7 +364,7 @@ enclave_loader(
 
 enclave_loader(
     name = "hello_world",
-    srcs = ["sgx_spinlock.h", "spinlock.c", "hello_driver.cc", "kvs_include/capsule.h", "util/proto_util.hpp", "util/proto_util.cc", "hot_msg_pass.h",  "common.h", "benchmark.h", "crypto.h"],
+    srcs = ["zmq_comm.hpp", "zmq_comm.cc", "asylo_sgx.hpp", "asylo_sgx.cc", "sgx_spinlock.h", "spinlock.c", "hello_driver.cc", "kvs_include/capsule.h", "util/proto_util.hpp", "util/proto_util.cc", "hot_msg_pass.h",  "common.h", "benchmark.h", "crypto.h"],
     backends = sgx.backend_labels,  # Has SGX loader dependencies
     enclaves = {"enclave": ":hello_enclave.so"},
     loader_args = [
@@ -378,12 +378,12 @@ enclave_loader(
         "--goal=-1.07,0.16,0.88,0,0,0",
         "--goal_radius=0.01,0.01,0.01,0.01,0.01,3.141592653589793",
         "--start=0.1,1.570796326794897,1.570796326794897,0,1.570796326794897,0,1.570796326794897,0",
-        "--time_limit 600",
+        "--time_limit 300",
         "--check_resolution 0.01",
 
         #se3 params
         # "--coordinator=localhost",
-        # "--algorithm=pcforest", 
+        # "--algorithm=cforest", 
         # "--scenario se3",
         # "--start=0,0,0,1,270,160,-200",
         # "--goal=0,0,0,1,270,160,-400",

@@ -12,6 +12,7 @@ asylo::Status start_eapp(asylo::KVSClient *KVS_client, const asylo::EnclaveInput
     static const std::string resourceDirectory = "/opt/my-project/src/mplambda/resources/";
 
     options.setKVSClient(KVS_client);
+    options.timeStart = lambda_input.time_start(); 
 
     if (!options.env_.empty())
         options.env_ = resourceDirectory + options.env_;

@@ -191,9 +191,9 @@ namespace asylo {
                 auto m_current_hash_ts_pair = m_eoe_hashes[key];
                 if(sync_pt_pair.first != m_current_hash_ts_pair.first){
                     if(sync_pt_pair.second > m_current_hash_ts_pair.second){
-                        LOG(INFO) << "INCONSISTENCY DETECTED! " << key << " " << m_enclave_id;
-                        LOG(INFO) << "SYNC " << sync_pt_pair.first << " " << sync_pt_pair.second;
-                        LOG(INFO) << "CURRENT " << m_current_hash_ts_pair.first << " " << m_current_hash_ts_pair.second;
+                        // LOG(INFO) << "INCONSISTENCY DETECTED! " << key << " " << m_enclave_id;
+                        // LOG(INFO) << "SYNC " << sync_pt_pair.first << " " << sync_pt_pair.second;
+                        // LOG(INFO) << "CURRENT " << m_current_hash_ts_pair.first << " " << m_current_hash_ts_pair.second;
                         inconsistency_handler();
                     }
                 }
