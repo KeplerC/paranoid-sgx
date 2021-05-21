@@ -232,7 +232,8 @@ cc_library(
 
 cc_unsigned_enclave(
     name = "hello_enclave_unsigned.so",
-    srcs = ["kvs_enclave.cc", "memtable.hpp", "memtable.cc", "capsule.h", "util/proto_util.hpp", "util/proto_util.cc", "hot_msg_pass.h", "common.h", "benchmark.h", "crypto.h"],
+    srcs = ["kvs_enclave.cc", "memtable.hpp", "memtable.cc", "capsule.h", "util/proto_util.hpp", "util/proto_util.cc", 
+            "hot_msg_pass.h", "common.h", "benchmark.h", "crypto.h", "pqueue.hpp", "pqueue.cc"],
     backends = sgx.backend_labels,  # Has SGX identity dependencies
     deps = [
         ":hello_cc_proto",

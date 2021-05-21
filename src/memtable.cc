@@ -1,39 +1,45 @@
 #include "memtable.hpp"
 #include "asylo/util/logging.h"
 #include "common.h"
-// need to make sure key exists. O/w exception is thrown by at
-capsule_pdu MemTable::get(std::string key){
+
+kvs_payload MemTable::get(const std::string &key){
+    kvs_payload got; 
     sgx_spin_lock(&mt_spinlock);
-    capsule_pdu got = memtable.at(key);
+
+    if(memtable.contains(key)){
+        got = memtable.at(key);
+    } else {
+        LOGI << "Couldn't find key: " << key;
+        got.key = ""; 
+    }
     sgx_spin_unlock(&mt_spinlock);
     return got;
 }
 
-bool MemTable::put(capsule_pdu *dc) {
+bool MemTable::put(const kvs_payload *payload){
     sgx_spin_lock(&mt_spinlock);
-    auto prev_dc_iter = memtable.find(dc->payload.key);
+    auto prev_iter = memtable.find(payload->key);
 
-    if(prev_dc_iter != memtable.end()){
-        // dc with same key exists
-        int64_t prev_timestamp = prev_dc_iter->second.timestamp;
-        //the timestamp of this capsule is earlier, skip the change
-        // TODO: add client id into comparison for same timestamp dc's
-        if (dc->timestamp <= prev_timestamp){
-            LOGI << "[EARLIER DISCARDED] Timestamp of incoming capsule key: " << dc->payload.key
-                      << ", timestamp: " << dc->timestamp << " ealier than "  << prev_timestamp;
+    if(prev_iter != memtable.end()){
+        // payload with same key exists
+        int64_t prev_timestamp = prev_iter->second.txn_timestamp;
+        //the timestamp of this payload is earlier, skip the change
+        if (payload->txn_timestamp <= prev_timestamp){
+            LOGI << "[EARLIER DISCARDED] Timestamp of incoming payload key: " << payload->key
+                      << ", timestamp: " << payload->txn_timestamp << " ealier than "  << prev_timestamp;
             sgx_spin_unlock(&mt_spinlock);
             return false;
         }
         else{
-            memtable[dc->payload.key] = *dc;
-            LOGI << "[SAME CAPSULE UPDATED] Timestamp of incoming capsule key: " << dc->payload.key
-                 << ", timestamp: " << dc->timestamp << " replaces "  << prev_timestamp;
+            memtable[payload->key] = *payload;
+            LOGI << "[SAME PAYLOAD UPDATED] Timestamp of incoming payload key: " << payload->key
+                 << ", timestamp: " << payload->txn_timestamp << " replaces "  << prev_timestamp;
             sgx_spin_unlock(&mt_spinlock);
             return true;
         }
     } else {
         // new key
-        memtable[dc->payload.key] = *dc;
+        memtable[payload->key] = *payload;
     }
     sgx_spin_unlock(&mt_spinlock);
     return true;

@@ -32,12 +32,14 @@ bool sign_dc(capsule_pdu *dc, const std::unique_ptr <SigningKey> &signing_key);
 
 bool verify_dc(const capsule_pdu *dc, const std::unique_ptr <VerifyingKey> &verifying_key);
 
-bool encrypt_payload(capsule_pdu *dc);
+bool encrypt_payload_l(capsule_pdu *dc);
 
-bool decrypt_payload(capsule_pdu *dc);
+bool decrypt_payload_l(capsule_pdu *dc);
 
-void KvToCapsule(capsule_pdu *dc, const std::string &key, const std::string &value, const int64_t lamport_timer,
-                const int enclave_id, const std::string &msgType);
+void KvToPayload(kvs_payload *payload, const std::string &key, const std::string &value, const int64_t timer,
+                    const std::string &msgType);
+
+void PayloadListToCapsule(capsule_pdu *dc, const std::vector<kvs_payload> *payload_l, const int enclave_id);
 
 void CapsuleToProto(const capsule_pdu *dc, hello_world::CapsulePDU *dcProto);
 

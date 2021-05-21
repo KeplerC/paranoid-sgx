@@ -33,6 +33,7 @@
 #include "asylo/identity/attestation/sgx/sgx_local_assertion_generator.h"
 #include "capsule.h"
 #include "memtable.hpp"
+#include "pqueue.hpp"
 #include "hot_msg_pass.h"
 #include "common.h"
 #include "src/proto/hello.pb.h"
@@ -167,41 +168,40 @@ namespace asylo {
                     switch(arg->ecall_id){
                         case ECALL_PUT:
                             LOGI << "[CICBUF-ECALL] transmitted a data capsule pdu";
-                            DUMP_CAPSULE(dc);
                             if (verify_dc(dc, verifying_key)) {
                                 LOGI << "dc verification successful.";
                             } else {
                                 LOGI << "dc verification failed!!!";
                             }
-                            // decrypt payload
-                            if (decrypt_payload(dc)) {
-                                LOGI << "dc payload decryption successful";
+                            // decrypt payload_l
+                            if (decrypt_payload_l(dc)) {
+                                LOGI << "dc payload_l decryption successful";
                             } else {
-                                LOGI << "dc payload decryption failed!!!";
+                                LOGI << "dc payload_l decryption failed!!!";
                                 break;
                             }
                             DUMP_CAPSULE(dc);
                             // once received RTS, send the latest EOE
                             if (dc->msgType == COORDINATOR_RTS_TYPE && !is_coordinator) {
-                                put(COORDINATOR_EOE_TYPE, m_prev_hash, false, false, true, COORDINATOR_EOE_TYPE);
+                                put(COORDINATOR_EOE_TYPE, m_prev_hash, COORDINATOR_EOE_TYPE);
                                 break;
                             }
                             else if (dc->msgType == COORDINATOR_EOE_TYPE && is_coordinator){
                                 // store EOE for future sync
                                 std::pair<std::string, int64_t> p;
-                                p.first = dc->payload.value;
+                                p.first = dc->payload_l[0].value;
                                 p.second = dc->timestamp;
                                 m_eoe_hashes[dc->sender] = p;
                                 // if EOE from all enclaves received, start sync 
                                 if(m_eoe_hashes.size() == TOTAL_THREADS - 2) { //minus 2 for server thread and coordinator thread
                                     LOGI << "coordinator received all EOEs, sending report" << serialize_eoe_hashes();
-                                    put(COORDINATOR_SYNC_TYPE, serialize_eoe_hashes(), false, true, true, COORDINATOR_SYNC_TYPE);
+                                    put(COORDINATOR_SYNC_TYPE, serialize_eoe_hashes(), COORDINATOR_SYNC_TYPE);
                                     // clear this epoch's EOE
                                     m_eoe_hashes.clear();
                                 }
                             }
                             else if (dc->msgType == COORDINATOR_SYNC_TYPE && !is_coordinator ){
-                                compare_eoe_hashes_from_string(dc->payload.value);
+                                compare_eoe_hashes_from_string(dc->payload_l[0].value);
                                 LOGI << "Received the sync report " << serialize_eoe_hashes();
                                 m_prev_hash = dc -> hash;
                                 // the following writes hash points to the prev sync point
@@ -212,7 +212,9 @@ namespace asylo {
                             }
                             else {
                                 update_client_hash(dc);
-                                memtable.put(dc);
+                                for (int i = 0; i < dc->payload_l.size(); i++) {
+                                    memtable.put(&(dc->payload_l[i]));
+                                }
                             }
                             break;
                         case ECALL_RUN:
@@ -342,11 +344,13 @@ namespace asylo {
                 while (true){
                     sleep(EPOCH_TIME);
                     //send request to sync packet
-                    put(COORDINATOR_RTS_TYPE, "RTS", false, false, true, COORDINATOR_RTS_TYPE);
+                    put(COORDINATOR_RTS_TYPE, "RTS", COORDINATOR_RTS_TYPE);
                 }
                 return asylo::Status::OkStatus();
-            } else if (input.HasExtension(hello_world::is_sync_thread)){
-                LOGI << "sync running";
+            } else if (input.HasExtension(hello_world::is_actor_thread)){
+                while(true){
+                    handle();
+                }
                 return asylo::Status::OkStatus();
             }
             else{
@@ -371,10 +375,10 @@ namespace asylo {
             // if we want to consider it, probably we need to buffer the messages
 
 
-            for( uint64_t i=0; i < 1; ++i ) {
+            for( uint64_t i=0; i < 10; ++i ) {
                 LOGI << "[ENCLAVE] ===CLIENT PUT=== ";
                 LOGI << "[ENCLAVE] Generating a new capsule PDU ";
-                put("default_key", "default_value");
+                put("default_key", "default_value" + std::to_string(i));
             }
 
 
@@ -384,8 +388,8 @@ namespace asylo {
             for( uint64_t i=0; i < 1; ++i ) {
                 //dc[i].id = i;
                 LOGI << "[ENCLAVE] ===CLIENT GET=== ";
-                capsule_pdu tmp_dc = memtable.get("default_key");
-                DUMP_CAPSULE((&tmp_dc));
+                kvs_payload tmp_payload = get("default_key");
+                DUMP_PAYLOAD((&tmp_payload));
             }
 
             benchmark();
@@ -395,6 +399,7 @@ namespace asylo {
     private:
         uint64_t visitor_count_;
         MemTable memtable;
+        PQueue pqueue;
         HotMsg *buffer;
         int requestedCallID;
         int counter;
@@ -409,58 +414,77 @@ namespace asylo {
         std::unordered_map<int, std::pair<std::string, int64_t>> m_eoe_hashes;
         int64_t m_lamport_timer;
 
-        void put(std::string key, std::string value, 
-                bool to_memtable = true, bool update_hash = true, bool to_network = true,
-                std::string msgType = "") {
+        void put(std::string key, std::string value, std::string msgType = "") {
             m_lamport_timer += 1;
+            kvs_payload payload;
+            asylo::KvToPayload(&payload, key, value, m_lamport_timer, msgType);
+            DUMP_PAYLOAD((&payload));
+            // enqueue to pqueue
+            pqueue.enqueue(&payload);
+
+        }
+
+        void handle() {
+            // dequeue msg/txn from pqueue and then handle
+            std::vector<kvs_payload> payload_l = pqueue.dequeue(BATCH_SIZE);
+            if (payload_l.size() == 0){
+                return;
+            }
             capsule_pdu *dc = new capsule_pdu();
-            asylo::KvToCapsule(dc, key, value, m_lamport_timer, m_enclave_id, msgType);
-            DUMP_CAPSULE(dc);
+            asylo::PayloadListToCapsule(dc, &payload_l, m_enclave_id);
 
-            // store in memtable before encrypting
-            if(to_memtable)
-                memtable.put(dc);
-
-            // generate hash if needed
-            if (update_hash || to_network) {
-                bool success = encrypt_payload(dc);
-                if (!success) {
-                    LOGI << "payload encryption failed!!!";
-                    delete dc;
-                    return;
-                }
-                // generate hash and update prev_hash
-                success = generate_hash(dc);
-                if (!success) {
-                    LOGI << "hash generation failed!!!";
-                    delete dc;
-                    return;
-                }
-                dc->prevHash = m_prev_hash;
-                m_prev_hash = dc->hash;
+            // generate hash for update_hash and/or ocall
+            bool success = encrypt_payload_l(dc);
+            if (!success) {
+                LOGI << "payload_l encryption failed!!!";
+                delete dc;
+                return;
             }
 
+            // generate hash and update prev_hash
+            success = generate_hash(dc);
+            if (!success) {
+                LOGI << "hash generation failed!!!";
+                delete dc;
+                return;
+            }
+            dc->prevHash = m_prev_hash;
+            m_prev_hash = dc->hash;
+
+            // sign dc
+            success = sign_dc(dc, signing_key);
+            if (!success) {
+                LOGI << "sign dc failed!!!";
+                delete dc;
+                return;
+            }
+            DUMP_CAPSULE(dc);
+
+            // to_memtable and/or update_hash based on msgType
+            bool to_memtable = (dc->msgType == "")? true : false;
+
+            bool update_hash = (dc->msgType == "" ||
+                                dc->msgType == COORDINATOR_SYNC_TYPE )? true : false;
+
+            // store in memtable
+            if(to_memtable) {
+                for (int i = 0; i < dc->payload_l.size(); i++) {
+                    memtable.put(&(dc->payload_l[i]));
+                }
+            }
+            
             // update hash map
             if(update_hash)
                 update_client_hash(dc);
 
-            // send
-            if(to_network) {
-                // sign dc
-                bool success = sign_dc(dc, signing_key);
-                if (!success) {
-                    LOGI << "sign dc failed!!!";
-                    delete dc;
-                    return;
-                }
-                put_ocall(dc);
-            }
-
+            // send dc
+            put_ocall(dc);
+            
             delete dc;
         }
 
-        void get(std::string key){
-            memtable.get(key);
+        kvs_payload get(const std::string &key){
+            return memtable.get(key);
         }
 
         std::string serialize_eoe_hashes(){

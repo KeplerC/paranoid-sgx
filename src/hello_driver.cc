@@ -269,11 +269,11 @@ public:
         this->client->EnterAndRun(input, &output);
     }
 
-    void start_sync_epoch_thread() {
+    void start_crypt_actor_thread() {
         asylo::EnclaveInput input;
         asylo::EnclaveOutput output;
 
-        input.MutableExtension(hello_world::is_sync_thread)->set_is_sync(1);;
+        input.MutableExtension(hello_world::is_actor_thread)->set_is_actor(1);;
         this->client->EnterAndRun(input, &output);
     }
 
@@ -493,8 +493,8 @@ void thread_start_coordinator(Asylo_SGX* sgx){
     sgx->execute_coordinator();
 }
 
-void thread_start_sync_thread(Asylo_SGX* sgx){
-    sgx->start_sync_epoch_thread();
+void thread_crypt_actor_thread(Asylo_SGX* sgx){
+    sgx->start_crypt_actor_thread();
 }
 
 int main(int argc, char *argv[]) {
@@ -504,10 +504,6 @@ int main(int argc, char *argv[]) {
     asylo::CleansingVector<uint8_t> serialized_signing_key;
     ASSIGN_OR_RETURN(serialized_signing_key,
                             signing_key->SerializeToDer());
-
-//    if (absl::GetFlag(FLAGS_payload).empty()) {
-//      LOG(QFATAL) << "Must supply a non-empty string for the DataCapsule payload --payload";
-//    }
 
     if(RUN_BOTH_CLIENT_AND_SERVER) {
         // thread assignments:
@@ -523,9 +519,13 @@ int main(int argc, char *argv[]) {
             if(thread_id == 1){
                 worker_threads.push_back(std::thread(thread_run_zmq_client, thread_id, sgx));
                 worker_threads.push_back(std::thread(thread_start_coordinator, sgx));
+                for(int i = 0; i < NUM_CRYPTO_ACTORS; i++)
+                    worker_threads.push_back(std::thread(thread_crypt_actor_thread, sgx));
             } else{
                 worker_threads.push_back(std::thread(thread_run_zmq_client, thread_id, sgx));
                 worker_threads.push_back(std::thread(thread_start_fake_client, sgx));
+                for(int i = 0; i < NUM_CRYPTO_ACTORS; i++)
+                    worker_threads.push_back(std::thread(thread_crypt_actor_thread, sgx));
             }
 
         }
