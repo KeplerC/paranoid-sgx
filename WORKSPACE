@@ -41,6 +41,49 @@ new_local_repository(
   build_file = "//src:BUILD.fcl",
 )
 
+# snappy
+http_archive(
+    name = "com_github_google_snappy",
+    url = "https://github.com/google/snappy/archive/ed3b7b2.tar.gz",
+    strip_prefix = "snappy-ed3b7b242bd24de2ca6750c73f64bee5b7505944",
+    sha256 = "88a644b224f54edcd57d01074c2d6fd6858888e915c21344b8622c133c35a337",
+    build_file = "third-party/snappy.BUILD",
+)
+
+bind(
+    name = "snappy",
+    actual = "@com_github_google_snappy//:snappy",
+)
+
+bind(
+    name = "snappy_config",
+    actual = "//third-party/snappy_config:config"
+)
+
+http_archive(
+  name = "com_github_google_glog",
+  build_file = "third-party/glog.BUILD",
+  strip_prefix = "glog-a6a166db069520dbbd653c97c2e5b12e08a8bb26",
+  url = "https://github.com/google/glog/archive/a6a166db069520dbbd653c97c2e5b12e08a8bb26.tar.gz"
+)
+
+bind(
+    name = "glog",
+    actual = "@com_github_google_glog//:glog",
+)
+
+
+http_archive(
+    name = "com_github_facebook_rocksdb",
+    url = "https://github.com/facebook/rocksdb/archive/v6.8.1.tar.gz",
+    strip_prefix = "rocksdb-6.8.1",
+    build_file = "third-party/com_github_facebook_rocksdb/BUILD",
+)
+
+bind(
+    name = "rocksdb",
+    actual = "@com_github_facebook_rocksdb//:rocksdb",
+)
 
 # http_archive(
 #     name = "assimp",
