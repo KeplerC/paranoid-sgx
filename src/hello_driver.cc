@@ -44,7 +44,7 @@
 #include "capsule.h"
 #include "src/proto/hello.pb.h"
 #include "src/util/proto_util.hpp"
-
+#include "rocksdb/c.h"
 // #include "asylo/identity/enclave_assertion_authority_config.proto.h"
 #include "asylo/identity/enclave_assertion_authority_configs.h"
 
@@ -446,6 +446,70 @@ public:
         }
     }
 
+    [[noreturn]] void run_rocksdb(){
+        zmq::context_t context (1);
+        zmq::socket_t socket_from_server (context, ZMQ_PULL);
+        socket_from_server.bind ("tcp://*:" + m_port);
+        //send join request to seed server
+        zmq::socket_t* socket_join  = new  zmq::socket_t( context, ZMQ_PUSH);
+        socket_join -> connect ("tcp://" + m_seed_server_ip + ":" + m_seed_server_join_port);
+        this->send_string(m_addr, socket_join);
+        //a socket to server to multicast
+        zmq::socket_t* socket_send  = new  zmq::socket_t( context, ZMQ_PUSH);
+        socket_send -> connect ("tcp://" + m_seed_server_ip + ":" + m_seed_server_mcast_port);
+        // poll for new messages
+        std::vector<zmq::pollitem_t> pollitems = {
+                { static_cast<void *>(socket_from_server), 0, ZMQ_POLLIN, 0 },
+        };
+
+        //rocksdb init
+        rocksdb_t *db;
+        rocksdb_options_t *options = rocksdb_options_create();
+        const char DBPath[] = "/tmp/rocksdb_c_simple_example";
+        const char DBBackupPath[] = "/tmp/rocksdb_c_simple_example_backup";
+//        long cpus = sysconf(_SC_NPROCESSORS_ONLN);
+//        // Set # of online cores
+//        rocksdb_options_increase_parallelism(options, (int)(cpus));
+//        rocksdb_options_optimize_level_style_compaction(options, 0);
+        // create the DB if it's not already present
+        rocksdb_options_set_create_if_missing(options, 1);
+        char *err = NULL;
+        db = rocksdb_open(options, DBPath, &err);
+        assert(!err);
+        rocksdb_writeoptions_t *writeoptions = rocksdb_writeoptions_create();
+        rocksdb_readoptions_t *readoptions = rocksdb_readoptions_create();
+
+        //start enclave
+        while (true) {
+            zmq::poll(pollitems.data(), pollitems.size(), 0);
+            // Join Request
+            if (pollitems[0].revents & ZMQ_POLLIN) {
+                //Get the address
+                std::string msg = this->recv_string(&socket_from_server);
+                LOGI << "[ROCKSDB " << m_addr << "]:  " + msg ;
+                hello_world::CapsulePDU in_dc;
+                in_dc.ParseFromString(msg);
+                capsule_pdu *dc = new capsule_pdu();
+                asylo::CapsuleFromProto(dc, &in_dc);
+                //DUMP_CAPSULE(dc);
+
+
+                const char* key = in_dc.hash().c_str();
+                const char* value = msg.c_str();
+                rocksdb_put(db, writeoptions, key, strlen(key), value, strlen(value) + 1,
+                            &err);
+                assert(!err);
+            }
+//            if(pollitems[1].revents & ZMQ_POLLIN){
+//                std::string msg = this->recv_string(&socket_from_server);
+//                // Get value
+//                size_t len;
+//                char *returned_value =
+//                        rocksdb_get(db, readoptions, key, strlen(key), &len, &err);
+//            }
+        }
+    }
+
 private:
     std::string m_port;
     std::string m_addr;
@@ -485,6 +549,12 @@ void thread_run_zmq_server(unsigned thread_id){
     zmq_comm zs = zmq_comm(NET_SEED_SERVER_IP, thread_id, nullptr);
     zs.run_server();
 }
+
+void thread_run_rocksdb_storage(unsigned thread_id){
+    zmq_comm zs = zmq_comm(NET_SEED_SERVER_IP, thread_id, nullptr);
+    zs.run_rocksdb();
+}
+
 void thread_start_fake_client(Asylo_SGX* sgx){
     sgx->execute();
 }
@@ -533,6 +603,7 @@ int main(int argc, char *argv[]) {
 
         //start server
         worker_threads.push_back(std::thread(thread_run_zmq_server, 0));
+        worker_threads.push_back(std::thread(thread_run_rocksdb_storage, 99));
         sleep(1 * 1000 * 1000);
     } else {
         std::vector <std::thread> worker_threads;
