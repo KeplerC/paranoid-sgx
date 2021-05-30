@@ -17,6 +17,7 @@
 #include "kvs_include/capsule.h"
 #include "src/proto/hello.pb.h"
 #include "src/util/proto_util.hpp"
+#include "asylo/identity/enclave_assertion_authority_configs.h"
 
 
 struct enclave_responder_args {
@@ -34,6 +35,8 @@ class Asylo_SGX{
         }
 
         void setTimeStamp(unsigned long int timeStart);
+        void setLambdaInput(hello_world::MP_Lambda_Input& input);    
+        hello_world::MP_Lambda_Input getLambdaInput();    
         unsigned long int getTimeStamp();
         void run_code(std::string *code);
         void put_ecall(capsule_pdu *dc);
@@ -49,6 +52,7 @@ class Asylo_SGX{
     asylo::EnclaveManager *manager;
     asylo::EnclaveClient *client;
     std::string m_name;
+    hello_world::MP_Lambda_Input lambda_input; 
     HotMsg *circ_buffer_enclave;
     HotMsg *circ_buffer_host; 
     int requestedCallID;

@@ -69,6 +69,7 @@
 
     //start enclave
     while (true) {
+        // LOG(INFO) << "Start zmq"; 
         zmq::poll(pollitems.data(), pollitems.size(), 0);
         // Join Request
         if (pollitems[0].revents & ZMQ_POLLIN) {

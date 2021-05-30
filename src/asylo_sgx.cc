@@ -1,59 +1,6 @@
-#include <iostream>
-#include <fstream>
-#include <sstream>
-#include <string>
-#include <thread>
-#include <vector>
-#include <zmq.hpp>
-#include <chrono>
-
-#include "absl/flags/flag.h"
-#include "absl/flags/parse.h"
-#include "absl/strings/str_split.h"
-#include "asylo/client.h"
-#include "asylo/crypto/sha256_hash_util.h"
-#include "asylo/enclave.pb.h"
-#include "asylo/platform/primitives/sgx/loader.pb.h"
-#include "asylo/util/logging.h"
-#include "asylo/util/status_macros.h"
-#include <thread>
-#include <mutex>
-#include <zmq.hpp>
-#include "hot_msg_pass.h"
-#include "common.h"
-#include "kvs_include/capsule.h"
-#include "src/proto/hello.pb.h"
-#include "src/util/proto_util.hpp"
-
 #include "asylo_sgx.hpp"
-
-#include "asylo/identity/enclave_assertion_authority_configs.h"
-
-ABSL_FLAG(std::string, enclave_path, "", "Path to enclave to load");
-
-ABSL_FLAG(std::string, scenario, "", "Path to enclave to load");
-ABSL_FLAG(std::string, algorithm, "", "Path to enclave to load");
-ABSL_FLAG(std::string, coordinator, "", "Path to enclave to load");
-
-ABSL_FLAG(std::string, jobs, "4", "Path to enclave to load");
-ABSL_FLAG(std::string, env, "", "Path to enclave to load");
-ABSL_FLAG(std::string, env_frame, "", "Path to enclave to load");
-
-ABSL_FLAG(std::string, robot, "", "Path to enclave to load");
-ABSL_FLAG(std::string, goal, "", "Path to enclave to load");
-ABSL_FLAG(std::string, goal_radius, "", "Path to enclave to load");
-
-
-ABSL_FLAG(std::string, start, "", "Path to enclave to load");
-ABSL_FLAG(std::string, min, "", "Path to enclave to load");
-ABSL_FLAG(std::string, max, "", "Path to enclave to load");
-
-ABSL_FLAG(std::string, problem_id, "", "Path to enclave to load");
-ABSL_FLAG(std::string, time_limit, "", "Path to enclave to load");
-ABSL_FLAG(std::string, check_resolution, "", "Path to enclave to load");
-
-ABSL_FLAG(std::string, discretization, "", "Path to enclave to load");
-ABSL_FLAG(std::string, is_float, "", "Path to enclave to load");  
+ 
+ ABSL_FLAG(std::string, enclave_path, "", "Path to enclave to load");
 
 static void* StartEnclaveResponder( void* hotMsgAsVoidP ) {
 
@@ -71,7 +18,9 @@ static void* StartEnclaveResponder( void* hotMsgAsVoidP ) {
     input.MutableExtension(hello_world::enclave_responder)->set_responder((long int)  hotMsg);
     input.MutableExtension(hello_world::kvs_server_config)->set_server_address(args->server_addr);
     input.MutableExtension(hello_world::kvs_server_config)->set_port(args->port);
+    LOG(INFO) << "StartEnclaveResponder";
     params.client->EnterAndRun(input, &output);
+    LOG(INFO) << "StartEnclaveResponder done";
 
     return NULL;
 }
@@ -94,19 +43,22 @@ static void *StartOcallResponder( void *arg ) {
     // to sync server
     zmq::socket_t* socket_ptr_to_sync  = new  zmq::socket_t( context, ZMQ_PUSH);
     socket_ptr_to_sync -> connect ("tcp://" + std::string(NET_SYNC_SERVER_IP) +":" + std::to_string(NET_SYNC_SERVER_PORT));
-
+    LOG(INFO) << "StartOcallResponder";
     while( true )
     {
         if( hotMsg->keepPolling != true ) {
+            LOG(INFO) << "Stop StartOcallResponder";
             break;
         }
 
         HotData* data_ptr = (HotData*) hotMsg -> MsgQueue[dataID];
+
+        sgx_spin_lock( &data_ptr->spinlock );
         if (data_ptr == 0){
+            sgx_spin_unlock( &data_ptr->spinlock );
             continue;
         }
 
-        sgx_spin_lock( &data_ptr->spinlock );
 
         if(data_ptr->data){
             //Message exists!
@@ -148,12 +100,23 @@ static void *StartOcallResponder( void *arg ) {
         for( i = 0; i<3; ++i)
             _mm_pause();
     }
+
+    LOG(INFO) << "DONE StartOcallResponder";
+    return NULL; 
 }
 
 
 
 void Asylo_SGX::setTimeStamp(unsigned long int timeStart){
     this->timeStart = timeStart;
+}
+
+void Asylo_SGX::setLambdaInput(hello_world::MP_Lambda_Input& input){
+    this->lambda_input = input;
+}
+
+hello_world::MP_Lambda_Input Asylo_SGX::getLambdaInput(){
+    return this->lambda_input;
 }
 
 unsigned long int Asylo_SGX::getTimeStamp(){
@@ -270,6 +233,7 @@ void Asylo_SGX::start_sync_epoch_thread() {
 
 //start a fake client
 void Asylo_SGX::execute(){
+    LOG(INFO) << "Before enter and run";
 
     //Test OCALL
     asylo::EnclaveInput input;        
@@ -278,34 +242,12 @@ void Asylo_SGX::execute(){
     input.MutableExtension(hello_world::buffer)->set_buffer((long int) circ_buffer_host);
     input.MutableExtension(hello_world::buffer)->set_enclave_id(m_name);
 
-    hello_world::MP_Lambda_Input lambda_input;
+    hello_world::MP_Lambda_Input lambda_input = getLambdaInput();
+    
 
-    lambda_input.set_time_start(timeStart);
+    // lambda_input.set_time_start(timeStart);
 
-    lambda_input.set_scenario(absl::GetFlag(FLAGS_scenario));
-    lambda_input.set_algorithm(absl::GetFlag(FLAGS_algorithm));
-    lambda_input.set_coordinator(absl::GetFlag(FLAGS_coordinator));
-
-    lambda_input.set_jobs(absl::GetFlag(FLAGS_jobs));
-    lambda_input.set_env(absl::GetFlag(FLAGS_env));
-    lambda_input.set_env_frame(absl::GetFlag(FLAGS_env_frame));
-
-
-    lambda_input.set_robot(absl::GetFlag(FLAGS_robot));
-    lambda_input.set_goal(absl::GetFlag(FLAGS_goal));
-    lambda_input.set_goal_radius(absl::GetFlag(FLAGS_goal_radius));
-
-    lambda_input.set_start(absl::GetFlag(FLAGS_start));
-    lambda_input.set_min(absl::GetFlag(FLAGS_min));
-    lambda_input.set_max(absl::GetFlag(FLAGS_max));
-
-    lambda_input.set_problem_id(absl::GetFlag(FLAGS_problem_id));
-    lambda_input.set_time_limit(absl::GetFlag(FLAGS_time_limit));
-    lambda_input.set_check_resolution(absl::GetFlag(FLAGS_check_resolution));
-
-    lambda_input.set_discretization(absl::GetFlag(FLAGS_discretization));
-    lambda_input.set_is_float(absl::GetFlag(FLAGS_is_float));
-
+    LOG(INFO) << lambda_input.jobs();
     *input.MutableExtension(hello_world::lambda_input) = lambda_input;
 
     asylo::Status status = this->client->EnterAndRun(input, &output);
@@ -343,16 +285,22 @@ void Asylo_SGX::execute(){
 }
 
 void Asylo_SGX::finalize(){
-    asylo::EnclaveFinal final_input;
-    asylo::Status status = this->manager->DestroyEnclave(this->client, final_input);
-    StopMsgResponder( circ_buffer_host );
-    pthread_join(circ_buffer_host->responderThread, NULL);
-
     StopMsgResponder( circ_buffer_enclave );
     pthread_join(circ_buffer_enclave->responderThread, NULL);
 
+    LOG(INFO) << "destroyed enclave buffer";
+
+    StopMsgResponder( circ_buffer_host );
+    pthread_join(circ_buffer_host->responderThread, NULL);
+
+    LOG(INFO) << "destroyed host buffer";
+    LOG(INFO) << "destroyed enclave buffer";
+
     free(circ_buffer_host);
     free(circ_buffer_enclave);
+
+    asylo::EnclaveFinal final_input;
+    asylo::Status status = this->manager->DestroyEnclave(this->client, final_input);
 
     if (!status.ok()) {
         LOG(QFATAL) << "Destroy " << absl::GetFlag(FLAGS_enclave_path)

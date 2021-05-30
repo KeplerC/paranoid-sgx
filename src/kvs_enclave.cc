@@ -116,6 +116,7 @@ namespace asylo {
             }
             else if (input.HasExtension(hello_world::is_coordinator)) {
                 LOGI << "[Coordinator] Up and Running";
+                LOG(INFO) << "[Coordinator running]";
                 m_enclave_id = 1;
                 buffer = (HotMsg *) input.GetExtension(hello_world::is_coordinator).circ_buffer();
                 is_coordinator = true;
@@ -138,6 +139,7 @@ namespace asylo {
                 is_coordinator = false;
             }
 
+            LOG(INFO) << "kvs_enclave";
             //Register OCALL buffer
             buffer = (HotMsg *) input.GetExtension(hello_world::buffer).buffer();
             m_enclave_id = std::stoi(input.GetExtension(hello_world::buffer).enclave_id());
@@ -268,6 +270,7 @@ namespace asylo {
 
         void KVSClient::EnclaveMsgStartResponder( HotMsg *hotMsg )
         {
+            LOG(INFO) << "EnclaveMsgStartResponder";
             int dataID = 0;
 
             static int i;
@@ -278,7 +281,9 @@ namespace asylo {
             while( true )
             {
 
+                // LOG(INFO) << "EnclaveMsgStartResponder Loops";
                 if( hotMsg->keepPolling != true ) {
+                    LOG(INFO) << "EnclaveMsgStartResponder done";
                     break;
                 }
 

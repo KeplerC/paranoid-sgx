@@ -25,14 +25,20 @@
 #ifndef __COMMON_H
 #define __COMMON_H
 
-// ip of this machine
-#define NET_CLIENT_IP "localhost"
-// ip of seed server(router)
-#define NET_SEED_SERVER_IP "localhost"
-// ip of sync coordinator
-#define NET_SYNC_SERVER_IP "localhost"
-// ip of key distribution server
-#define NET_KEY_DIST_SERVER_IP "localhost"
+
+#define NET_CLIENT_IP "34.83.138.211"
+#define NET_SEED_SERVER_IP "34.83.138.211"
+#define NET_SYNC_SERVER_IP "34.83.138.211"
+#define NET_KEY_DIST_SERVER_IP "34.83.138.211"
+
+// // ip of this machine
+// #define NET_CLIENT_IP "localhost"
+// // ip of seed server(router)
+// #define NET_SEED_SERVER_IP "localhost"
+// // ip of sync coordinator
+// #define NET_SYNC_SERVER_IP "localhost"
+// // ip of key distribution server
+// #define NET_KEY_DIST_SERVER_IP "localhost"
 
 // Key for coordinator Request To Send(RTS)
 #define COORDINATOR_RTS_KEY "PARANOID_RTS"
@@ -41,10 +47,10 @@
 // Key for latest EOE
 #define COORDINATOR_EOE_KEY "PARANOID_EOE"
 
-#define TOTAL_THREADS 12
+#define TOTAL_THREADS 3
 #define EPOCH_TIME 2
 #define PERFORMANCE_MEASUREMENT_NUM_REPEATS 10
-#define RUN_BOTH_CLIENT_AND_SERVER true
+// #define RUN_BOTH_CLIENT_AND_SERVER true
 #define NET_CLIENT_BASE_PORT 5555
 #define NET_SYNC_SERVER_PORT 5556
 #define NET_SERVER_JOIN_PORT 6666
