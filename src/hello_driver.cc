@@ -215,21 +215,16 @@ void run_listener(){
         lambda_input.ParseFromArray(buffer, bytes_read);
         unsigned long int now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 
-        for (unsigned thread_id = 1; thread_id < std::stoi(lambda_input.jobs()) + 1; thread_id++) {
+        for (unsigned thread_id = 0; thread_id < std::stoi(lambda_input.jobs()); thread_id++) {
             Asylo_SGX* sgx = new Asylo_SGX( std::to_string(thread_id));
             sgx->init();
             sgx->setTimeStamp(now);
             sgx->setLambdaInput(lambda_input);
             
-
             sleep(1);
-            if(thread_id == 1){
-                worker_threads.push_back(std::thread(thread_run_zmq_client, thread_id, sgx));
-                worker_threads.push_back(std::thread(thread_start_coordinator, sgx));
-            } else{
-                worker_threads.push_back(std::thread(thread_run_zmq_client, thread_id, sgx));
-                client_threads.push_back(std::thread(thread_start_fake_client, sgx));
-            }
+
+            worker_threads.push_back(std::thread(thread_run_zmq_client, thread_id, sgx));
+            client_threads.push_back(std::thread(thread_start_fake_client, sgx));
         }
 
         //Wait for client enclaves first
