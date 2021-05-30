@@ -20,7 +20,7 @@ std::vector<kvs_payload> PQueue::dequeue(long unsigned int maxlen) {
 }
 
 bool PQueue::enqueue(const kvs_payload *payload) {
-    if (payload->txn_msgType != "") {
+    if (payload->txn_msgType != DEFAULT_MSGTYPE) {
         // special message
         sgx_spin_lock(&mq_spinlock);
         msgqueue.push_back(*payload);

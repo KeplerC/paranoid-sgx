@@ -414,7 +414,7 @@ namespace asylo {
         std::unordered_map<int, std::pair<std::string, int64_t>> m_eoe_hashes;
         int64_t m_lamport_timer;
 
-        void put(std::string key, std::string value, std::string msgType = "") {
+        void put(std::string key, std::string value, std::string msgType = DEFAULT_MSGTYPE) {
             m_lamport_timer += 1;
             kvs_payload payload;
             asylo::KvToPayload(&payload, key, value, m_lamport_timer, msgType);
@@ -461,9 +461,9 @@ namespace asylo {
             DUMP_CAPSULE(dc);
 
             // to_memtable and/or update_hash based on msgType
-            bool to_memtable = (dc->msgType == "")? true : false;
+            bool to_memtable = (dc->msgType == DEFAULT_MSGTYPE)? true : false;
 
-            bool update_hash = (dc->msgType == "" ||
+            bool update_hash = (dc->msgType == DEFAULT_MSGTYPE ||
                                 dc->msgType == COORDINATOR_SYNC_TYPE )? true : false;
 
             // store in memtable

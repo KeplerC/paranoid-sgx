@@ -247,7 +247,12 @@ public:
         in_dc.ParseFromString(message);
         if(in_dc.sender() == std::stoi(this->m_name)){
             return;
-        }
+        } else if (in_dc.sender() == ROCKSDB_SENDER) {
+            // print if received ack for hash, then return for now
+            LOGI << "Received ack for Hash: " << in_dc.hash();
+            return;  
+        }       
+
         capsule_pdu *dc = new capsule_pdu();
         asylo::CapsuleFromProto(dc, &in_dc);
 
@@ -457,6 +462,18 @@ public:
         //a socket to server to multicast
         zmq::socket_t* socket_send  = new  zmq::socket_t( context, ZMQ_PUSH);
         socket_send -> connect ("tcp://" + m_seed_server_ip + ":" + m_seed_server_mcast_port);
+        
+        // a hash table to store connections to clients, for ack purpose
+        std::unordered_map<int, zmq::socket_t*> client_conn_map;
+
+        // a socket to each client, store in the hash table
+        for (int client_id = 2; client_id < TOTAL_THREADS; client_id++) {
+            client_conn_map[client_id] = new zmq::socket_t( context, ZMQ_PUSH);
+            client_conn_map[client_id]->connect ("tcp://" + std::string(NET_CLIENT_IP) + ":" + 
+                                                std::to_string(NET_CLIENT_BASE_PORT + client_id));
+            LOGI << "Connection to client_id done: " << client_id;
+        }
+
         // poll for new messages
         std::vector<zmq::pollitem_t> pollitems = {
                 { static_cast<void *>(socket_from_server), 0, ZMQ_POLLIN, 0 },
@@ -489,16 +506,30 @@ public:
                 LOGI << "[ROCKSDB " << m_addr << "]:  " + msg ;
                 hello_world::CapsulePDU in_dc;
                 in_dc.ParseFromString(msg);
-                capsule_pdu *dc = new capsule_pdu();
-                asylo::CapsuleFromProto(dc, &in_dc);
-                //DUMP_CAPSULE(dc);
 
+                // Only stores DEFAULT_MSGTYPE msg from clients 
+                // NOTE: if removed/changed, needs to add check before sending ack
+                if (in_dc.msgtype() != DEFAULT_MSGTYPE) {
+                    continue;
+                }
 
                 const char* key = in_dc.hash().c_str();
                 const char* value = msg.c_str();
                 rocksdb_put(db, writeoptions, key, strlen(key), value, strlen(value) + 1,
                             &err);
                 assert(!err);
+                
+                // send an ack of hash to corresponding client's connection
+                hello_world::CapsulePDU ack_dc;
+                std::string ack_s;
+                ack_dc.set_sender(ROCKSDB_SENDER);
+                ack_dc.set_hash(in_dc.hash());
+
+                ack_dc.SerializeToString(&ack_s);
+                zmq::message_t ack_msg(ack_s.size());
+                memcpy(ack_msg.data(), ack_s.c_str(), ack_s.size());
+
+                client_conn_map[in_dc.sender()]->send(ack_msg);
             }
 //            if(pollitems[1].revents & ZMQ_POLLIN){
 //                std::string msg = this->recv_string(&socket_from_server);
