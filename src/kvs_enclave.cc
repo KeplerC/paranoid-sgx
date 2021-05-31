@@ -428,6 +428,8 @@ namespace asylo {
         std::string m_prev_hash;
         std::unordered_map<int, std::pair<std::string, int64_t>> m_eoe_hashes;
         int64_t m_lamport_timer;
+        std::vector<std::pair<int64_t, int64_t>> start_time_l;
+        int print_counter = 0;
 
         void put(std::string key, std::string value, std::string msgType = DEFAULT_MSGTYPE) {
             m_lamport_timer += 1;
@@ -436,7 +438,13 @@ namespace asylo {
             DUMP_PAYLOAD((&payload));
             // enqueue to pqueue
             pqueue.enqueue(&payload);
-
+            if (print_counter-- == 0) {
+                std::pair<int64_t, int64_t> p;
+                p.first = get_current_time();
+                p.second = m_lamport_timer;
+                start_time_l.push_back(p);
+                print_counter = BATCH_SIZE-1;
+            }
         }
 
         void handle() {
@@ -491,9 +499,23 @@ namespace asylo {
             // update hash map
             if(update_hash)
                 update_client_hash(dc);
+            
+            if (dc->payload_l.back().key == "6546342200096380") {
+                dc->msgType = "last_msg";
+            }
 
             // send dc
             put_ocall(dc);
+
+            if (dc->msgType == "last_msg") {
+                LOGD << "actor last put_ocall end.";
+                sleep(2);
+                LOG(INFO) << "Printing start_time_l:";
+                for (const auto t: start_time_l) {
+                    LOG(INFO) << t.first << " " << t.second;
+                }
+                LOG(INFO) << "Printing start_time_l done.";
+            }
             
             delete dc;
         }
