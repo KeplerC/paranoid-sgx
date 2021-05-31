@@ -213,12 +213,14 @@ void run_listener(){
         LOG(INFO) << "[listener]" << bytes_read;
 
         lambda_input.ParseFromArray(buffer, bytes_read);
+
         unsigned long int now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+        lambda_input.set_time_start(now);
 
         for (unsigned thread_id = 0; thread_id < std::stoi(lambda_input.jobs()); thread_id++) {
             Asylo_SGX* sgx = new Asylo_SGX( std::to_string(thread_id));
             sgx->init();
-            sgx->setTimeStamp(now);
+            // sgx->setTimeStamp(now);
             sgx->setLambdaInput(lambda_input);
             
             sleep(1);
