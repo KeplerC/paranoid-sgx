@@ -45,6 +45,7 @@ class Asylo_SGX{
         void execute_coordinator();
         void start_sync_epoch_thread();
         void execute();
+        void execute_mpl();
         void finalize();
         void run(std::vector<std::string>  names);
 

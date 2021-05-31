@@ -232,7 +232,7 @@ void Asylo_SGX::start_sync_epoch_thread() {
 }
 
 //start a fake client
-void Asylo_SGX::execute(){
+void Asylo_SGX::execute_mpl(){
     LOG(INFO) << "Before enter and run";
 
     //Test OCALL
@@ -244,11 +244,26 @@ void Asylo_SGX::execute(){
 
     hello_world::MP_Lambda_Input lambda_input = getLambdaInput();
     
-
-    // lambda_input.set_time_start(timeStart);
-
     LOG(INFO) << lambda_input.jobs();
     *input.MutableExtension(hello_world::lambda_input) = lambda_input;
+
+    asylo::Status status = this->client->EnterAndRun(input, &output);
+    if (!status.ok()) {
+        LOG(QFATAL) << "EnterAndRun failed: " << status;
+    }
+}
+
+//start a fake client
+void Asylo_SGX::execute(){
+    LOG(INFO) << "Before enter and run";
+
+    //Test OCALL
+    asylo::EnclaveInput input;        
+    asylo::EnclaveOutput output;
+    //Register OCALL buffer to enclave 
+    input.MutableExtension(hello_world::buffer)->set_buffer((long int) circ_buffer_host);
+    input.MutableExtension(hello_world::buffer)->set_enclave_id(m_name);
+
 
     asylo::Status status = this->client->EnterAndRun(input, &output);
     if (!status.ok()) {
@@ -259,17 +274,6 @@ void Asylo_SGX::execute(){
     input.MutableExtension(hello_world::kvs_server_config)->set_server_address(NET_KEY_DIST_SERVER_IP);
     input.MutableExtension(hello_world::kvs_server_config)->set_port(NET_KEY_DIST_SERVER_PORT);
 
-
-//        asylo::EnclaveInput input;
-//        input.MutableExtension(hello_world::buffer)->set_buffer((long int) circ_buffer_host);
-//        input.MutableExtension(hello_world::buffer)->set_enclave_id(m_name);
-//
-//        asylo::EnclaveOutput output;
-
-//        asylo::Status status = this->client->EnterAndRun(input, &output);
-//        if (!status.ok()) {
-//            LOG(QFATAL) << "EnterAndRun failed: " << status;
-//        }
 
 //        std::string input_js = absl::GetFlag(FLAGS_input_file);
 //        std::ifstream t(input_js);

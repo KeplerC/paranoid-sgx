@@ -105,6 +105,10 @@ void thread_start_fake_client(Asylo_SGX* sgx){
     sgx->execute();
 }
 
+void thread_start_mpl_client(Asylo_SGX* sgx){
+    sgx->execute_mpl();
+}
+
 void thread_start_coordinator(Asylo_SGX* sgx){
     sgx->execute_coordinator();
 }
@@ -220,13 +224,12 @@ void run_listener(){
         for (unsigned thread_id = 0; thread_id < std::stoi(lambda_input.jobs()); thread_id++) {
             Asylo_SGX* sgx = new Asylo_SGX( std::to_string(thread_id));
             sgx->init();
-            // sgx->setTimeStamp(now);
             sgx->setLambdaInput(lambda_input);
             
             sleep(1);
 
             worker_threads.push_back(std::thread(thread_run_zmq_client, thread_id, sgx));
-            client_threads.push_back(std::thread(thread_start_fake_client, sgx));
+            client_threads.push_back(std::thread(thread_start_mpl_client, sgx));
         }
 
         //Wait for client enclaves first
