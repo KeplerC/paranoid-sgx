@@ -23,7 +23,7 @@
         if (pollitems[0].revents & ZMQ_POLLIN){
             //Get the address
             std::string msg = this->recv_string(&socket_join);
-            LOGI  << "[SERVER] JOIN FROM " + msg ;
+            LOG(INFO)  << "[SERVER] JOIN FROM " + msg ;
             this->group_addresses.push_back(msg);
 
             //create a socket to the client and save
@@ -61,6 +61,9 @@
     zmq::socket_t* socket_send  = new  zmq::socket_t( context, ZMQ_PUSH);
     socket_send -> connect ("tcp://" + m_seed_server_ip + ":" + m_seed_server_mcast_port);
 
+    LOG(INFO) << "tcp://" + m_seed_server_ip + ":" + m_seed_server_mcast_port;
+    LOG(INFO) << "tcp://" + m_seed_server_ip + ":" + m_seed_server_join_port;
+
     // poll for new messages
     std::vector<zmq::pollitem_t> pollitems = {
             { static_cast<void *>(socket_from_server), 0, ZMQ_POLLIN, 0 },
@@ -75,7 +78,7 @@
         if (pollitems[0].revents & ZMQ_POLLIN) {
             //Get the address
             std::string msg = this->recv_string(&socket_from_server);
-            LOGI << "[Client " << m_addr << "]:  " + msg ;
+            // LOG(INFO) << "[Client " << m_addr << "]:  " + msg ;
             // this -> send_string(m_port , socket_send);
             this->m_sgx->send_to_sgx(msg);
         }

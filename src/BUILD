@@ -370,7 +370,7 @@ enclave_loader(
     loader_args = [
         "--enclave_path='{enclave}'",
         "--mode=3",
-        "--hosts=localhost", 
+        "--hosts=localhost,35.247.29.237", 
 
         #Fetch params
         "--scenario fetch",
@@ -381,9 +381,9 @@ enclave_loader(
         "--goal=-1.07,0.16,0.88,0,0,0",
         "--goal_radius=0.01,0.01,0.01,0.01,0.01,3.141592653589793",
         "--start=0.1,1.570796326794897,1.570796326794897,0,1.570796326794897,0,1.570796326794897,0",
-        "--time_limit 1",
+        "--time_limit 300",
         "--check_resolution 0.01",
-        "--jobs 2", 
+        "--jobs 1", 
         ],
     linkopts = [ "-L/usr/local/lib", "-lzmq" ],
     deps = [
