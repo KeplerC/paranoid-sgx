@@ -53,13 +53,10 @@
 // #include "asylo/identity/enclave_assertion_authority_config.proto.h"
 #include "asylo/identity/enclave_assertion_authority_configs.h"
 
-enum mode_type { RUN_BOTH_CLIENT_AND_SERVER, RUN_CLIENT_ONLY, LISTENER_MODE, COORDINATOR_MODE };
+enum mode_type { RUN_BOTH_CLIENT_AND_SERVER, RUN_CLIENT_ONLY, LISTENER_MODE, COORDINATOR_MODE, JS_MODE };
 
 #define PORT_NUM 1234
 
-
-ABSL_FLAG(std::string, input_file, "",
-          "JS input file to execute!");
 
 ABSL_FLAG(int32_t, mode, -1, "Configures which mode to run KVS in");
 
@@ -351,6 +348,17 @@ void run_coordinator(){
     return;
 }
 
+void run_js(){
+    std::vector <std::thread> worker_threads;
+    Asylo_SGX* sgx = new Asylo_SGX("1");
+    sgx->init();
+
+    sleep(1);
+    sgx->execute();
+    sgx->execute_js(); 
+    return; 
+}
+
 int main(int argc, char *argv[]) {
   // Part 0: Setup
     absl::ParseCommandLine(argc, argv);
@@ -369,6 +377,9 @@ int main(int argc, char *argv[]) {
             break; 
         case COORDINATOR_MODE:
             run_coordinator();
+            break; 
+        case JS_MODE:
+            run_js();
             break; 
         default:
             printf("Mode %d is incorrect\n", mode); 

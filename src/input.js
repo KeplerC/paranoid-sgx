@@ -1,16 +1,11 @@
-// var i, payload;
-for (i = 0; i < 1; i++) {
-    print("[ENCLAVE] ===CLIENT PUT=== ");
-    print("[ENCLAVE] Generating a new capsule PDU ");
-    put("default_key_longggggggggggggggggggggggg", "default_value_longggggggggggggggggggggggg");
-}
+print("[ENCLAVE] ===CLIENT PUT=== ");
+print("[ENCLAVE] Generating a new capsule PDU ");
+put("default_key_longggggggggggggggggggggggg", "default_value_longggggggggggggggggggggggg");
 
-for (i = 0; i < 1; i++) {
-    print("[ENCLAVE] ===CLIENT GET=== ");
-    payload = get(i);
-    print("DataCapsule payload.key is " + payload.key);
-    print("DataCapsule payload.value is " + payload.val);
-}
+print("[ENCLAVE] ===CLIENT GET=== ");
+payload = get("default_key_longggggggggggggggggggggggg");
+print("DataCapsule payload.key is " + payload.key);
+print("DataCapsule payload.value is " + payload.val);
 
 // put("6284781860667377", "2_o?.,Fg+S)'(~*"); 
 // put("8517097267634966", "&^?"); 

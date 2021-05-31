@@ -134,8 +134,7 @@ namespace asylo {
             } else if (input.HasExtension(hello_world::is_sync_thread)){
                 LOGI << "sync running";
                 return asylo::Status::OkStatus();
-            }
-            else{
+            } else {
                 is_coordinator = false;
             }
 
@@ -143,13 +142,14 @@ namespace asylo {
             buffer = (HotMsg *) input.GetExtension(hello_world::buffer).buffer();
             m_enclave_id = std::stoi(input.GetExtension(hello_world::buffer).enclave_id());
 
-            // start_eapp(this);
-
             sleep(3);
+
+            if (input.HasExtension(hello_world::lambda_input)){
+                return start_eapp(this, input);
+            } 
             // TODO: there still has some issues when the client starts before the client connects to the server
             // if we want to consider it, probably we need to buffer the messages
-
-            return start_eapp(this, input);
+            return asylo::Status::OkStatus();
         }
 
 
@@ -297,7 +297,9 @@ namespace asylo {
 
                     char *code = (char *) arg->data;
                     capsule_pdu *dc = new capsule_pdu(); // freed below
-                    CapsuleToCapsule(dc, (capsule_pdu *) arg->data);
+                    if(arg->ecall_id != ECALL_RUN)
+                        CapsuleToCapsule(dc, (capsule_pdu *) arg->data);
+                        
                     primitives::TrustedPrimitives::UntrustedLocalFree((capsule_pdu *) arg->data);
                     m_lamport_timer = std::max(m_lamport_timer, dc->timestamp) + 1;
                     switch(arg->ecall_id){

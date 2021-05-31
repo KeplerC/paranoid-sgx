@@ -425,3 +425,28 @@ enclave_loader(
         "@com_google_asylo//asylo/identity:enclave_assertion_authority_configs",
     ],
 )
+
+enclave_loader(
+    name = "js",
+    srcs = ["zmq_comm.hpp", "zmq_comm.cc", "asylo_sgx.hpp", "asylo_sgx.cc", "sgx_spinlock.h", "spinlock.c", "hello_driver.cc", "kvs_include/capsule.h", "util/proto_util.hpp", "util/proto_util.cc", "hot_msg_pass.h",  "common.h", "benchmark.h", "crypto.h"],
+    backends = sgx.backend_labels,  # Has SGX loader dependencies
+    enclaves = {"enclave": ":hello_enclave.so"},
+    loader_args = [
+        "--enclave_path='{enclave}'",
+        "--mode=4", 
+        ],
+    linkopts = [ "-L/usr/local/lib", "-lzmq" ],
+    deps = [
+        ":mpl_data",
+        ":hello_cc_proto",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:parse",
+        "@com_google_absl//absl/strings",
+        "@com_google_asylo//asylo:enclave_cc_proto",
+        "@com_google_asylo//asylo:enclave_client",
+        "@com_google_asylo//asylo/platform/primitives/sgx:loader_cc_proto",
+        "@com_google_asylo//asylo/util:logging",
+        "@com_google_asylo//asylo/crypto:sha256_hash_util",
+        "@com_google_asylo//asylo/identity:enclave_assertion_authority_configs",
+    ],
+)

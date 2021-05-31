@@ -1,6 +1,9 @@
 #include "asylo_sgx.hpp"
+#include <sstream>
+#include <fstream>
  
  ABSL_FLAG(std::string, enclave_path, "", "Path to enclave to load");
+ ABSL_FLAG(std::string, input_file, "", "JS input file to execute!");
 
 static void* StartEnclaveResponder( void* hotMsgAsVoidP ) {
 
@@ -246,6 +249,25 @@ void Asylo_SGX::execute_mpl(){
     }
 }
 
+void Asylo_SGX::execute_js(){
+
+    std::string input_js = absl::GetFlag(FLAGS_input_file);
+    std::ifstream t(input_js);
+    std::stringstream buffer;
+    buffer << t.rdbuf();
+
+    std::string code = buffer.str();
+
+    LOG(INFO) << code; 
+
+    // Execute JS file 
+    run_code(&code);
+
+    //Sleep so that threads have time to process ALL requests
+    sleep(1);
+    return;
+}
+
 //start a fake client
 void Asylo_SGX::execute(){
     //Test OCALL
@@ -264,16 +286,6 @@ void Asylo_SGX::execute(){
     //Load server/port
     input.MutableExtension(hello_world::kvs_server_config)->set_server_address(NET_KEY_DIST_SERVER_IP);
     input.MutableExtension(hello_world::kvs_server_config)->set_port(NET_KEY_DIST_SERVER_PORT);
-
-
-//        std::string input_js = absl::GetFlag(FLAGS_input_file);
-//        std::ifstream t(input_js);
-//        std::stringstream buffer;
-//        buffer << t.rdbuf();
-//
-//        std::string code = buffer.str();
-    //Execute JS file 
-    //run_code(&code);
 
     //Sleep so that threads have time to process ALL requests
     sleep(1);

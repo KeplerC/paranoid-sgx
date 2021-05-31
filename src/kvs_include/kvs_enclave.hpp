@@ -90,7 +90,7 @@
     }
 
     static duk_ret_t js_print(duk_context *ctx) {
-        LOGI << duk_to_string(ctx, 0);
+        std::cout << duk_to_string(ctx, 0) << std::endl;
         return 0;  /* no return value (= undefined) */
     }
 
@@ -105,19 +105,19 @@
     }
 
     static duk_ret_t js_get(duk_context *ctx){
-    //            capsule_id id = duk_to_int(ctx, 0);
-    //
-    //            duk_eval_string(ctx, "ctx");
-    //            HelloApplication *m = (HelloApplication *) duk_to_pointer(ctx, -1);
+        std::string key = duk_to_string(ctx, 0);
+    
+        duk_eval_string(ctx, "ctx");
+        KVSClient *m = (KVSClient *) duk_to_pointer(ctx, -1);
 
-    //            duk_idx_t obj_idx = duk_push_object(ctx);
-    //            capsule_pdu *dc = m->get(id);
-    //
-    //            duk_push_string(ctx, dc->payload.key.c_str());
-    //            duk_put_prop_string(ctx, obj_idx, "key");
-    //
-    //            duk_push_string(ctx, dc->payload.value.c_str());
-    //            duk_put_prop_string(ctx, obj_idx, "val");
+        duk_idx_t obj_idx = duk_push_object(ctx);
+        capsule_pdu dc = m->get(key);
+
+        duk_push_string(ctx, dc.payload.key.c_str());
+        duk_put_prop_string(ctx, obj_idx, "key");
+
+        duk_push_string(ctx, dc.payload.value.c_str());
+        duk_put_prop_string(ctx, obj_idx, "val");
 
         return 1;           
     }
