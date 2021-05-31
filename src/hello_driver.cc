@@ -220,8 +220,8 @@ void run_listener(){
         unsigned long int now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
         lambda_input.set_time_start(now);
 
-        for (unsigned thread_id = 2; thread_id < 2 + std::stoi(lambda_input.jobs()); thread_id++) {
-            Asylo_SGX* sgx = new Asylo_SGX( std::to_string(thread_id));
+        for (unsigned thread_id = 2; thread_id < std::stoi(lambda_input.jobs()) + 2; thread_id++) {
+            Asylo_SGX* sgx = new Asylo_SGX( std::string(NET_CLIENT_IP) + std::string(":") + std::to_string(thread_id));
             sgx->init();
             sgx->setLambdaInput(lambda_input);
             
