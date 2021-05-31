@@ -185,7 +185,7 @@ namespace asylo {
 
                                 if (dc->msgType == "last_msg") {
                                     LOGD << "last multicast end. ";
-                                    sleep(20);
+                                    sleep(50);
                                     LOG(INFO) << "Printing end_time_l:";                        
                                     for (const auto t: this->end_time_l) {
                                         LOG(INFO) << t.first << " " << t.second;
@@ -422,7 +422,13 @@ namespace asylo {
                 DUMP_PAYLOAD((&tmp_payload));
             }
 
-            benchmark();
+            for (int i = 0; i < BENCHMARK_TIMES; i++) {
+                benchmark();
+                if (SEC_BETWEEN_BENCHMARK > 0) 
+                    usleep(SEC_BETWEEN_BENCHMARK * 1000000);
+            }
+            put("last_msg_key", "default_value");
+
             return asylo::Status::OkStatus();
         }
 
@@ -444,7 +450,7 @@ namespace asylo {
         std::unordered_map<int, std::pair<std::string, int64_t>> m_eoe_hashes;
         int64_t m_lamport_timer;
         std::vector<std::pair<int64_t, int64_t>> start_time_l;
-        int print_counter = 0;
+        int print_counter = 1;
         std::vector<std::pair<int64_t, int64_t>> end_time_l;
 
         void put(std::string key, std::string value, std::string msgType = DEFAULT_MSGTYPE) {
@@ -454,12 +460,12 @@ namespace asylo {
             DUMP_PAYLOAD((&payload));
             // enqueue to pqueue
             pqueue.enqueue(&payload);
-            if (print_counter-- == 0) {
+            if (--print_counter == 0) {
                 std::pair<int64_t, int64_t> p;
                 p.first = get_current_time();
                 p.second = m_lamport_timer;
                 start_time_l.push_back(p);
-                print_counter = BATCH_SIZE-1;
+                print_counter = BATCH_SIZE >= 10? BATCH_SIZE/3 : BATCH_SIZE;
             }
         }
 
@@ -516,7 +522,7 @@ namespace asylo {
             if(update_hash)
                 update_client_hash(dc);
             
-            if (dc->payload_l.back().key == "6546342200096380") {
+            if (dc->payload_l.back().key == "last_msg_key") {
                 dc->msgType = "last_msg";
             }
 
