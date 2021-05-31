@@ -18,9 +18,8 @@ static void* StartEnclaveResponder( void* hotMsgAsVoidP ) {
     input.MutableExtension(hello_world::enclave_responder)->set_responder((long int)  hotMsg);
     input.MutableExtension(hello_world::kvs_server_config)->set_server_address(args->server_addr);
     input.MutableExtension(hello_world::kvs_server_config)->set_port(args->port);
-    LOG(INFO) << "StartEnclaveResponder";
+
     params.client->EnterAndRun(input, &output);
-    LOG(INFO) << "StartEnclaveResponder done";
 
     return NULL;
 }
@@ -43,11 +42,9 @@ static void *StartOcallResponder( void *arg ) {
     // to sync server
     zmq::socket_t* socket_ptr_to_sync  = new  zmq::socket_t( context, ZMQ_PUSH);
     socket_ptr_to_sync -> connect ("tcp://" + std::string(NET_SYNC_SERVER_IP) +":" + std::to_string(NET_SYNC_SERVER_PORT));
-    LOG(INFO) << "StartOcallResponder";
     while( true )
     {
         if( hotMsg->keepPolling != true ) {
-            LOG(INFO) << "Stop StartOcallResponder";
             break;
         }
 
@@ -101,7 +98,6 @@ static void *StartOcallResponder( void *arg ) {
             _mm_pause();
     }
 
-    LOG(INFO) << "DONE StartOcallResponder";
     return NULL; 
 }
 
@@ -233,8 +229,6 @@ void Asylo_SGX::start_sync_epoch_thread() {
 
 //start a fake client
 void Asylo_SGX::execute_mpl(){
-    LOG(INFO) << "Before enter and run";
-
     //Test OCALL
     asylo::EnclaveInput input;        
     asylo::EnclaveOutput output;
@@ -244,7 +238,6 @@ void Asylo_SGX::execute_mpl(){
 
     hello_world::MP_Lambda_Input lambda_input = getLambdaInput();
     
-    LOG(INFO) << lambda_input.jobs();
     *input.MutableExtension(hello_world::lambda_input) = lambda_input;
 
     asylo::Status status = this->client->EnterAndRun(input, &output);
@@ -255,8 +248,6 @@ void Asylo_SGX::execute_mpl(){
 
 //start a fake client
 void Asylo_SGX::execute(){
-    LOG(INFO) << "Before enter and run";
-
     //Test OCALL
     asylo::EnclaveInput input;        
     asylo::EnclaveOutput output;
@@ -292,13 +283,8 @@ void Asylo_SGX::finalize(){
     StopMsgResponder( circ_buffer_enclave );
     pthread_join(circ_buffer_enclave->responderThread, NULL);
 
-    LOG(INFO) << "destroyed enclave buffer";
-
     StopMsgResponder( circ_buffer_host );
     pthread_join(circ_buffer_host->responderThread, NULL);
-
-    LOG(INFO) << "destroyed host buffer";
-    LOG(INFO) << "destroyed enclave buffer";
 
     free(circ_buffer_host);
     free(circ_buffer_enclave);

@@ -210,7 +210,6 @@ void run_listener(){
         char buffer[512];
         int bytes_read = 0;
         while(bytes_read < 256){
-            LOG(INFO) << bytes_read; 
             bytes_read += read(connection, buffer + bytes_read, 512 - bytes_read);
         }
 
@@ -239,7 +238,7 @@ void run_listener(){
         }
 
         //TODO: Figure out a way to kill ZMQ clients 
-        LOG(INFO) << "Done";
+        LOG(INFO) << "[listener] Finished request";
         exit(0);
 
         //Send cancellation singnals to ZMQ client threads
@@ -271,12 +270,7 @@ void run_coordinator(){
     lambda_input.set_scenario(absl::GetFlag(FLAGS_scenario));
     lambda_input.set_algorithm(absl::GetFlag(FLAGS_algorithm));
     lambda_input.set_coordinator(absl::GetFlag(FLAGS_coordinator));
-
-    LOG(INFO) << absl::GetFlag(FLAGS_jobs);
-
     lambda_input.set_jobs(absl::GetFlag(FLAGS_jobs));
-
-    LOG(INFO) << lambda_input.jobs();
 
     lambda_input.set_env(absl::GetFlag(FLAGS_env));
     lambda_input.set_env_frame(absl::GetFlag(FLAGS_env_frame));
@@ -338,11 +332,11 @@ void run_coordinator(){
             LOG(ERROR) << "ERROR writing to socket";
 
         close(sockfd);     
-        LOG(INFO) << host;
+        LOG(INFO) << "Sent request to : " << host;
     }
 
     free(payload); 
-    LOG(INFO) << "Initiating ZMQ server";
+
     //Initiate ZMQ server 
     worker_threads.push_back(std::thread(thread_run_zmq_server, 0));
     sleep(1 * 1000 * 1000);
