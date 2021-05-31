@@ -121,7 +121,6 @@ public:
         zmq::socket_t* socket_ptr_to_sync  = new  zmq::socket_t( context, ZMQ_PUSH);
         socket_ptr_to_sync -> connect ("tcp://" + std::string(NET_SYNC_SERVER_IP) +":" + std::to_string(NET_SYNC_SERVER_PORT));
 
-        std::vector<std::pair<int64_t, int64_t>> end_time_l;
         
         while( true )
         {
@@ -159,21 +158,6 @@ public:
                         socket_ptr_to_sync->send(msg);
                     }else {
                         socket_ptr->send(msg);
-                    }
-                    if (in_dc.msgtype() == DEFAULT_MSGTYPE || in_dc.msgtype() == "last_msg") {
-                        std::pair<int64_t, int64_t> p;
-                        p.first = asylo::get_current_time();
-                        p.second = in_dc.timestamp();
-                        end_time_l.push_back(p);
-                    }
-                    if (in_dc.msgtype() == "last_msg") {
-                        LOGD << "last multicast end. ";
-                        sleep(20);
-                        LOG(INFO) << "Printing end_time_l:";                        
-                        for (const auto t: end_time_l) {
-                            LOG(INFO) << t.first << " " << t.second;
-                        }
-                        LOG(INFO) << "Printing end_time_l done.";
                     }
                     break;
                 }
@@ -556,7 +540,8 @@ public:
 
                 // Only stores DEFAULT_MSGTYPE msg from clients 
                 // NOTE: if removed/changed, needs to add check before sending ack
-                if (in_dc.msgtype() != DEFAULT_MSGTYPE) {
+                if (in_dc.msgtype() != DEFAULT_MSGTYPE && 
+                    in_dc.msgtype() != "last_msg") {
                     continue;
                 }
 
@@ -579,6 +564,8 @@ public:
                 std::string ack_s;
                 ack_dc.set_sender(ROCKSDB_SENDER);
                 ack_dc.set_hash(in_dc.hash());
+                ack_dc.set_timestamp(in_dc.timestamp());
+                ack_dc.set_msgtype(in_dc.msgtype());
 
                 if (DC_SERVER_CRYPTO_ENABLED) {
                     if (!sign_dc_proto(&ack_dc, signing_key)) {

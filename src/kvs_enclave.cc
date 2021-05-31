@@ -177,6 +177,21 @@ namespace asylo {
                                         LOGI << "ack_dc verification failed!!!";
                                     }
                                 }
+
+                                std::pair<int64_t, int64_t> p;
+                                p.first = get_current_time();
+                                p.second = dc->timestamp;
+                                this->end_time_l.push_back(p);
+
+                                if (dc->msgType == "last_msg") {
+                                    LOGD << "last multicast end. ";
+                                    sleep(20);
+                                    LOG(INFO) << "Printing end_time_l:";                        
+                                    for (const auto t: this->end_time_l) {
+                                        LOG(INFO) << t.first << " " << t.second;
+                                    }
+                                    LOG(INFO) << "Printing end_time_l done.";
+                                }
                                 // print if received ack for hash, then return for now
                                 LOGI << "Received ack for Hash: " << dc->hash;
                                 break;  
@@ -430,6 +445,7 @@ namespace asylo {
         int64_t m_lamport_timer;
         std::vector<std::pair<int64_t, int64_t>> start_time_l;
         int print_counter = 0;
+        std::vector<std::pair<int64_t, int64_t>> end_time_l;
 
         void put(std::string key, std::string value, std::string msgType = DEFAULT_MSGTYPE) {
             m_lamport_timer += 1;
