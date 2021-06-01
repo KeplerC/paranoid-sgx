@@ -616,10 +616,21 @@ void thread_crypt_actor_thread(Asylo_SGX* sgx){
     sgx->start_crypt_actor_thread();
 }
 
+// Hardcoded signing_key (TODO: use key distribution server instead)
+const absl::string_view signing_key_pem = {
+            R"pem(-----BEGIN EC PRIVATE KEY-----
+MHcCAQEEIF0Z0yrz9NNVFQU1754rHRJs+Qt04mr3vEgNok8uyU8QoAoGCCqGSM49
+AwEHoUQDQgAE2M/ETD1FV9EFzZBB1+emBFJuB1eh2/XyY3ZdNrT8lq7FQ0Z6ENdm
+oG+ldQH94d6FPkRWOMwY+ppB+SQ8XnUFRA==
+-----END EC PRIVATE KEY-----)pem"
+};
+
 int main(int argc, char *argv[]) {
   // Part 0: Setup
     absl::ParseCommandLine(argc, argv);
-    std::unique_ptr <asylo::SigningKey> signing_key = asylo::EcdsaP256Sha256SigningKey::Create().ValueOrDie();
+    std::unique_ptr <asylo::SigningKey> signing_key(std::move(asylo::EcdsaP256Sha256SigningKey::CreateFromPem(
+                                          signing_key_pem)).ValueOrDie());
+    // std::unique_ptr <asylo::SigningKey> signing_key = asylo::EcdsaP256Sha256SigningKey::Create().ValueOrDie();
     asylo::CleansingVector<uint8_t> serialized_signing_key;
     ASSIGN_OR_RETURN(serialized_signing_key,
                             signing_key->SerializeToDer());
