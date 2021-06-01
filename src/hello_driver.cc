@@ -427,6 +427,11 @@ public:
         socket_join -> connect ("tcp://" + m_seed_server_ip + ":" + m_seed_server_join_port);
         this->send_string(m_addr, socket_join);
 
+        //send join request to ROCKSDB server
+        zmq::socket_t* socket_rocksdb_join  = new  zmq::socket_t( context, ZMQ_PUSH);
+        socket_rocksdb_join -> connect ("tcp://" + m_rocksdb_server_ip + ":" + m_rocksdb_server_join_port);
+        this->send_string(std::to_string(m_thread_id) + " " + m_addr, socket_rocksdb_join);
+
         //a socket to server to multicast
         zmq::socket_t* socket_send  = new  zmq::socket_t( context, ZMQ_PUSH);
         socket_send -> connect ("tcp://" + m_seed_server_ip + ":" + m_seed_server_mcast_port);
@@ -453,6 +458,10 @@ public:
 
     [[noreturn]] void run_rocksdb(){
         zmq::context_t context (1);
+        // socket for ROCKSDB join requests
+        zmq::socket_t socket_rocksdb_join (context, ZMQ_PULL);
+        socket_rocksdb_join.bind ("tcp://*:" + std::to_string(NET_ROCKSDB_SERVER_JOIN_PORT));
+        
         zmq::socket_t socket_from_server (context, ZMQ_PULL);
         socket_from_server.bind ("tcp://*:" + m_port);
         //send join request to seed server
@@ -463,19 +472,9 @@ public:
         zmq::socket_t* socket_send  = new  zmq::socket_t( context, ZMQ_PUSH);
         socket_send -> connect ("tcp://" + m_seed_server_ip + ":" + m_seed_server_mcast_port);
         
-        // a hash table to store connections to clients, for ack purpose
-        std::unordered_map<int, zmq::socket_t*> client_conn_map;
-
-        // a socket to each client, store in the hash table
-        for (int client_id = 2; client_id < TOTAL_THREADS; client_id++) {
-            client_conn_map[client_id] = new zmq::socket_t( context, ZMQ_PUSH);
-            client_conn_map[client_id]->connect ("tcp://" + std::string(NET_CLIENT_IP) + ":" + 
-                                                std::to_string(NET_CLIENT_BASE_PORT + client_id));
-            LOGI << "Connection to client_id done: " << client_id;
-        }
-
         // poll for new messages
         std::vector<zmq::pollitem_t> pollitems = {
+                { static_cast<void *>(socket_rocksdb_join), 0, ZMQ_POLLIN, 0 },
                 { static_cast<void *>(socket_from_server), 0, ZMQ_POLLIN, 0 },
         };
 
@@ -499,8 +498,30 @@ public:
         //start enclave
         while (true) {
             zmq::poll(pollitems.data(), pollitems.size(), 0);
-            // Join Request
-            if (pollitems[0].revents & ZMQ_POLLIN) {
+            // ROCKSDB join request
+            if (pollitems[0].revents & ZMQ_POLLIN){
+                //Get the address
+                std::string msg_raw = this->recv_string(&socket_rocksdb_join);
+                std::istringstream iss(msg_raw);
+                int client_id;
+                std::string msg;
+                iss >> client_id;
+                iss >> msg;
+
+                LOGI  << "[ROCKSDB] JOIN FROM " << client_id << ": " + msg;
+
+                //create a socket to the client and save
+                if (this->rocksdb_clients.find(client_id) != this->rocksdb_clients.end()) {
+                    LOG(WARNING) << "ERROR - ROCKSDB Connection already exists to client: " << client_id;
+                } else {
+                    this->rocksdb_clients[client_id] = new zmq::socket_t( context, ZMQ_PUSH);
+                    this->rocksdb_clients[client_id] -> connect (msg);
+                    LOGI << "Successfully connect to client: " << client_id;
+                }
+            }
+
+            // receive new message from seed server
+            if (pollitems[1].revents & ZMQ_POLLIN) {
                 //Get the address
                 std::string msg = this->recv_string(&socket_from_server);
                 LOGI << "[ROCKSDB " << m_addr << "]:  " + msg ;
@@ -529,15 +550,8 @@ public:
                 zmq::message_t ack_msg(ack_s.size());
                 memcpy(ack_msg.data(), ack_s.c_str(), ack_s.size());
 
-                client_conn_map[in_dc.sender()]->send(ack_msg);
+                this->rocksdb_clients[in_dc.sender()]->send(ack_msg);
             }
-//            if(pollitems[1].revents & ZMQ_POLLIN){
-//                std::string msg = this->recv_string(&socket_from_server);
-//                // Get value
-//                size_t len;
-//                char *returned_value =
-//                        rocksdb_get(db, readoptions, key, strlen(key), &len, &err);
-//            }
         }
     }
 
@@ -547,12 +561,16 @@ private:
     std::string m_seed_server_ip = NET_SEED_SERVER_IP;
     std::string m_seed_server_join_port = std::to_string(NET_SERVER_JOIN_PORT);
     std::string m_seed_server_mcast_port = std::to_string(NET_SERVER_MCAST_PORT);
+    std::string m_rocksdb_server_ip = NET_ROCKSDB_SERVER_IP;
+    std::string m_rocksdb_server_join_port = std::to_string(NET_ROCKSDB_SERVER_JOIN_PORT);
     unsigned m_thread_id;
     Asylo_SGX* m_sgx;
 
     int m_enclave_seq_number = 0;
     std::vector<std::string> group_addresses;
     std::vector<zmq::socket_t*> group_sockets;
+
+    std::unordered_map<int, zmq::socket_t*> rocksdb_clients;
 
     zmq::message_t string_to_message(const std::string& s) {
         zmq::message_t msg(s.size());
@@ -637,10 +655,10 @@ int main(int argc, char *argv[]) {
         worker_threads.push_back(std::thread(thread_run_rocksdb_storage, 99));
         sleep(1 * 1000 * 1000);
     } else {
-        // thread 2-n: clients
+        // thread START_CLIENT-n: clients
         std::vector <std::thread> worker_threads;
         //start clients
-        for (unsigned thread_id = 2; thread_id < TOTAL_THREADS; thread_id++) {
+        for (unsigned thread_id = START_CLIENT_ID; thread_id < TOTAL_THREADS; thread_id++) {
             Asylo_SGX* sgx = new Asylo_SGX( std::to_string(thread_id), serialized_signing_key);
             sgx->init();
             sleep(1);

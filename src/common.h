@@ -33,6 +33,8 @@
 #define NET_SYNC_SERVER_IP "localhost"
 // ip of key distribution server
 #define NET_KEY_DIST_SERVER_IP "localhost"
+// ip of rocksdb server
+#define NET_ROCKSDB_SERVER_IP "localhost"
 
 // Key for coordinator Request To Send(RTS)
 #define COORDINATOR_RTS_TYPE "PARANOID_RTS"
@@ -45,6 +47,7 @@
 
 #define ROCKSDB_SENDER 0
 
+#define START_CLIENT_ID 2 // >=2 ; TOTAL_THREADS - START_CLIENT_ID = Num of clients on this node
 #define TOTAL_THREADS 3
 #define EPOCH_TIME 2
 #define PERFORMANCE_MEASUREMENT_NUM_REPEATS 10
@@ -56,6 +59,7 @@
 #define NET_SERVER_JOIN_PORT 6666
 #define NET_SERVER_MCAST_PORT 6667
 #define NET_KEY_DIST_SERVER_PORT 3001
+#define NET_ROCKSDB_SERVER_JOIN_PORT 6676
 
 
 #define BENCHMARK_MODE false
