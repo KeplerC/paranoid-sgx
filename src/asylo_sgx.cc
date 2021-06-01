@@ -229,14 +229,6 @@ void Asylo_SGX::execute_coordinator() {
     this->client->EnterAndRun(input, &output);
 }
 
-// void Asylo_SGX::start_sync_epoch_thread() {
-//     asylo::EnclaveInput input;
-//     asylo::EnclaveOutput output;
-
-//     input.MutableExtension(hello_world::is_sync_thread)->set_is_sync(1);;
-//     this->client->EnterAndRun(input, &output);
-// }
-
 //start a fake client
 void Asylo_SGX::execute_mpl(){
     //Test OCALL
@@ -245,6 +237,8 @@ void Asylo_SGX::execute_mpl(){
     //Register OCALL buffer to enclave 
     input.MutableExtension(hello_world::buffer)->set_buffer((long int) circ_buffer_host);
     input.MutableExtension(hello_world::buffer)->set_enclave_id(m_name);
+    *(input.MutableExtension(hello_world::crypto_param)->mutable_key()) = asylo::CopyToByteContainer<std::string>(serialized_signing_key);
+
 
     hello_world::MP_Lambda_Input lambda_input = getLambdaInput();
     
