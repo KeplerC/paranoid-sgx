@@ -22,22 +22,103 @@
 // #define USE_KEY_MANAGER
 
 namespace asylo {
-        void KVSClient::put(std::string key, std::string value, bool to_memtable = true, bool update_hash = true, bool to_network = true) {
+        // void KVSClient::put(std::string key, std::string value, bool to_memtable = true, bool update_hash = true, bool to_network = true) {
+        //     m_lamport_timer += 1;
+        //     capsule_pdu *dc = new capsule_pdu();
+        //     asylo::KvToCapsule(dc, key, value, m_enclave_id);
+        //     dc -> prevHash = m_prev_hash;
+        //     dc -> timestamp = m_lamport_timer;
+        //     m_prev_hash = dc->metaHash;
+        //     //dc->timestamp = get_current_time();
+        //     DUMP_CAPSULE(dc);
+        //     put_internal(dc, to_memtable, update_hash, to_network);
+        //     delete dc;
+        // }
+
+        void KVSClient::put(std::string key, std::string value, std::string msgType = "") {
             m_lamport_timer += 1;
+            kvs_payload payload;
+            asylo::KvToPayload(&payload, key, value, m_lamport_timer, msgType);
+            DUMP_PAYLOAD((&payload));
+            // enqueue to pqueue
+            pqueue.enqueue(&payload);
+
+        }
+
+        void KVSClient::handle() {
+            // dequeue msg/txn from pqueue and then handle
+            std::vector<kvs_payload> payload_l = pqueue.dequeue(BATCH_SIZE);
+            if (payload_l.size() == 0){
+                return;
+            }
             capsule_pdu *dc = new capsule_pdu();
-            asylo::KvToCapsule(dc, key, value, m_enclave_id);
-            dc -> prevHash = m_prev_hash;
-            dc -> timestamp = m_lamport_timer;
-            m_prev_hash = dc->metaHash;
-            //dc->timestamp = get_current_time();
+            asylo::PayloadListToCapsule(dc, &payload_l, m_enclave_id);
+
+            // generate hash for update_hash and/or ocall
+            bool success = encrypt_payload_l(dc);
+            if (!success) {
+                LOGI << "payload_l encryption failed!!!";
+                delete dc;
+                return;
+            }
+
+            // generate hash and update prev_hash
+            success = generate_hash(dc);
+            if (!success) {
+                LOGI << "hash generation failed!!!";
+                delete dc;
+                return;
+            }
+            dc->prevHash = m_prev_hash;
+            m_prev_hash = dc->hash;
+
+            // sign dc
+            success = sign_dc(dc, signing_key);
+            if (!success) {
+                LOGI << "sign dc failed!!!";
+                delete dc;
+                return;
+            }
             DUMP_CAPSULE(dc);
-            put_internal(dc, to_memtable, update_hash, to_network);
+
+            // to_memtable and/or update_hash based on msgType
+            bool to_memtable = (dc->msgType == "")? true : false;
+
+            bool update_hash = (dc->msgType == "" ||
+                                dc->msgType == COORDINATOR_SYNC_TYPE )? true : false;
+
+            // store in memtable
+            if(to_memtable) {
+                for (int i = 0; i < dc->payload_l.size(); i++) {
+                    memtable.put(&(dc->payload_l[i]));
+                }
+            }
+            
+            // update hash map
+            if(update_hash)
+                update_client_hash(dc);
+
+            // send dc
+            put_ocall(dc);
+            
             delete dc;
         }
 
-        capsule_pdu KVSClient::get(std::string key){
+        kvs_payload KVSClient::get(const std::string &key){
             return memtable.get(key);
         }
+
+        std::string KVSClient::serialize_eoe_hashes(){
+            std::string ret = "";
+            for( const auto& [key, pair] : m_eoe_hashes ) {
+               ret +=  std::to_string(key) + "," + pair.first + "," +  std::to_string(pair.second) + "\n";
+            }
+            return ret;
+        }
+
+        // capsule_pdu KVSClient::get(std::string key){
+        //     return memtable.get(key);
+        // }
 
         asylo::Status KVSClient::Initialize(const EnclaveConfig &config){
             //Initialize JS engine
@@ -53,6 +134,14 @@ namespace asylo {
             m_prev_hash = "init";
             requestedCallID = 0;
             m_lamport_timer = 0;
+
+            // Assign signing and verifying key
+            if (input.HasExtension(hello_world::crypto_param)) {
+                ASYLO_ASSIGN_OR_RETURN(signing_key,
+                        EcdsaP256Sha256SigningKey::CreateFromDer(input.GetExtension(hello_world::crypto_param).key()));
+                ASYLO_ASSIGN_OR_RETURN(verifying_key,
+                    signing_key->GetVerifyingKey());
+            }
 
             if (input.HasExtension(hello_world::enclave_responder)) {
                 
@@ -128,11 +217,13 @@ namespace asylo {
                 while (true){
                     sleep(EPOCH_TIME);
                     //send request to sync packet
-                    put(COORDINATOR_RTS_KEY, "RTS", false, false);
+                    put(COORDINATOR_RTS_TYPE, "RTS", COORDINATOR_RTS_TYPE);
                 }
                 return asylo::Status::OkStatus();
-            } else if (input.HasExtension(hello_world::is_sync_thread)){
-                LOGI << "sync running";
+            } else if (input.HasExtension(hello_world::is_actor_thread)){
+                while(true){
+                    handle();
+                }
                 return asylo::Status::OkStatus();
             } else {
                 is_coordinator = false;
@@ -154,22 +245,22 @@ namespace asylo {
 
 
 
-        void KVSClient::put_internal(capsule_pdu *dc, bool to_memtable = true, bool update_hash = true, bool to_network = true) {
-            if(update_hash)
-                update_client_hash(dc);
-            if(to_memtable)
-                memtable.put(dc);
-            if(to_network)
-                put_ocall(dc);
-        }
+        // void KVSClient::put_internal(capsule_pdu *dc, bool to_memtable = true, bool update_hash = true, bool to_network = true) {
+        //     if(update_hash)
+        //         update_client_hash(dc);
+        //     if(to_memtable)
+        //         memtable.put(dc);
+        //     if(to_network)
+        //         put_ocall(dc);
+        // }
 
-        std::string KVSClient::serialize_eoe_hashes(){
-            std::string ret = "";
-            for( const auto& [key, pair] : m_eoe_hashes ) {
-               ret +=  std::to_string(key) + "," + pair.first + "," +  std::to_string(pair.second) + "\n";
-            }
-            return ret;
-        }
+        // std::string KVSClient::serialize_eoe_hashes(){
+        //     std::string ret = "";
+        //     for( const auto& [key, pair] : m_eoe_hashes ) {
+        //        ret +=  std::to_string(key) + "," + pair.first + "," +  std::to_string(pair.second) + "\n";
+        //     }
+        //     return ret;
+        // }
 
         void KVSClient::compare_eoe_hashes_from_string(std::string s){
             // deserialize the string into hash
@@ -204,7 +295,7 @@ namespace asylo {
 
         void KVSClient::update_client_hash(capsule_pdu* dc){
             std::pair<std::string, int64_t> p;
-            p.first = dc-> metaHash;
+            p.first = dc-> hash;
             p.second = dc->timestamp;
             m_eoe_hashes[dc->sender] = p;
         }
@@ -297,44 +388,59 @@ namespace asylo {
 
                     char *code = (char *) arg->data;
                     capsule_pdu *dc = new capsule_pdu(); // freed below
-                    if(arg->ecall_id != ECALL_RUN)
-                        CapsuleToCapsule(dc, (capsule_pdu *) arg->data);
-                        
+                    CapsuleToCapsule(dc, (capsule_pdu *) arg->data);
                     primitives::TrustedPrimitives::UntrustedLocalFree((capsule_pdu *) arg->data);
                     m_lamport_timer = std::max(m_lamport_timer, dc->timestamp) + 1;
                     switch(arg->ecall_id){
                         case ECALL_PUT:
                             LOGI << "[CICBUF-ECALL] transmitted a data capsule pdu";
-                            DUMP_CAPSULE(dc);
-                            // once received RTS, send the latest EOE
-                            if (dc->payload.key == COORDINATOR_RTS_KEY && !is_coordinator) {
-                                put(COORDINATOR_EOE_KEY, m_prev_hash, false, false);
+                            if (verify_dc(dc, verifying_key)) {
+                                LOGI << "dc verification successful.";
+                            } else {
+                                LOGI << "dc verification failed!!!";
+                            }
+                            // decrypt payload_l
+                            if (decrypt_payload_l(dc)) {
+                                LOGI << "dc payload_l decryption successful";
+                            } else {
+                                LOGI << "dc payload_l decryption failed!!!";
                                 break;
                             }
-                            else if (dc->payload.key == COORDINATOR_EOE_KEY && is_coordinator){
+                            DUMP_CAPSULE(dc);
+                            // once received RTS, send the latest EOE
+                            if (dc->msgType == COORDINATOR_RTS_TYPE && !is_coordinator) {
+                                put(COORDINATOR_EOE_TYPE, m_prev_hash, COORDINATOR_EOE_TYPE);
+                                break;
+                            }
+                            else if (dc->msgType == COORDINATOR_EOE_TYPE && is_coordinator){
+                                // store EOE for future sync
                                 std::pair<std::string, int64_t> p;
-                                p.first = dc->payload.value;
+                                p.first = dc->payload_l[0].value;
                                 p.second = dc->timestamp;
                                 m_eoe_hashes[dc->sender] = p;
+                                // if EOE from all enclaves received, start sync 
                                 if(m_eoe_hashes.size() == TOTAL_THREADS - 2) { //minus 2 for server thread and coordinator thread
                                     LOGI << "coordinator received all EOEs, sending report" << serialize_eoe_hashes();
-                                    put(COORDINATOR_SYNC_KEY, serialize_eoe_hashes(), false, true);
+                                    put(COORDINATOR_SYNC_TYPE, serialize_eoe_hashes(), COORDINATOR_SYNC_TYPE);
+                                    // clear this epoch's EOE
                                     m_eoe_hashes.clear();
                                 }
                             }
-                            else if (dc->payload.key == COORDINATOR_SYNC_KEY && !is_coordinator ){
-                                compare_eoe_hashes_from_string(dc->payload.value);
+                            else if (dc->msgType == COORDINATOR_SYNC_TYPE && !is_coordinator ){
+                                compare_eoe_hashes_from_string(dc->payload_l[0].value);
                                 LOGI << "Received the sync report " << serialize_eoe_hashes();
-                                m_prev_hash = dc -> metaHash;
+                                m_prev_hash = dc -> hash;
                                 // the following writes hash points to the prev sync point
                                 std::pair<std::string, int64_t> p;
-                                p.first = dc->metaHash;
+                                p.first = dc->hash;
                                 p.second = dc->timestamp;
                                 m_eoe_hashes[m_enclave_id] = p;
                             }
                             else {
                                 update_client_hash(dc);
-                                memtable.put(dc);
+                                for (int i = 0; i < dc->payload_l.size(); i++) {
+                                    memtable.put(&(dc->payload_l[i]));
+                                }
                             }
                             break;
                         case ECALL_RUN:

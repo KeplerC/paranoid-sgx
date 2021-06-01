@@ -17,7 +17,7 @@ def proc_get(line):
 M_FINAL_SCRIPT += "\t LOGD << \"Load started\"; \\\n"
 
 counter = 0
-num_times = 10
+num_times = 3
 with open("./tracea_load_a.txt") as f:
     text = f.read() * num_times
     for line in text.split("\n"):

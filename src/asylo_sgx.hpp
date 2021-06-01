@@ -29,10 +29,11 @@ struct enclave_responder_args {
 
 class Asylo_SGX{
     public:
-        Asylo_SGX(std::string enclave_name){
-            //enclave name has to be unique
-            this->m_name = enclave_name;
-        }
+        Asylo_SGX(std::string enclave_name, asylo::CleansingVector<uint8_t> serialized_signing_key){
+        //enclave name has to be unique
+        this->m_name = enclave_name;
+        this->serialized_signing_key = serialized_signing_key;
+    }
 
         void setTimeStamp(unsigned long int timeStart);
         void setLambdaInput(hello_world::MP_Lambda_Input& input);    
@@ -49,12 +50,14 @@ class Asylo_SGX{
         void execute_mpl();
         void finalize();
         void run(std::vector<std::string>  names);
+        void start_crypt_actor_thread();
 
     private:
     asylo::EnclaveManager *manager;
     asylo::EnclaveClient *client;
     std::string m_name;
     hello_world::MP_Lambda_Input lambda_input; 
+    asylo::CleansingVector<uint8_t> serialized_signing_key;
     HotMsg *circ_buffer_enclave;
     HotMsg *circ_buffer_host; 
     int requestedCallID;

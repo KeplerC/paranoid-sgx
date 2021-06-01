@@ -1,6 +1,7 @@
 #include "asylo_sgx.hpp"
 #include <sstream>
 #include <fstream>
+#include "asylo/crypto/util/byte_container_util.h"
  
  ABSL_FLAG(std::string, enclave_path, "", "Path to enclave to load");
  ABSL_FLAG(std::string, input_file, "", "JS input file to execute!");
@@ -45,6 +46,7 @@ static void *StartOcallResponder( void *arg ) {
     // to sync server
     zmq::socket_t* socket_ptr_to_sync  = new  zmq::socket_t( context, ZMQ_PUSH);
     socket_ptr_to_sync -> connect ("tcp://" + std::string(NET_SYNC_SERVER_IP) +":" + std::to_string(NET_SYNC_SERVER_PORT));
+
     while( true )
     {
         if( hotMsg->keepPolling != true ) {
@@ -52,13 +54,11 @@ static void *StartOcallResponder( void *arg ) {
         }
 
         HotData* data_ptr = (HotData*) hotMsg -> MsgQueue[dataID];
-
-        sgx_spin_lock( &data_ptr->spinlock );
         if (data_ptr == 0){
-            sgx_spin_unlock( &data_ptr->spinlock );
             continue;
         }
 
+        sgx_spin_lock( &data_ptr->spinlock );
 
         if(data_ptr->data){
             //Message exists!
@@ -79,7 +79,7 @@ static void *StartOcallResponder( void *arg ) {
                 in_dc.SerializeToString(&out_s);
                 zmq::message_t msg(out_s.size());
                 memcpy(msg.data(), out_s.c_str(), out_s.size());
-                if(in_dc.payload().key() == COORDINATOR_EOE_KEY){
+                if(in_dc.msgtype() == COORDINATOR_EOE_TYPE){
                     socket_ptr_to_sync->send(msg);
                 }else {
                     socket_ptr->send(msg);
@@ -104,7 +104,13 @@ static void *StartOcallResponder( void *arg ) {
     return NULL; 
 }
 
+void Asylo_SGX::start_crypt_actor_thread() {
+    asylo::EnclaveInput input;
+    asylo::EnclaveOutput output;
 
+    input.MutableExtension(hello_world::is_actor_thread)->set_is_actor(1);;
+    this->client->EnterAndRun(input, &output);
+}
 
 void Asylo_SGX::setTimeStamp(unsigned long int timeStart){
     this->timeStart = timeStart;
@@ -219,16 +225,17 @@ void Asylo_SGX::execute_coordinator() {
     asylo::EnclaveOutput output;
 
     input.MutableExtension(hello_world::is_coordinator)->set_circ_buffer((long int) circ_buffer_host);;
+    *(input.MutableExtension(hello_world::crypto_param)->mutable_key()) = asylo::CopyToByteContainer<std::string>(serialized_signing_key);
     this->client->EnterAndRun(input, &output);
 }
 
-void Asylo_SGX::start_sync_epoch_thread() {
-    asylo::EnclaveInput input;
-    asylo::EnclaveOutput output;
+// void Asylo_SGX::start_sync_epoch_thread() {
+//     asylo::EnclaveInput input;
+//     asylo::EnclaveOutput output;
 
-    input.MutableExtension(hello_world::is_sync_thread)->set_is_sync(1);;
-    this->client->EnterAndRun(input, &output);
-}
+//     input.MutableExtension(hello_world::is_sync_thread)->set_is_sync(1);;
+//     this->client->EnterAndRun(input, &output);
+// }
 
 //start a fake client
 void Asylo_SGX::execute_mpl(){
@@ -276,6 +283,7 @@ void Asylo_SGX::execute(){
     //Register OCALL buffer to enclave 
     input.MutableExtension(hello_world::buffer)->set_buffer((long int) circ_buffer_host);
     input.MutableExtension(hello_world::buffer)->set_enclave_id(m_name);
+    *(input.MutableExtension(hello_world::crypto_param)->mutable_key()) = asylo::CopyToByteContainer<std::string>(serialized_signing_key);
 
 
     asylo::Status status = this->client->EnterAndRun(input, &output);

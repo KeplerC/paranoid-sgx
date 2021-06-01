@@ -249,7 +249,9 @@ cc_unsigned_enclave(
         "hot_msg_pass.h", 
         "common.h", 
         "benchmark.h", 
-        "crypto.h"] + [
+        "crypto.h", 
+        "pqueue.hpp", 
+        "pqueue.cc"] + [
         # "mplambda/src/mpl_lambda_pseudo.cpp",
         "mplambda/src/mpl/comm.cpp",
         "mplambda/src/mpl/write_queue.cpp",
@@ -364,7 +366,7 @@ enclave_loader(
 
 enclave_loader(
     name = "hello_world",
-    srcs = ["zmq_comm.hpp", "zmq_comm.cc", "asylo_sgx.hpp", "asylo_sgx.cc", "sgx_spinlock.h", "spinlock.c", "hello_driver.cc", "kvs_include/capsule.h", "util/proto_util.hpp", "util/proto_util.cc", "hot_msg_pass.h",  "common.h", "benchmark.h", "crypto.h"],
+    srcs = ["pqueue.hpp", "zmq_comm.hpp", "zmq_comm.cc", "asylo_sgx.hpp", "asylo_sgx.cc", "sgx_spinlock.h", "spinlock.c", "hello_driver.cc", "kvs_include/capsule.h", "util/proto_util.hpp", "util/proto_util.cc", "hot_msg_pass.h",  "common.h", "benchmark.h", "crypto.h"],
     backends = sgx.backend_labels,  # Has SGX loader dependencies
     enclaves = {"enclave": ":hello_enclave.so"},
     loader_args = [
@@ -398,6 +400,7 @@ enclave_loader(
         "@com_google_asylo//asylo/util:logging",
         "@com_google_asylo//asylo/crypto:sha256_hash_util",
         "@com_google_asylo//asylo/identity:enclave_assertion_authority_configs",
+        "@com_google_asylo//asylo/crypto:aead_cryptor",
     ],
 )
 
@@ -423,6 +426,7 @@ enclave_loader(
         "@com_google_asylo//asylo/util:logging",
         "@com_google_asylo//asylo/crypto:sha256_hash_util",
         "@com_google_asylo//asylo/identity:enclave_assertion_authority_configs",
+        "@com_google_asylo//asylo/crypto:aead_cryptor",
     ],
 )
 
@@ -447,6 +451,8 @@ enclave_loader(
         "@com_google_asylo//asylo/platform/primitives/sgx:loader_cc_proto",
         "@com_google_asylo//asylo/util:logging",
         "@com_google_asylo//asylo/crypto:sha256_hash_util",
+        "@com_google_asylo//asylo/crypto:aead_cryptor",
         "@com_google_asylo//asylo/identity:enclave_assertion_authority_configs",
+        "@com_google_asylo//asylo/crypto/util:byte_container_util"
     ],
 )

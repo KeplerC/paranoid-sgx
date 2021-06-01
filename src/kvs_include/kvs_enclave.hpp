@@ -32,17 +32,20 @@
 
 #include <utility>
 #include <unordered_map>
+
+#include "../pqueue.hpp"
  
  namespace asylo {
    
    class KVSClient : public asylo::TrustedApplication {
     public:
         KVSClient(){}
-        void put(std::string key, std::string value, bool to_memtable, bool update_hash, bool to_network);
-        capsule_pdu get(std::string key);
+        void put(std::string key, std::string value, std::string msgType);
+        kvs_payload get(const std::string &key);
         asylo::Status Initialize(const EnclaveConfig &config);
         asylo::Status Run(const asylo::EnclaveInput &input, asylo::EnclaveOutput *output) override;
         void benchmark();
+        void handle();
 
      private:
         MemTable memtable;
@@ -57,6 +60,9 @@
         std::string m_prev_hash;
         std::unordered_map<int, std::pair<std::string, int64_t>> m_eoe_hashes;
         int64_t m_lamport_timer;
+        PQueue pqueue;
+        std::unique_ptr <SigningKey> signing_key;
+        std::unique_ptr <VerifyingKey> verifying_key;
 
         void put_internal(capsule_pdu *dc, bool to_memtable, bool update_hash, bool to_network);
         std::string serialize_eoe_hashes();
@@ -100,7 +106,7 @@
 
         duk_eval_string(ctx, "ctx");
         KVSClient *m = (KVSClient *) duk_to_pointer(ctx, -1);
-        m->put(key, val, true, true, true);
+        // m->put(key, val, true, true, true);
         return 0;           
     }
 
@@ -111,13 +117,13 @@
         KVSClient *m = (KVSClient *) duk_to_pointer(ctx, -1);
 
         duk_idx_t obj_idx = duk_push_object(ctx);
-        capsule_pdu dc = m->get(key);
+        // capsule_pdu dc = m->get(key);
 
-        duk_push_string(ctx, dc.payload.key.c_str());
-        duk_put_prop_string(ctx, obj_idx, "key");
+        // duk_push_string(ctx, dc.payload.key.c_str());
+        // duk_put_prop_string(ctx, obj_idx, "key");
 
-        duk_push_string(ctx, dc.payload.value.c_str());
-        duk_put_prop_string(ctx, obj_idx, "val");
+        // duk_push_string(ctx, dc.payload.value.c_str());
+        // duk_put_prop_string(ctx, obj_idx, "val");
 
         return 1;           
     }
