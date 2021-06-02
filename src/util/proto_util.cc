@@ -5,6 +5,8 @@
 #include <sys/time.h>
 #include "../crypto.h"
 
+char delim = ';';
+
 namespace asylo {
 
     int64_t get_current_time(){
@@ -16,13 +18,14 @@ namespace asylo {
     std::string serialize_payload_l(const std::vector<kvs_payload> &payload_l) {
         std::string payload_l_s;
         for( const kvs_payload& payload : payload_l ) {
-            payload_l_s += std::to_string(payload.txn_timestamp) + ";" + payload.txn_msgType + ";" 
-                            + payload.key + ";" + payload.value + ";";
+            payload_l_s += std::to_string(payload.txn_timestamp) + delim + payload.txn_msgType + delim 
+                            + payload.key + delim + payload.value + delim;
         }
         return payload_l_s;
     }
 
     std::vector<kvs_payload> deserialize_payload_l(const std::string &payload_l_s) {
+        LOG(INFO) << "deserialize_payload_l: " << payload_l_s;
         std::vector<kvs_payload> payload_l;
         std::stringstream ss(payload_l_s);
         while(true)
@@ -30,13 +33,18 @@ namespace asylo {
             std::string txn_timestamp, txn_msgType, key, value;
             kvs_payload payload;
             //try to read key, if there is none, break
-            if (!getline(ss, txn_timestamp, ';')) break;
-            getline(ss, txn_msgType, ';');
-            getline(ss, key, ';');
-            getline(ss, value, ';');
+            if (!getline(ss, txn_timestamp, delim)) break;
+            getline(ss, txn_msgType, delim);
+            LOG(INFO) << "txn_msgType: " << txn_msgType;
+            getline(ss, key, delim);
+            LOG(INFO) << "key: " << key;
+            getline(ss, value, delim);
+            LOG(INFO) << "value: " << value;
             KvToPayload(&payload, key, value, std::stoi(txn_timestamp), txn_msgType);
+            LOG(INFO) << "done KvToPayload";
             payload_l.push_back(payload);
         }
+        LOG(INFO) << "return KvToPayload";
         return payload_l;
     }
 
@@ -139,7 +147,7 @@ namespace asylo {
             LOGI << "hash verification failed!!!";
             return false;
         }
-
+        // LOG(INFO) << "after verify_hash";
         // verify signature
         bool sig_result = verify_signature_proto(dcProto, verifying_key);
         if (!sig_result) {
@@ -179,6 +187,7 @@ namespace asylo {
         std::string decrypted_aggregated;
 
         ASSIGN_OR_RETURN_FALSE(decrypted_aggregated, DecryptMessage(dc->payload_in_transit));
+        LOG(INFO) << "After DecryptMessage: " << decrypted_aggregated;
         dc->payload_l = deserialize_payload_l(decrypted_aggregated);
         return true;
     }
