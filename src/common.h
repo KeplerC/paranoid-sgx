@@ -47,6 +47,7 @@
 // Key for latest EOE
 #define COORDINATOR_EOE_TYPE "PARANOID_EOE"
 
+#define START_CLIENT_ID 2 // >=2 ; TOTAL_THREADS - START_CLIENT_ID = Num of clients on this node
 #define TOTAL_THREADS 3
 #define EPOCH_TIME 2
 #define PERFORMANCE_MEASUREMENT_NUM_REPEATS 10

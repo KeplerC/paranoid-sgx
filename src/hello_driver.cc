@@ -137,7 +137,7 @@ int run_clients_only(){
 
     //start clients
     int num_threads = TOTAL_THREADS + 1;
-    for (unsigned thread_id = 1; thread_id < num_threads; thread_id++) {
+    for (unsigned thread_id = START_CLIENT_ID; thread_id < num_threads; thread_id++) {
         Asylo_SGX* sgx = new Asylo_SGX( std::to_string(thread_id), serialized_signing_key);
         sgx->init();
         sgx->setTimeStamp(now);
@@ -165,7 +165,7 @@ int run_client_server() {
     //start clients
     unsigned long int now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
     LOG(INFO) << (now);
-    for (unsigned thread_id = 1; thread_id < TOTAL_THREADS; thread_id++) {
+    for (unsigned thread_id = START_CLIENT_ID; thread_id < TOTAL_THREADS; thread_id++) {
         Asylo_SGX* sgx = new Asylo_SGX( std::to_string(thread_id), serialized_signing_key);
         sgx->init();
         sgx->setTimeStamp(now);
@@ -248,7 +248,7 @@ int run_listener(){
         unsigned long int now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
         lambda_input.set_time_start(now);
 
-        for (unsigned thread_id = 2; thread_id < std::stoi(lambda_input.jobs()) + 2; thread_id++) {
+        for (unsigned thread_id = START_CLIENT_ID; thread_id < std::stoi(lambda_input.jobs()) + 2; thread_id++) {
             Asylo_SGX* sgx = new Asylo_SGX( std::string(NET_CLIENT_IP) + std::string(":") + std::to_string(thread_id), serialized_signing_key);
             sgx->init();
             sgx->setLambdaInput(lambda_input);
