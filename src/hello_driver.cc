@@ -535,15 +535,17 @@ int main(int argc, char *argv[]) {
         worker_threads.push_back(std::thread(thread_run_zmq_server, 0));
         sleep(1 * 1000 * 1000);
     } else {
+        // thread START_CLIENT-n: clients
         std::vector <std::thread> worker_threads;
         //start clients
-        unsigned num_threads = TOTAL_THREADS + 1;
-        for (unsigned thread_id = 1; thread_id < num_threads; thread_id++) {
+        for (unsigned thread_id = START_CLIENT_ID; thread_id < TOTAL_THREADS; thread_id++) {
             Asylo_SGX* sgx = new Asylo_SGX( std::to_string(thread_id), serialized_signing_key);
             sgx->init();
             sleep(1);
             worker_threads.push_back(std::thread(thread_run_zmq_client, thread_id, sgx));
             worker_threads.push_back(std::thread(thread_start_fake_client, sgx));
+            for(int i = 0; i < NUM_CRYPTO_ACTORS; i++)
+                worker_threads.push_back(std::thread(thread_crypt_actor_thread, sgx));
         }
         sleep(1 * 1000 * 1000);
     }
