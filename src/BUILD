@@ -30,9 +30,17 @@ package(
 )
 
 cc_library(
+    name = "mpl_data",
+    data = [
+        "src/mplambda/resources/se3/Twistycool_env.dae",
+        "src/mplambda/resources/se3/Twistycool_robot.dae"
+    ],
+)
+
+cc_library(
     name = "mpl_hdrs",
     hdrs = glob(["mplambda/include/**"]),
-    includes = ["mplambda/include"],
+    includes = ["mplambda/include", "kvs_include"],
 )
 
 cc_binary(
@@ -56,10 +64,6 @@ debug_sign_enclave(
 
 cc_unsigned_enclave(
     name = "mp_lambda.so",
-    # data = [
-    #     "mplambda/resources/se3/Twistycool_env.dae",
-    #     "mplambda/resources/se3/Twistycool_robot.dae"
-    # ],
     srcs = [
         "mplambda/src/mpl_lambda_pseudo.cpp",
         "mplambda/src/mpl/comm.cpp",
@@ -232,11 +236,38 @@ cc_library(
 
 cc_unsigned_enclave(
     name = "hello_enclave_unsigned.so",
-    srcs = ["kvs_enclave.cc", "memtable.hpp", "memtable.cc", "capsule.h", "util/proto_util.hpp", "util/proto_util.cc", 
-            "hot_msg_pass.h", "common.h", "benchmark.h", "crypto.h", "pqueue.hpp", "pqueue.cc"],
+    srcs = [
+        "kvs_enclave.cc", 
+        "kvs_include/kvs_enclave.hpp", 
+        "kvs_eapp.cc", 
+        "kvs_eapp.hpp", 
+        "memtable.hpp", 
+        "memtable.cc", 
+        "kvs_include/capsule.h", 
+        "util/proto_util.hpp", 
+        "util/proto_util.cc", 
+        "hot_msg_pass.h", 
+        "common.h", 
+        "benchmark.h", 
+        "crypto.h", 
+        "pqueue.hpp", 
+        "pqueue.cc"] + [
+        # "mplambda/src/mpl_lambda_pseudo.cpp",
+        "mplambda/src/mpl/comm.cpp",
+        "mplambda/src/mpl/write_queue.cpp",
+        "mplambda/src/mpl/demo/lambda_common.cpp",
+        "mplambda/src/mpl/demo/app_options.cpp",
+        ],
     backends = sgx.backend_labels,  # Has SGX identity dependencies
     deps = [
         ":hello_cc_proto",
+        ":mpl_hdrs",
+        ":mpl_data",
+        "@eigen//:eigen3",
+        "@nigh//:nigh",
+        "@libccd//:libccd",
+        "@fcl//:fcl",
+        "@assimp//:assimp",
         ":duktape",
         ":translator_server",
         "@com_google_absl//absl/strings",
@@ -257,7 +288,7 @@ cc_unsigned_enclave(
         "@com_google_asylo//asylo/grpc/auth:sgx_local_credentials_options",
         "@com_github_grpc_grpc//:grpc++",
         "@com_google_absl//absl/time",
-    ],
+    ], 
 )
 
 debug_sign_enclave(
@@ -317,7 +348,8 @@ enclave_loader(
     srcs = ["grpc_server_main.cc"],
     copts = ASYLO_DEFAULT_COPTS,
     enclaves = {"enclave": ":grpc_server_enclave.so"},
-    loader_args = ["--enclave_path='{enclave}'"],
+    loader_args = [
+        "--enclave_path='{enclave}'"],
     deps = [
         ":grpc_server_util",
         "@com_google_asylo//asylo:enclave_client",
@@ -334,12 +366,82 @@ enclave_loader(
 
 enclave_loader(
     name = "hello_world",
-    srcs = ["sgx_spinlock.h", "spinlock.c", "hello_driver.cc", "capsule.h", "util/proto_util.hpp", "util/proto_util.cc", "hot_msg_pass.h",  "common.h", "benchmark.h", "crypto.h"],
+    srcs = ["pqueue.hpp", "zmq_comm.hpp", "zmq_comm.cc", "asylo_sgx.hpp", "asylo_sgx.cc", "sgx_spinlock.h", "spinlock.c", "hello_driver.cc", "kvs_include/capsule.h", "util/proto_util.hpp", "util/proto_util.cc", "hot_msg_pass.h",  "common.h", "benchmark.h", "crypto.h"],
     backends = sgx.backend_labels,  # Has SGX loader dependencies
     enclaves = {"enclave": ":hello_enclave.so"},
-    loader_args = ["--enclave_path='{enclave}'"],
+    loader_args = [
+        "--enclave_path='{enclave}'",
+        "--mode=3",
+        "--hosts=localhost,35.247.29.237", 
+
+        #Fetch params
+        "--scenario fetch",
+        "--algorithm cforest",
+        "--coordinator=localhost",
+        "--env AUTOLAB.dae",
+        "--env_frame=0.57,-0.90,0.00,0,0,-1.570796326794897",
+        "--goal=-1.07,0.16,0.88,0,0,0",
+        "--goal_radius=0.01,0.01,0.01,0.01,0.01,3.141592653589793",
+        "--start=0.1,1.570796326794897,1.570796326794897,0,1.570796326794897,0,1.570796326794897,0",
+        "--time_limit 300",
+        "--check_resolution 0.01",
+        "--jobs 1", 
+        ],
     linkopts = [ "-L/usr/local/lib", "-lzmq" ],
     deps = [
+        ":mpl_data",
+        ":hello_cc_proto",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:parse",
+        "@com_google_absl//absl/strings",
+        "@com_google_asylo//asylo:enclave_cc_proto",
+        "@com_google_asylo//asylo:enclave_client",
+        "@com_google_asylo//asylo/platform/primitives/sgx:loader_cc_proto",
+        "@com_google_asylo//asylo/util:logging",
+        "@com_google_asylo//asylo/crypto:sha256_hash_util",
+        "@com_google_asylo//asylo/identity:enclave_assertion_authority_configs",
+        "@com_google_asylo//asylo/crypto:aead_cryptor",
+    ],
+)
+
+enclave_loader(
+    name = "listener",
+    srcs = ["zmq_comm.hpp", "zmq_comm.cc", "asylo_sgx.hpp", "asylo_sgx.cc", "sgx_spinlock.h", "spinlock.c", "hello_driver.cc", "kvs_include/capsule.h", "util/proto_util.hpp", "util/proto_util.cc", "hot_msg_pass.h",  "common.h", "benchmark.h", "crypto.h"],
+    backends = sgx.backend_labels,  # Has SGX loader dependencies
+    enclaves = {"enclave": ":hello_enclave.so"},
+    loader_args = [
+        "--enclave_path='{enclave}'",
+        "--mode=2", 
+        ],
+    linkopts = [ "-L/usr/local/lib", "-lzmq" ],
+    deps = [
+        ":mpl_data",
+        ":hello_cc_proto",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:parse",
+        "@com_google_absl//absl/strings",
+        "@com_google_asylo//asylo:enclave_cc_proto",
+        "@com_google_asylo//asylo:enclave_client",
+        "@com_google_asylo//asylo/platform/primitives/sgx:loader_cc_proto",
+        "@com_google_asylo//asylo/util:logging",
+        "@com_google_asylo//asylo/crypto:sha256_hash_util",
+        "@com_google_asylo//asylo/identity:enclave_assertion_authority_configs",
+        "@com_google_asylo//asylo/crypto:aead_cryptor",
+    ],
+)
+
+enclave_loader(
+    name = "js",
+    srcs = ["zmq_comm.hpp", "zmq_comm.cc", "asylo_sgx.hpp", "asylo_sgx.cc", "sgx_spinlock.h", "spinlock.c", "hello_driver.cc", "kvs_include/capsule.h", "util/proto_util.hpp", "util/proto_util.cc", "hot_msg_pass.h",  "common.h", "benchmark.h", "crypto.h"],
+    backends = sgx.backend_labels,  # Has SGX loader dependencies
+    enclaves = {"enclave": ":hello_enclave.so"},
+    loader_args = [
+        "--enclave_path='{enclave}'",
+        "--mode=4", 
+        ],
+    linkopts = [ "-L/usr/local/lib", "-lzmq" ],
+    deps = [
+        ":mpl_data",
         ":hello_cc_proto",
         "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/flags:parse",
@@ -351,5 +453,6 @@ enclave_loader(
         "@com_google_asylo//asylo/crypto:sha256_hash_util",
         "@com_google_asylo//asylo/crypto:aead_cryptor",
         "@com_google_asylo//asylo/identity:enclave_assertion_authority_configs",
+        "@com_google_asylo//asylo/crypto/util:byte_container_util"
     ],
 )

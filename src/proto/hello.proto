@@ -72,6 +72,8 @@ message MP_Lambda_Input {
   optional string goal_radius = 15;
   optional string env_frame = 16;
   optional string jobs = 17;
+
+  optional int64 time_start = 18; 
 }
 
 // Input for a GrpcClientEnclave.

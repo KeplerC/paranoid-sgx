@@ -1,9 +1,13 @@
 #include "proto_util.hpp"
 #include <unistd.h>
 #include "asylo/util/logging.h"
+#include "absl/strings/str_split.h"
 // TODO: currently we get timestamp by ocall, we need optimization here
 #include <sys/time.h>
 #include "../crypto.h"
+
+std::string delim_str = "@@@";
+char delim = ';';
 
 namespace asylo {
 
@@ -16,8 +20,8 @@ namespace asylo {
     std::string serialize_payload_l(const std::vector<kvs_payload> &payload_l) {
         std::string payload_l_s;
         for( const kvs_payload& payload : payload_l ) {
-            payload_l_s += std::to_string(payload.txn_timestamp) + ";" + payload.txn_msgType + ";" 
-                            + payload.key + ";" + payload.value + ";";
+            payload_l_s += std::to_string(payload.txn_timestamp) + delim_str + payload.txn_msgType + delim_str 
+                            + payload.key + delim_str + payload.value + delim_str;
         }
         return payload_l_s;
     }
@@ -25,18 +29,29 @@ namespace asylo {
     std::vector<kvs_payload> deserialize_payload_l(const std::string &payload_l_s) {
         std::vector<kvs_payload> payload_l;
         std::stringstream ss(payload_l_s);
-        while(true)
-        {
-            std::string txn_timestamp, txn_msgType, key, value;
+        std::string txn_timestamp, txn_msgType, key, value;
+
+        std::vector<std::string> split = absl::StrSplit(payload_l_s, delim_str, absl::SkipEmpty());
+        
+        if(split.size() % 4 != 0){
+            LOG(ERROR) << "invalid payload size " << split.size();
+            for(int i = 0; i < split.size(); i+=1) {
+                LOG(ERROR) << i << " " << split.at(4);
+            }
+            return payload_l;
+        }
+
+        for (int i=0; i < (split.size() / 4)  * 4; i+=4) {
             kvs_payload payload;
-            //try to read key, if there is none, break
-            if (!getline(ss, txn_timestamp, ';')) break;
-            getline(ss, txn_msgType, ';');
-            getline(ss, key, ';');
-            getline(ss, value, ';');
+            txn_timestamp = split.at(i);
+            txn_msgType = split.at(i + 1);
+            key = split.at(i + 2);
+            value = split.at(i + 3);
+            
             KvToPayload(&payload, key, value, std::stoi(txn_timestamp), txn_msgType);
             payload_l.push_back(payload);
         }
+        
         return payload_l;
     }
 
@@ -77,7 +92,7 @@ namespace asylo {
             LOGI << "hash verification failed!!!";
             return false;
         }
-
+        // LOG(INFO) << "after verify_hash";
         // verify signature
         bool sig_result = verify_signature(dc, verifying_key);
         if (!sig_result) {
@@ -117,6 +132,8 @@ namespace asylo {
         std::string decrypted_aggregated;
 
         ASSIGN_OR_RETURN_FALSE(decrypted_aggregated, DecryptMessage(dc->payload_in_transit));
+        // std::cout << "After DecryptMessage: " << decrypted_aggregated << std::endl;
+        // std::cout << std::endl;
         dc->payload_l = deserialize_payload_l(decrypted_aggregated);
         return true;
     }

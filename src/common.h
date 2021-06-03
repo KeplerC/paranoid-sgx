@@ -25,14 +25,20 @@
 #ifndef __COMMON_H
 #define __COMMON_H
 
-// ip of this machine
-#define NET_CLIENT_IP "localhost"
-// ip of seed server(router)
-#define NET_SEED_SERVER_IP "localhost"
-// ip of sync coordinator
-#define NET_SYNC_SERVER_IP "localhost"
-// ip of key distribution server
-#define NET_KEY_DIST_SERVER_IP "localhost"
+
+#define NET_CLIENT_IP "35.247.29.237"
+#define NET_SEED_SERVER_IP "34.83.138.211"
+#define NET_SYNC_SERVER_IP "34.83.138.211"
+#define NET_KEY_DIST_SERVER_IP "34.83.138.211"
+
+// // ip of this machine
+// #define NET_CLIENT_IP "localhost"
+// // ip of seed server(router)
+// #define NET_SEED_SERVER_IP "localhost"
+// // ip of sync coordinator
+// #define NET_SYNC_SERVER_IP "localhost"
+// // ip of key distribution server
+// #define NET_KEY_DIST_SERVER_IP "localhost"
 
 // Key for coordinator Request To Send(RTS)
 #define COORDINATOR_RTS_TYPE "PARANOID_RTS"
@@ -47,7 +53,7 @@
 #define PERFORMANCE_MEASUREMENT_NUM_REPEATS 10
 #define NUM_CRYPTO_ACTORS 2
 #define BATCH_SIZE 2
-#define RUN_BOTH_CLIENT_AND_SERVER true
+// #define RUN_BOTH_CLIENT_AND_SERVER true
 #define NET_CLIENT_BASE_PORT 5555
 #define NET_SYNC_SERVER_PORT 5556
 #define NET_SERVER_JOIN_PORT 6666
@@ -59,9 +65,11 @@
 #define LOGI LOG_IF(INFO, !BENCHMARK_MODE)
 #define LOGD LOG_IF(INFO, BENCHMARK_MODE)<< get_current_time() << " "
 #if BENCHMARK_MODE
-    #define M_BENCHMARK_CODE M_BENCHMARK_HERE
+    #define M_BENCHMARK_CODE void KVSClient::benchmark(){}
+
+    // #define M_BENCHMARK_CODE M_BENCHMARK_HERE
 #else
-    #define M_BENCHMARK_CODE void benchmark(){}
+    #define M_BENCHMARK_CODE void KVSClient::benchmark(){}
 #endif
 
 enum OCALL_ID {

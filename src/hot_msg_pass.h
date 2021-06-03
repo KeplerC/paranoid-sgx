@@ -30,7 +30,7 @@
 #include <stdbool.h>
 #include "common.h"
 #include "sgx_spinlock.h"
-#include "capsule.h"
+#include "kvs_include/capsule.h"
 
 #pragma GCC diagnostic ignored "-Wunused-function"
 #define MAX_QUEUE_LENGTH 1000
@@ -168,10 +168,12 @@ static inline void HotMsg_waitForCall_Measurement( HotMsg *hotMsg, uint64_t (*rd
     while( true )
     {
         HotData* data_ptr = (HotData*) hotMsg -> MsgQueue[dataID];
+        LOG(INFO) << "loop responder";
         if (data_ptr == 0){
             continue;
         }
         if( hotMsg->keepPolling != true ) {
+            LOG(INFO) << "Stop responder";
             break;
         }
 
@@ -196,6 +198,7 @@ static inline void StopMsgResponder( HotMsg *hotMsg );
 static inline void StopMsgResponder( HotMsg *hotMsg )
 {
     hotMsg->keepPolling = false;
+    LOG(INFO) << "signal stop";
 }
 
 

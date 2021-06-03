@@ -2,7 +2,7 @@
 #define _PROTOUTIL_H
 
 #include <string>
-#include "src/capsule.h"
+#include "src/kvs_include/capsule.h"
 #include "src/proto/hello.pb.h"
 #include "asylo/crypto/ecdsa_p256_sha256_signing_key.h"
 
