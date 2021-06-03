@@ -27,14 +27,11 @@ namespace asylo {
     }
 
     std::vector<kvs_payload> deserialize_payload_l(const std::string &payload_l_s) {
-        // std::cout << "deserialize_payload_l: " << payload_l_s << std::endl;
         std::vector<kvs_payload> payload_l;
         std::stringstream ss(payload_l_s);
         std::string txn_timestamp, txn_msgType, key, value;
 
         std::vector<std::string> split = absl::StrSplit(payload_l_s, delim_str, absl::SkipEmpty());
-
-        // std::cout << "====== deserialize_payload_l ======" << std::endl;
         
         if(split.size() % 4 != 0){
             LOG(ERROR) << "invalid payload size " << split.size();
@@ -50,21 +47,7 @@ namespace asylo {
             txn_msgType = split.at(i + 1);
             key = split.at(i + 2);
             value = split.at(i + 3);
-
-            // std::cout << "==================================" << std::endl;
-
-            // std::cout << "txn_msgType: " << txn_msgType << std::endl;
-
-            // std::cout << "==================================" << std::endl;
-
-            // std::cout << "key: " << key << std::endl;
-
-            // std::cout << "==================================" << std::endl;
-
-            // std::cout << "value: " << value << std::endl;
-
-            // std::cout << "==================================" << std::endl;
-
+            
             KvToPayload(&payload, key, value, std::stoi(txn_timestamp), txn_msgType);
             payload_l.push_back(payload);
         }
