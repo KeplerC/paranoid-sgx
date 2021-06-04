@@ -69,17 +69,79 @@ namespace asylo {
         return VerifyMessage(dc->hash + dc->prevHash, dc->signature, verifying_key);
     }
 
-    bool verify_dc(const capsule_pdu *dc, const std::unique_ptr <VerifyingKey> &verifying_key){
+    bool verify_dc(const capsule_pdu *dc, const std::unique_ptr <VerifyingKey> &verifying_key, 
+                    bool to_verify_hash){
         
         // verify hash matches
-        bool hash_result = verify_hash(dc);
+        if (to_verify_hash) {
+            bool hash_result = verify_hash(dc);
+            if (!hash_result) {
+                LOGI << "hash verification failed!!!";
+                return false;
+            }
+        }
+
+        // verify signature
+        bool sig_result = verify_signature(dc, verifying_key);
+        if (!sig_result) {
+            // LOGI << "signature verification failed!!!";
+            LOGI << "signature verification failed!!! aggregated: " << dc->hash+dc->prevHash 
+                 << " ,signature: " << dc->signature;
+            return false;
+        }
+
+        // TODO: verify prevHash matches. Need to clean up m_eoe_hash logic before implementation.
+        // if (dc->prevHash == "init") return true; // sender's first pdu
+        // auto got = m_eoe_hashes->find(dc->sender);
+        // if (got == m_eoe_hashes->end()){
+        //     LOGI << "prevHash verification failed!!! expected prevHash not found.";
+        //     return false;
+        // } else {
+        //     bool prev_hash_result = got->second.first == dc->prevHash;
+        //     if (!prev_hash_result) {
+        //         LOGI << "prevHash verification failed!!!";
+        //         LOGI << "expected: " << got->second.first;
+        //         LOGI << "received: " << dc->prevHash;
+        //         return false;
+        //     }
+        // }
+
+        return true;
+    }
+
+    bool sign_dc_proto(hello_world::CapsulePDU *dcProto, const std::unique_ptr <SigningKey> &signing_key) {
+        std::string aggregated = dcProto->hash() + dcProto->prevhash();
+        dcProto->set_signature(SignMessage(aggregated, signing_key));
+        LOGI << "sign_dc_proto - aggregated: " << aggregated << " ,signature: " << dcProto->signature();
+        return true;
+    }
+
+    bool verify_hash_proto(const hello_world::CapsulePDU *dcProto){
+        const std::string aggregated = std::to_string(dcProto->sender()) + std::to_string(dcProto->timestamp())
+                                        +dcProto->payload_in_transit();
+        std::vector<uint8_t> digest;
+        bool success = DoHash(aggregated, &digest);
+        if (!success) return false;
+        return dcProto->hash() == BytesToHexString(digest);
+    }
+
+    bool verify_signature_proto(const hello_world::CapsulePDU *dcProto, 
+                                const std::unique_ptr <VerifyingKey> &verifying_key) {
+        return VerifyMessage(dcProto->hash() + dcProto->prevhash(), dcProto->signature(), verifying_key);
+    }
+
+    bool verify_dc_proto(const hello_world::CapsulePDU *dcProto, 
+                        const std::unique_ptr <VerifyingKey> &verifying_key){
+        
+        // verify hash matches
+        bool hash_result = verify_hash_proto(dcProto);
         if (!hash_result) {
             LOGI << "hash verification failed!!!";
             return false;
         }
 
         // verify signature
-        bool sig_result = verify_signature(dc, verifying_key);
+        bool sig_result = verify_signature_proto(dcProto, verifying_key);
         if (!sig_result) {
             LOGI << "signature verification failed!!!";
             return false;

@@ -46,6 +46,7 @@
 #define DEFAULT_MSGTYPE ""
 
 #define ROCKSDB_SENDER 0
+#define DC_SERVER_CRYPTO_ENABLED true
 
 #define START_CLIENT_ID 2 // >=2 ; TOTAL_THREADS - START_CLIENT_ID = Num of clients on this node
 #define TOTAL_THREADS 3

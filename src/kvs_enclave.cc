@@ -168,6 +168,21 @@ namespace asylo {
                     switch(arg->ecall_id){
                         case ECALL_PUT:
                             LOGI << "[CICBUF-ECALL] transmitted a data capsule pdu";
+                            // Handle ack first
+                            if (dc->sender == ROCKSDB_SENDER) {
+                                if (DC_SERVER_CRYPTO_ENABLED) {
+                                    if (verify_dc(dc, verifying_key, /*to_verify_hash=*/false)) {
+                                        LOGI << "ack_dc verification successful.";
+                                    } else {
+                                        LOGI << "ack_dc verification failed!!!";
+                                    }
+                                }
+                                // print if received ack for hash, then return for now
+                                LOGI << "Received ack for Hash: " << dc->hash;
+                                break;  
+                            } 
+
+                            // Handle other msgs
                             if (verify_dc(dc, verifying_key)) {
                                 LOGI << "dc verification successful.";
                             } else {

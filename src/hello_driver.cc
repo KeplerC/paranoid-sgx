@@ -56,6 +56,15 @@ ABSL_FLAG(std::string, input_file, "",
 ABSL_FLAG(std::string, server_address, "", "Address of the KVS coordinator");
 ABSL_FLAG(int32_t, port, 0, "Port that the server listens to");
 
+// Hardcoded signing_key (TODO: use key distribution server instead)
+const absl::string_view signing_key_pem = {
+            R"pem(-----BEGIN EC PRIVATE KEY-----
+MHcCAQEEIF0Z0yrz9NNVFQU1754rHRJs+Qt04mr3vEgNok8uyU8QoAoGCCqGSM49
+AwEHoUQDQgAE2M/ETD1FV9EFzZBB1+emBFJuB1eh2/XyY3ZdNrT8lq7FQ0Z6ENdm
+oG+ldQH94d6FPkRWOMwY+ppB+SQ8XnUFRA==
+-----END EC PRIVATE KEY-----)pem"
+};
+
 struct enclave_responder_args {
      asylo::EnclaveClient *client;
      HotMsg *hotMsg;
@@ -247,10 +256,6 @@ public:
         in_dc.ParseFromString(message);
         if(in_dc.sender() == std::stoi(this->m_name)){
             return;
-        } else if (in_dc.sender() == ROCKSDB_SENDER) {
-            // print if received ack for hash, then return for now
-            LOGI << "Received ack for Hash: " << in_dc.hash();
-            return;  
         }       
 
         capsule_pdu *dc = new capsule_pdu();
@@ -495,6 +500,10 @@ public:
         rocksdb_writeoptions_t *writeoptions = rocksdb_writeoptions_create();
         rocksdb_readoptions_t *readoptions = rocksdb_readoptions_create();
 
+        std::unique_ptr <asylo::SigningKey> signing_key(std::move(asylo::EcdsaP256Sha256SigningKey::CreateFromPem(
+                                          signing_key_pem)).ValueOrDie());
+        std::unique_ptr <asylo::VerifyingKey> verifying_key(signing_key->GetVerifyingKey().ValueOrDie());
+
         //start enclave
         while (true) {
             zmq::poll(pollitems.data(), pollitems.size(), 0);
@@ -534,6 +543,14 @@ public:
                     continue;
                 }
 
+                if (DC_SERVER_CRYPTO_ENABLED) {
+                    if (verify_dc_proto(&in_dc, verifying_key)) {
+                        LOGI << "[ROCKSDB] dc verification successful.";
+                    } else {
+                        LOGI << "[ROCKSDB] dc verification failed!!!";
+                    }
+                }
+
                 const char* key = in_dc.hash().c_str();
                 const char* value = msg.c_str();
                 rocksdb_put(db, writeoptions, key, strlen(key), value, strlen(value) + 1,
@@ -545,6 +562,12 @@ public:
                 std::string ack_s;
                 ack_dc.set_sender(ROCKSDB_SENDER);
                 ack_dc.set_hash(in_dc.hash());
+
+                if (DC_SERVER_CRYPTO_ENABLED) {
+                    if (!sign_dc_proto(&ack_dc, signing_key)) {
+                        LOGI << "[ROCKSDB] sign ack_dc failed!!!";
+                    }
+                }
 
                 ack_dc.SerializeToString(&ack_s);
                 zmq::message_t ack_msg(ack_s.size());
@@ -615,15 +638,6 @@ void thread_start_coordinator(Asylo_SGX* sgx){
 void thread_crypt_actor_thread(Asylo_SGX* sgx){
     sgx->start_crypt_actor_thread();
 }
-
-// Hardcoded signing_key (TODO: use key distribution server instead)
-const absl::string_view signing_key_pem = {
-            R"pem(-----BEGIN EC PRIVATE KEY-----
-MHcCAQEEIF0Z0yrz9NNVFQU1754rHRJs+Qt04mr3vEgNok8uyU8QoAoGCCqGSM49
-AwEHoUQDQgAE2M/ETD1FV9EFzZBB1+emBFJuB1eh2/XyY3ZdNrT8lq7FQ0Z6ENdm
-oG+ldQH94d6FPkRWOMwY+ppB+SQ8XnUFRA==
------END EC PRIVATE KEY-----)pem"
-};
 
 int main(int argc, char *argv[]) {
   // Part 0: Setup

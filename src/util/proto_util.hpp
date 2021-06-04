@@ -30,7 +30,13 @@ bool generate_hash(capsule_pdu *dc);
 
 bool sign_dc(capsule_pdu *dc, const std::unique_ptr <SigningKey> &signing_key);
 
-bool verify_dc(const capsule_pdu *dc, const std::unique_ptr <VerifyingKey> &verifying_key);
+bool verify_dc(const capsule_pdu *dc, const std::unique_ptr <VerifyingKey> &verifying_key,
+              bool to_verify_hash=true);
+
+bool sign_dc_proto(hello_world::CapsulePDU *dcProto, const std::unique_ptr <SigningKey> &signing_key);
+
+bool verify_dc_proto(const hello_world::CapsulePDU *dcProto, 
+                      const std::unique_ptr <VerifyingKey> &verifying_key);
 
 bool encrypt_payload_l(capsule_pdu *dc);
 
