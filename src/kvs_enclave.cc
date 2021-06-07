@@ -430,13 +430,9 @@ namespace asylo {
             // }
 
             this->test_start_time = get_current_time();
-            benchmark();
-
-            // for (int i = 0; i < BENCHMARK_TIMES; i++) {
-            //     benchmark();
-            //     if (SEC_BETWEEN_BENCHMARK > 0) 
-            //         usleep(SEC_BETWEEN_BENCHMARK * 1000000);
-            // }
+            for (int i = 0; i < BENCHMARK_TIMES; i++) {
+                 benchmark();
+             }
             put("last_msg_key", "default_value");
 
             return asylo::Status::OkStatus();
