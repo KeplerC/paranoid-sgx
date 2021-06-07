@@ -1,9 +1,9 @@
 
 M_FINAL_SCRIPT = '''
-#ifndef PARANOID_SGX_BENCHMARK_H
-#define PARANOID_SGX_BENCHMARK_H
+#ifndef PARANOID_SGX_BENCHMARK2_H
+#define PARANOID_SGX_BENCHMARK2_H
 
-#define M_BENCHMARK_HERE void benchmark(){ \\
+#define M_BENCHMARK_HERE2 void benchmark2(){ \\
 '''
 
 def proc_put(line):
@@ -33,11 +33,13 @@ def proc_get(line):
 
 counter_put = 0
 counter_get = 0
+counter_skip = 0
 with open("./tracea_run_a.txt") as f:
     text = f.read()
     for line in text.split("\n"):
-        if counter_get+counter_put > 5000:
-            break
+        if counter_skip <= 5000:
+            counter_skip += 1
+            continue
         if not line:
             continue
         line = line.split(" ")
@@ -52,10 +54,10 @@ with open("./tracea_run_a.txt") as f:
 
 M_FINAL_SCRIPT+= '''}
 
-#endif //PARANOID_SGX_BENCHMARK_H
+#endif //PARANOID_SGX_BENCHMARK2_H
 '''
 
 print(M_FINAL_SCRIPT)
 
-with open("../src/benchmark.h", "w") as f:
+with open("../src/benchmark2.h", "w") as f:
     f.write(M_FINAL_SCRIPT)

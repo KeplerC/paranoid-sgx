@@ -4997,12 +4997,13 @@
 	put("2775321601955710", "default_value");\
 	put("9220639807980150", "default_value");\
 	get("7939027089434647");\
-	put("2649725909734388", "default_value");\
-	put("5928542723693359", "default_value");\
-	get("1700361457554424");\
-	put("5479976144003648", "default_value");\
-	get("7556898885097888");\
-	get("8863840710493992");\
+	put("5127644913318915", "default_value");\
+	put("8527247907403484", "default_value");\
+	get("4996584763348343");\
+	get("1915266474712896");\
+	put("5937915087731894", "default_value");\
+	put("6159186168446054", "default_value");\
+	put("8286453822882270", "default_value");\
 }
 
 #endif //PARANOID_SGX_BENCHMARK_H

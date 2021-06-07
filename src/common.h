@@ -70,9 +70,11 @@
 #define LOGI LOG_IF(INFO, !BENCHMARK_MODE)
 #define LOGD LOG_IF(INFO, BENCHMARK_MODE)<< asylo::get_current_time() << " "
 #if BENCHMARK_MODE
-    #define M_BENCHMARK_CODE M_BENCHMARK_HERE
+    #define M_BENCHMARK_CODE M_BENCHMARK_HERE 
+    #define M_BENCHMARK_CODE2 M_BENCHMARK_HERE2
 #else
     #define M_BENCHMARK_CODE void benchmark(){}
+    #define M_BENCHMARK_CODE2 void benchmark2(){}
 #endif
 
 enum OCALL_ID {

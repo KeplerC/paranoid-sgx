@@ -39,6 +39,7 @@
 #include "src/proto/hello.pb.h"
 #include "src/util/proto_util.hpp"
 #include "benchmark.h"
+#include "benchmark2.h"
 #include "duktape/duktape.h"
 
 //GRPC 
@@ -432,6 +433,7 @@ namespace asylo {
             this->test_start_time = get_current_time();
             for (int i = 0; i < BENCHMARK_TIMES; i++) {
                  benchmark();
+                 benchmark2();
              }
             put("last_msg_key", "default_value");
 
@@ -637,6 +639,7 @@ namespace asylo {
         }
 
         M_BENCHMARK_CODE
+        M_BENCHMARK_CODE2
     };
 
     TrustedApplication *BuildTrustedApplication() { return new HelloApplication; }
