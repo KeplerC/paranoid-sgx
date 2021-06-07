@@ -121,7 +121,7 @@ public:
         zmq::socket_t* socket_ptr_to_sync  = new  zmq::socket_t( context, ZMQ_PUSH);
         socket_ptr_to_sync -> connect ("tcp://" + std::string(NET_SYNC_SERVER_IP) +":" + std::to_string(NET_SYNC_SERVER_PORT));
 
-        std::vector<std::pair<int64_t, int64_t>> end_time_l_single;
+        // std::vector<std::pair<int64_t, int64_t>> end_time_l_single;
         
         while( true )
         {
@@ -161,22 +161,22 @@ public:
                         socket_ptr->send(msg);
                     }
 
-                    if (SINGLE_MACHINE_BENCHMARK) {
-                        std::pair<int64_t, int64_t> p;
-                        p.first = asylo::get_current_time();
-                        p.second = in_dc.timestamp();
-                        end_time_l_single.push_back(p);
+                    // if (SINGLE_MACHINE_BENCHMARK) {
+                    //     std::pair<int64_t, int64_t> p;
+                    //     p.first = asylo::get_current_time();
+                    //     p.second = in_dc.timestamp();
+                    //     end_time_l_single.push_back(p);
 
-                        if (in_dc.msgtype() == "last_msg") {
-                            LOGD << "last multicast end. ";
-                            sleep(50);
-                            LOG(INFO) << "Printing end_time_l_single:";                        
-                            for (const auto t: end_time_l_single) {
-                                LOG(INFO) << t.first << " " << t.second;
-                            }
-                            LOG(INFO) << "Printing end_time_l_single done.";
-                        }
-                    }
+                    //     if (in_dc.msgtype() == "last_msg") {
+                    //         LOGD << "last multicast end. ";
+                    //         sleep(50);
+                    //         LOG(INFO) << "Printing end_time_l_single:";                        
+                    //         for (const auto t: end_time_l_single) {
+                    //             LOG(INFO) << t.first << " " << t.second;
+                    //         }
+                    //         LOG(INFO) << "Printing end_time_l_single done.";
+                    //     }
+                    // }
                     break;
                 }
                 default:

@@ -178,21 +178,28 @@ namespace asylo {
                                     }
                                 }
 
-                                std::pair<int64_t, int64_t> p;
-                                p.first = get_current_time();
-                                p.second = dc->timestamp;
-                                this->end_time_l.push_back(p);
+                                // std::pair<int64_t, int64_t> p;
+                                // p.first = get_current_time();
+                                // p.second = dc->timestamp;
+                                // this->end_time_l.push_back(p);
 
-                                if (dc->msgType == "last_msg") {
-                                    LOGD << "last multicast end. ";
-                                    sleep(50);
-                                    LOG(INFO) << "Printing end_time_l:";                        
-                                    for (const auto t: this->end_time_l) {
-                                        LOG(INFO) << t.first << " " << t.second;
-                                    }
-                                    LOG(INFO) << "Printing end_time_l done.";
-                                }
+                                // if (dc->msgType == "last_msg") {
+                                //     LOGD << "last multicast end. ";
+                                //     sleep(50);
+                                //     LOG(INFO) << "Printing end_time_l:";                        
+                                //     for (const auto t: this->end_time_l) {
+                                //         LOG(INFO) << t.first << " " << t.second;
+                                //     }
+                                //     LOG(INFO) << "Printing end_time_l done.";
+                                // }
                                 // print if received ack for hash, then return for now
+                                if (dc->msgType == "last_msg") {
+                                    // print start_time and end_time
+                                    int64_t test_end_time = get_current_time();
+
+                                    LOGD << "Start time: " << this->test_start_time;
+                                    LOGD << "End time: " << test_end_time;
+                                }
                                 LOGI << "Received ack for Hash: " << dc->hash;
                                 break;  
                             } 
@@ -405,28 +412,31 @@ namespace asylo {
             // if we want to consider it, probably we need to buffer the messages
 
 
-            for( uint64_t i=0; i < 10; ++i ) {
-                LOGI << "[ENCLAVE] ===CLIENT PUT=== ";
-                LOGI << "[ENCLAVE] Generating a new capsule PDU ";
-                put("default_key", "default_value" + std::to_string(i));
-            }
+            // for( uint64_t i=0; i < 10; ++i ) {
+            //     LOGI << "[ENCLAVE] ===CLIENT PUT=== ";
+            //     LOGI << "[ENCLAVE] Generating a new capsule PDU ";
+            //     put("default_key", "default_value" + std::to_string(i));
+            // }
 
 
-            sleep(2);
+            // sleep(2);
 
 
-            for( uint64_t i=0; i < 1; ++i ) {
-                //dc[i].id = i;
-                LOGI << "[ENCLAVE] ===CLIENT GET=== ";
-                kvs_payload tmp_payload = get("default_key");
-                DUMP_PAYLOAD((&tmp_payload));
-            }
+            // for( uint64_t i=0; i < 1; ++i ) {
+            //     //dc[i].id = i;
+            //     LOGI << "[ENCLAVE] ===CLIENT GET=== ";
+            //     kvs_payload tmp_payload = get("default_key");
+            //     DUMP_PAYLOAD((&tmp_payload));
+            // }
 
-            for (int i = 0; i < BENCHMARK_TIMES; i++) {
-                benchmark();
-                if (SEC_BETWEEN_BENCHMARK > 0) 
-                    usleep(SEC_BETWEEN_BENCHMARK * 1000000);
-            }
+            this->test_start_time = get_current_time();
+            benchmark();
+
+            // for (int i = 0; i < BENCHMARK_TIMES; i++) {
+            //     benchmark();
+            //     if (SEC_BETWEEN_BENCHMARK > 0) 
+            //         usleep(SEC_BETWEEN_BENCHMARK * 1000000);
+            // }
             put("last_msg_key", "default_value");
 
             return asylo::Status::OkStatus();
@@ -449,9 +459,10 @@ namespace asylo {
         std::string m_prev_hash;
         std::unordered_map<int, std::pair<std::string, int64_t>> m_eoe_hashes;
         int64_t m_lamport_timer;
-        std::vector<std::pair<int64_t, int64_t>> start_time_l;
-        int print_counter = 1;
-        std::vector<std::pair<int64_t, int64_t>> end_time_l;
+        // std::vector<std::pair<int64_t, int64_t>> start_time_l;
+        // int print_counter = 1;
+        // std::vector<std::pair<int64_t, int64_t>> end_time_l;
+        int64_t test_start_time;
 
         void put(std::string key, std::string value, std::string msgType = DEFAULT_MSGTYPE) {
             m_lamport_timer += 1;
@@ -460,13 +471,13 @@ namespace asylo {
             DUMP_PAYLOAD((&payload));
             // enqueue to pqueue
             pqueue.enqueue(&payload);
-            if (--print_counter == 0) {
-                std::pair<int64_t, int64_t> p;
-                p.first = get_current_time();
-                p.second = m_lamport_timer;
-                start_time_l.push_back(p);
-                print_counter = BATCH_SIZE >= 10? BATCH_SIZE/3 : BATCH_SIZE;
-            }
+            // if (--print_counter == 0) {
+            //     std::pair<int64_t, int64_t> p;
+            //     p.first = get_current_time();
+            //     p.second = m_lamport_timer;
+            //     start_time_l.push_back(p);
+            //     print_counter = BATCH_SIZE >= 10? BATCH_SIZE/3 : BATCH_SIZE;
+            // }
         }
 
         void handle() {
@@ -529,15 +540,15 @@ namespace asylo {
             // send dc
             put_ocall(dc);
 
-            if (dc->msgType == "last_msg") {
-                LOGD << "actor last put_ocall end.";
-                sleep(2);
-                LOG(INFO) << "Printing start_time_l:";
-                for (const auto t: start_time_l) {
-                    LOG(INFO) << t.first << " " << t.second;
-                }
-                LOG(INFO) << "Printing start_time_l done.";
-            }
+            // if (dc->msgType == "last_msg") {
+            //     LOGD << "actor last put_ocall end.";
+            //     sleep(2);
+            //     LOG(INFO) << "Printing start_time_l:";
+            //     for (const auto t: start_time_l) {
+            //         LOG(INFO) << t.first << " " << t.second;
+            //     }
+            //     LOG(INFO) << "Printing start_time_l done.";
+            // }
             
             delete dc;
         }

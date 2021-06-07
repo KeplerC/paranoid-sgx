@@ -1,2 +1,1 @@
-bazel run //src:hello_world_sgx_hw -- \
---input_file=$(pwd)/src/input.js
+bazel run //src:hello_world_sgx_hw --copt=-O3
