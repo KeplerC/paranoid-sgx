@@ -1,0 +1,20 @@
+package(
+    default_visibility = ["//visibility:public"],
+)
+
+cc_library(
+    name = "bp32",
+    srcs = [
+        "src/hdkeys.cpp"
+        ],
+    hdrs = [
+        "src/hdkeys.h",
+        "src/hash.h",
+        "src/secp256k1.h",
+        "src/BigInt.h",
+        "src/uchar_vector.h",
+        "src/typedefs.h"],
+    deps= [
+        "@boringssl//:crypto",
+        ],
+)
