@@ -1,0 +1,26 @@
+package(
+    default_visibility = ["//visibility:public"],
+)
+
+cc_library(
+    name = "bip32",
+    srcs = [
+        "src/hdkeys.cpp",
+        "src/secp256k1.cpp",
+        ],
+    hdrs = glob(["src/*.h"]),
+    includes = ["src"],
+    deps= [
+        "@boringssl//:crypto",
+        ],
+)
+
+cc_binary(
+    name = "HDWalletTest.so",
+    srcs = [
+        "tests/hdwallets/hdwallets.cpp",
+    ],
+    deps = [
+        ":bip32",
+    ]
+)

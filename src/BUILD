@@ -150,15 +150,17 @@ cc_grpc_library(
     srcs = [":translator_server_proto"],
     grpc_only = True,
     tags = ASYLO_ALL_BACKEND_TAGS,
-    deps = [":translator_server_cc_proto"],
+    deps = [
+        ":translator_server_cc_proto",
+        "@bip32//:bip32",],
 )
 
 
 # The implementation of the translation server.
 cc_library(
-    name = "translator_server_impl",
-    srcs = ["translator_server_impl.cc"],
-    hdrs = ["translator_server_impl.h"],
+    name = "key_dist",
+    srcs = ["faas_leader/key_dist_utils.cc"],
+    hdrs = ["faas_leader/key_dist_utils.h"],
     copts = ASYLO_DEFAULT_COPTS,
     tags = ASYLO_ALL_BACKEND_TAGS,
     deps = [
@@ -175,9 +177,9 @@ cc_library(
 )
 
 cc_library(
-    name = "grpc_server_util",
-    srcs = ["grpc_server_util.cc"],
-    hdrs = ["grpc_server_util.h"],
+    name = "faas_leader_util",
+    srcs = ["faas_leader/faas_leader_utils.cc"],
+    hdrs = ["faas_leader/faas_leader_utils.h"],
     copts = ASYLO_DEFAULT_COPTS,
     deps = [
         ":attestation_domain",
@@ -252,7 +254,6 @@ cc_unsigned_enclave(
         "crypto.h", 
         "pqueue.hpp", 
         "pqueue.cc"] + [
-        # "mplambda/src/mpl_lambda_pseudo.cpp",
         "mplambda/src/mpl/comm.cpp",
         "mplambda/src/mpl/write_queue.cpp",
         "mplambda/src/mpl/demo/lambda_common.cpp",
@@ -263,6 +264,7 @@ cc_unsigned_enclave(
         ":hello_cc_proto",
         ":mpl_hdrs",
         ":mpl_data",
+        "@bip32//:bip32",
         "@eigen//:eigen3",
         "@nigh//:nigh",
         "@libccd//:libccd",
@@ -299,13 +301,14 @@ debug_sign_enclave(
 
 # The enclave hosting the translation server.
 cc_unsigned_enclave(
-    name = "grpc_server_enclave_unsigned.so",
-    srcs = ["grpc_server_enclave.cc"],
+    name = "faas_leader_enclave_unsigned.so",
+    srcs = ["faas_leader/faas_leader_enclave.cc"],
     backends = sgx.backend_labels,  # Has SGX identity dependencies
     copts = ASYLO_DEFAULT_COPTS,
     deps = [
         ":grpc_server_config_cc_proto",
-        ":translator_server_impl",
+        ":key_dist",
+        "@bip32//:bip32",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/memory",
         "@com_google_absl//absl/strings",
@@ -336,22 +339,22 @@ sgx.enclave_configuration(
 
 
 debug_sign_enclave(
-    name = "grpc_server_enclave.so",
+    name = "faas_leader_enclave.so",
     backends = sgx.backend_labels,
     config = "@com_google_asylo//asylo/grpc/util:grpc_enclave_config",
-    unsigned = ":grpc_server_enclave_unsigned.so",
+    unsigned = ":faas_leader_enclave_unsigned.so",
 )
 
 # The driver for the gRPC server enclave.
 enclave_loader(
-    name = "grpc_server",
-    srcs = ["grpc_server_main.cc"],
+    name = "faas_leader",
+    srcs = ["faas_leader/faas_leader_driver.cc"],
     copts = ASYLO_DEFAULT_COPTS,
-    enclaves = {"enclave": ":grpc_server_enclave.so"},
+    enclaves = {"enclave": ":faas_leader_enclave.so"},
     loader_args = [
         "--enclave_path='{enclave}'"],
     deps = [
-        ":grpc_server_util",
+        ":faas_leader_util",
         "@com_google_asylo//asylo:enclave_client",
         "@com_google_asylo//asylo/identity/platform/sgx:sgx_identity_cc_proto",
         "@com_google_asylo//asylo/util:logging",
@@ -371,7 +374,7 @@ enclave_loader(
     enclaves = {"enclave": ":hello_enclave.so"},
     loader_args = [
         "--enclave_path='{enclave}'",
-        "--mode=3",
+        "--mode=0",
         "--hosts=localhost,35.247.29.237", 
 
         #Fetch params
@@ -405,6 +408,34 @@ enclave_loader(
 )
 
 enclave_loader(
+    name = "default",
+    srcs = ["pqueue.hpp", "zmq_comm.hpp", "zmq_comm.cc", "asylo_sgx.hpp", "asylo_sgx.cc", "sgx_spinlock.h", "spinlock.c", "hello_driver.cc", "kvs_include/capsule.h", "util/proto_util.hpp", "util/proto_util.cc", "hot_msg_pass.h",  "common.h", "benchmark.h", "crypto.h"],
+    backends = sgx.backend_labels,  # Has SGX loader dependencies
+    enclaves = {"enclave": ":hello_enclave.so"},
+    loader_args = [
+        "--enclave_path='{enclave}'",
+        "--mode=0",
+        "--hosts=localhost,35.247.29.237", 
+        ],
+    linkopts = [ "-L/usr/local/lib", "-lzmq" ],
+    deps = [
+        ":mpl_data",
+        ":hello_cc_proto",
+        "@bip32//:bip32",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:parse",
+        "@com_google_absl//absl/strings",
+        "@com_google_asylo//asylo:enclave_cc_proto",
+        "@com_google_asylo//asylo:enclave_client",
+        "@com_google_asylo//asylo/platform/primitives/sgx:loader_cc_proto",
+        "@com_google_asylo//asylo/util:logging",
+        "@com_google_asylo//asylo/crypto:sha256_hash_util",
+        "@com_google_asylo//asylo/identity:enclave_assertion_authority_configs",
+        "@com_google_asylo//asylo/crypto:aead_cryptor",
+    ],
+)
+
+enclave_loader(
     name = "listener",
     srcs = ["zmq_comm.hpp", "zmq_comm.cc", "asylo_sgx.hpp", "asylo_sgx.cc", "sgx_spinlock.h", "spinlock.c", "hello_driver.cc", "kvs_include/capsule.h", "util/proto_util.hpp", "util/proto_util.cc", "hot_msg_pass.h",  "common.h", "benchmark.h", "crypto.h"],
     backends = sgx.backend_labels,  # Has SGX loader dependencies
@@ -417,6 +448,7 @@ enclave_loader(
     deps = [
         ":mpl_data",
         ":hello_cc_proto",
+        "@bip32//:bip32",
         "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/flags:parse",
         "@com_google_absl//absl/strings",

@@ -27,7 +27,7 @@
 #include "absl/time/time.h"
 #include "asylo/examples/grpc_server/grpc_server_config.pb.h"
 #include "src/grpc_server_config.pb.h"
-#include "src/translator_server_impl.h"
+#include "src/faas_leader/key_dist_utils.h"
 #include "asylo/grpc/auth/enclave_server_credentials.h"
 #include "asylo/grpc/auth/sgx_local_credentials_options.h"
 #include "asylo/identity/identity_acl.pb.h"
@@ -44,7 +44,7 @@
 namespace examples {
 namespace secure_grpc {
 
-// An enclave that runs a TranslatorServerImpl. We override the methods of
+// An enclave that runs a KeyDistributionEnclave. We override the methods of
 // TrustedApplication as follows:
 //
 // * Initialize starts the gRPC server.
@@ -69,7 +69,7 @@ class GrpcServerEnclave final : public asylo::TrustedApplication {
   std::unique_ptr<::grpc::Server> server_ GUARDED_BY(server_mutex_);
 
   // The translation service.
-  std::unique_ptr<TranslatorServerImpl> service_;
+  std::unique_ptr<KeyDistributionEnclave> service_;
 
   // The server's selected port.
   int selected_port_;
@@ -127,7 +127,7 @@ asylo::Status GrpcServerEnclave::Initialize(
       asylo::SerializeSgxIdentityExpectation(sgx_expectation));
 
   // Build the service with the configured ACL.
-  service_ = absl::make_unique<TranslatorServerImpl>(std::move(acl));
+  service_ = absl::make_unique<KeyDistributionEnclave>(std::move(acl));
 
   // Add the translator service to the server.
   builder.RegisterService(service_.get());

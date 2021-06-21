@@ -19,7 +19,7 @@
 #include <kvs_enclave.hpp>
 #include "kvs_eapp.hpp"
 
-// #define USE_KEY_MANAGER
+#define USE_KEY_MANAGER
 
 namespace asylo {
         // void KVSClient::put(std::string key, std::string value, bool to_memtable = true, bool update_hash = true, bool to_network = true) {
@@ -73,7 +73,7 @@ namespace asylo {
             m_prev_hash = dc->hash;
 
             // sign dc
-            success = sign_dc(dc, signing_key);
+            success = sign_dc(dc, enclave_key_pair, faas_idx);
             if (!success) {
                 LOGI << "sign dc failed!!!";
                 delete dc;
@@ -192,11 +192,12 @@ namespace asylo {
 
                     RetrieveKeyPairResponse resp = *client_output.mutable_key_pair_response();
 
-                    priv_key = resp.private_key();
-                    pub_key = resp.public_key();
+                    std::string _child_priv_key = resp.child_private_key();
+                    std::string _parent_pub_key = resp.parent_public_key();
+                    faas_idx = resp.faas_idx();  
 
-                    LOG(INFO) << "Worker enclave configured with private key: " << priv_key << " public key: "
-                              << pub_key;
+                    enclave_key_pair.setPrivKey(bytes_t(_child_priv_key.begin() + 1, _child_priv_key.end()));
+                    parent_pub_keychain = Coin::HDKeychain(bytes_t(_parent_pub_key.begin(), _parent_pub_key.end()));
                 }
 #endif
                 HotMsg *hotmsg = (HotMsg *) input.GetExtension(hello_world::enclave_responder).responder();
@@ -234,6 +235,12 @@ namespace asylo {
             m_enclave_id = std::stoi(input.GetExtension(hello_world::buffer).enclave_id());
 
             sleep(3);
+
+            for( uint64_t i=0; i < 1; ++i ) {
+                LOGI << "[ENCLAVE] ===CLIENT PUT=== ";
+                LOGI << "[ENCLAVE] Generating a new capsule PDU ";
+                put("default_key", "default_value" + std::to_string(i));
+            }
 
             if (input.HasExtension(hello_world::lambda_input)){
                 return start_eapp(this, input);
@@ -394,7 +401,7 @@ namespace asylo {
                     switch(arg->ecall_id){
                         case ECALL_PUT:
                             LOGI << "[CICBUF-ECALL] transmitted a data capsule pdu";
-                            if (verify_dc(dc, verifying_key)) {
+                            if (verify_dc(enclave_worker_keys, dc, parent_pub_keychain)){
                                 LOGI << "dc verification successful.";
                             } else {
                                 LOGI << "dc verification failed!!!";
@@ -413,6 +420,12 @@ namespace asylo {
                                 break;
                             }
                             else if (dc->msgType == COORDINATOR_EOE_TYPE && is_coordinator){
+                                // TODO: issue with incorrect m_eoe_hashes usage at update_client_hash(dc) for coordinator 
+                                if (m_eoe_hashes.size() >= TOTAL_THREADS - 2) {
+                                    LOGI << "ERROR: m_eoe_hashes.size() before receiving EOE should be < # of clients, o/w no SYNC report is sent: " 
+                                    << m_eoe_hashes.size();
+                                }
+                                
                                 // store EOE for future sync
                                 std::pair<std::string, int64_t> p;
                                 p.first = dc->payload_l[0].value;

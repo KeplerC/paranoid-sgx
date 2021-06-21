@@ -165,7 +165,7 @@ int run_client_server() {
     //start clients
     unsigned long int now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
     LOG(INFO) << (now);
-    for (unsigned thread_id = START_CLIENT_ID; thread_id < TOTAL_THREADS; thread_id++) {
+    for (unsigned thread_id = 1; thread_id < TOTAL_THREADS; thread_id++) {
         Asylo_SGX* sgx = new Asylo_SGX( std::to_string(thread_id), serialized_signing_key);
         sgx->init();
         sgx->setTimeStamp(now);
@@ -173,9 +173,13 @@ int run_client_server() {
         if(thread_id == 1){
             worker_threads.push_back(std::thread(thread_run_zmq_client, thread_id, sgx));
             worker_threads.push_back(std::thread(thread_start_coordinator, sgx));
+            for(int i = 0; i < NUM_CRYPTO_ACTORS; i++)
+                worker_threads.push_back(std::thread(thread_crypt_actor_thread, sgx));
         } else{
             worker_threads.push_back(std::thread(thread_run_zmq_client, thread_id, sgx));
             worker_threads.push_back(std::thread(thread_start_fake_client, sgx));
+            for(int i = 0; i < NUM_CRYPTO_ACTORS; i++)
+                worker_threads.push_back(std::thread(thread_crypt_actor_thread, sgx));
         }
 
     }

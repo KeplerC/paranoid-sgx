@@ -31,12 +31,13 @@ namespace asylo {
         std::stringstream ss(payload_l_s);
         std::string txn_timestamp, txn_msgType, key, value;
 
-        std::vector<std::string> split = absl::StrSplit(payload_l_s, delim_str, absl::SkipEmpty());
+        std::vector<std::string> split = absl::StrSplit(payload_l_s, delim_str);
+        split.pop_back(); // remove the trailing empty element due to delim_str
         
         if(split.size() % 4 != 0){
             LOG(ERROR) << "invalid payload size " << split.size();
             for(int i = 0; i < split.size(); i+=1) {
-                LOG(ERROR) << i << " " << split.at(4);
+                LOG(ERROR) << i << " " << split.at(i);
             }
             return payload_l;
         }
@@ -65,10 +66,22 @@ namespace asylo {
         return true;
     }
 
-    bool sign_dc(capsule_pdu *dc, const std::unique_ptr <SigningKey> &signing_key) {
+    bool sign_dc(capsule_pdu *dc, const secp256k1_key& key, int32_t faas_idx) {
         std::string aggregated = dc->hash + dc->prevHash;
-        dc->signature = SignMessage(aggregated, signing_key);
+        dc->signature = secp256k1_sign(key, aggregated);
+        dc->faas_idx = faas_idx; 
         return true;
+    }
+
+    bool verify_dc_hd_wallet(std::unordered_map<int, secp256k1_key> enclave_worker_keys, const capsule_pdu *dc, const Coin::HDKeychain& key) {
+        
+        if(enclave_worker_keys.find(dc->faas_idx) == enclave_worker_keys.end()) {
+            Coin::HDKeychain s = key.getChild(dc->faas_idx);
+            bytes_t x = s.key();
+            enclave_worker_keys[dc->faas_idx].setPubKey(std::string(x.begin(), x.end())); 
+        }
+
+        return secp256k1_verify(enclave_worker_keys[dc->faas_idx], dc->hash + dc->prevHash, dc->signature);
     }
 
     bool verify_hash(const capsule_pdu *dc){
@@ -84,7 +97,7 @@ namespace asylo {
         return VerifyMessage(dc->hash + dc->prevHash, dc->signature, verifying_key);
     }
 
-    bool verify_dc(const capsule_pdu *dc, const std::unique_ptr <VerifyingKey> &verifying_key){
+    bool verify_dc(std::unordered_map<int, secp256k1_key> enclave_worker_keys, const capsule_pdu *dc, const Coin::HDKeychain& key){
         
         // verify hash matches
         bool hash_result = verify_hash(dc);
@@ -94,7 +107,7 @@ namespace asylo {
         }
         // LOG(INFO) << "after verify_hash";
         // verify signature
-        bool sig_result = verify_signature(dc, verifying_key);
+        bool sig_result = verify_dc_hd_wallet(enclave_worker_keys, dc, key);
         if (!sig_result) {
             LOGI << "signature verification failed!!!";
             return false;
@@ -164,6 +177,7 @@ namespace asylo {
 
         dcProto->set_timestamp(dc->timestamp);
         dcProto->set_msgtype(dc->msgType);
+        dcProto->set_faas_idx(dc->faas_idx);
 
     }
 
@@ -178,6 +192,7 @@ namespace asylo {
 
         dc->timestamp = dcProto->timestamp();
         dc->msgType = dcProto->msgtype();
+        dc->faas_idx = dcProto->faas_idx(); 
     }
 
     void CapsuleToCapsule(capsule_pdu *dc_new, const capsule_pdu *dc) {
@@ -192,6 +207,7 @@ namespace asylo {
 
         dc_new->timestamp = dc->timestamp;
         dc_new->msgType = dc->msgType;
+        dc_new->faas_idx = dc->faas_idx;
     }
 
     void dumpProtoCapsule(const hello_world::CapsulePDU *dcProto){

@@ -25,7 +25,7 @@
 #include "absl/flags/parse.h"
 #include "absl/time/clock.h"
 #include "asylo/enclave_manager.h"
-#include "src/grpc_server_util.h"
+#include "src/faas_leader/faas_leader_utils.h"
 #include "asylo/util/logging.h"
 #include "asylo/identity/platform/sgx/sgx_identity.pb.h"
 #include "asylo/util/proto_flag.h"

@@ -5,6 +5,7 @@
 #include "src/kvs_include/capsule.h"
 #include "src/proto/hello.pb.h"
 #include "asylo/crypto/ecdsa_p256_sha256_signing_key.h"
+#include <secp256k1.h>
 
 #define ASSIGN_OR_RETURN(lhs, rexpr)                \
 do {                                                      \
@@ -28,9 +29,11 @@ namespace asylo {
 
 bool generate_hash(capsule_pdu *dc);
 
-bool sign_dc(capsule_pdu *dc, const std::unique_ptr <SigningKey> &signing_key);
+bool sign_dc(capsule_pdu *dc, const secp256k1_key& key, int32_t faas_idx);
 
-bool verify_dc(const capsule_pdu *dc, const std::unique_ptr <VerifyingKey> &verifying_key);
+bool verify_dc_hd_wallet(std::unordered_map<int, secp256k1_key> enclave_worker_keys, const capsule_pdu *dc, const Coin::HDKeychain& key);
+
+bool verify_dc(std::unordered_map<int, secp256k1_key> enclave_worker_keys, const capsule_pdu *dc, const Coin::HDKeychain& key);
 
 bool encrypt_payload_l(capsule_pdu *dc);
 

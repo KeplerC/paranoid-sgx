@@ -16,6 +16,7 @@ typedef struct {
     
     std::vector<kvs_payload> payload_l;
     std::string payload_in_transit;
+    int32_t faas_idx; 
     std::string signature;
     int sender;
     

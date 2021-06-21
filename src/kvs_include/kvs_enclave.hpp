@@ -30,6 +30,10 @@
 #include "include/grpc/support/time.h"
 #include "include/grpcpp/grpcpp.h"
 
+//HDWallet
+#include <secp256k1.h>
+#include <hdkeys.h>
+
 #include <utility>
 #include <unordered_map>
 
@@ -53,8 +57,6 @@
         int requestedCallID;
         int counter;
         duk_context *ctx;
-        std::string priv_key;
-        std::string pub_key;
         bool is_coordinator;
         int m_enclave_id;
         std::string m_prev_hash;
@@ -63,6 +65,11 @@
         PQueue pqueue;
         std::unique_ptr <SigningKey> signing_key;
         std::unique_ptr <VerifyingKey> verifying_key;
+        secp256k1_key parent_pub_key;
+        secp256k1_key enclave_key_pair;
+        Coin::HDKeychain parent_pub_keychain;
+        uint32_t faas_idx; 
+        std::unordered_map<int, secp256k1_key> enclave_worker_keys;
 
         void put_internal(capsule_pdu *dc, bool to_memtable, bool update_hash, bool to_network);
         std::string serialize_eoe_hashes();

@@ -88,6 +88,25 @@ new_git_repository(
     build_file = "//src:BUILD.nigh",
 )
 
+http_archive(
+    name = "boringssl",
+    strip_prefix = "boringssl-16100fd5073b3986ca03efa6bbb501c2e061e7e3",
+    urls = ["https://github.com/google/boringssl/archive/16100fd5073b3986ca03efa6bbb501c2e061e7e3.zip"],
+)
+
+new_local_repository(
+    name = "bip32",
+    path = "CoinClasses",
+    build_file = "//src:BUILD.bip32",
+)
+
+# new_git_repository(
+#     name = "bip32",
+#     remote = "https://github.com/alexthomas1/CoinClasses.git",
+#     commit = "82f29c2a45a618702fc559615ce694b6bd9ebb46",
+#     build_file = "//src:BUILD.bp32",
+# )
+
 git_repository(
     name = "com_google_asylo",
     remote = "https://github.com/KeplerC/asylo.git",

@@ -1,1 +1,1 @@
-bazel run //src:hello_world_sgx_sim --copt=-O3
+bazel run //src:default_sgx_sim --copt=-O3

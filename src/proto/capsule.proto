@@ -14,4 +14,6 @@ message CapsulePDU {
   optional int64 timestamp = 6; //timestamp
   optional string msgType = 7; // type of msg (e.g. EOE, RTS, SYNC)
 
+  optional int32 faas_idx = 8; 
+
 }

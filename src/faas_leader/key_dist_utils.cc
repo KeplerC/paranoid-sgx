@@ -16,7 +16,7 @@
  *
  */
 
-#include "src/translator_server_impl.h"
+#include "src/faas_leader/key_dist_utils.h"
 
 #include <iostream>
 
@@ -24,39 +24,22 @@
 #include "absl/strings/str_cat.h"
 #include "asylo/grpc/auth/enclave_auth_context.h"
 #include "include/grpcpp/grpcpp.h"
+#include <hdkeys.h>
+#include <Base58Check.h>
 
 namespace examples {
 namespace secure_grpc {
 
-TranslatorServerImpl::TranslatorServerImpl(asylo::IdentityAclPredicate acl): 
+const uchar_vector SEED("fffcf9f6f3f0edeae7e4e1dedbd8d5d2cfccc9c6c3c0bdbab7b4b1aeaba8a5a29f9c999693908d8a8784817e7b7875726f6c696663605d5a5754514e4b484542");
+
+KeyDistributionEnclave::KeyDistributionEnclave(asylo::IdentityAclPredicate acl): 
       Service(),
-      acl_(std::move(acl)) {
-        memset(key_pair_lst,0, MAX_WORKERS*sizeof(struct key_pair));
+      acl_(std::move(acl)),
+      hdSeed(SEED) {
+        Coin::HDKeychain::setVersions(0x0488ADE4, 0x0488B21E);
       }
 
-
-  void generate_key_pair(struct key_pair *key_pair){
-    key_pair->priv_key = 0x1010; 
-    key_pair->pub_key = 0x1010; 
-  }
-
-  struct key_pair *TranslatorServerImpl::find_free_key_pair_idx(){
-
-    //Lock list 
-    for(int i = 0; i < MAX_WORKERS; i++){
-      if(key_pair_lst[i].valid == KEY_PAIR_INVALID){
-        //Unlock
-        key_pair_lst[i].valid = KEY_PAIR_VALID; 
-        return &key_pair_lst[i];
-      }
-    }
-
-    //Unlock 
-    return NULL;
-
-  }
-
-  ::grpc::Status TranslatorServerImpl::RetrieveKeyPair(
+  ::grpc::Status KeyDistributionEnclave::RetrieveKeyPair(
       ::grpc::ServerContext *context,
       const grpc_server::RetrieveKeyPairRequest *request,
       grpc_server::RetrieveKeyPairResponse *response){
@@ -92,17 +75,31 @@ TranslatorServerImpl::TranslatorServerImpl(asylo::IdentityAclPredicate acl):
                           combined_error);
     }
         
-      LOG(INFO) << "[KVS Coordinator] Generating Key Pair";
-      struct key_pair *key_pair = find_free_key_pair_idx();
+      LOG(INFO) << "[KVS Coordinator] Generating Key Pair for " << request->identity();
+      std::string identity = request->identity();
 
-      if(!key_pair){
-        LOG(INFO) << "[KVS Coordinator] Could not find a free key pair!";
-        return ::grpc::Status::OK;  
+      if(client_state.find(identity) == client_state.end()) {
+        // Initialize client state if not found
+        client_state[identity] = {hdSeed.getMasterKey(), hdSeed.getMasterChainCode(), {}, {}, {}, {}, 0, 0 };
+
+        client_state[identity].kde_prv = Coin::HDKeychain(client_state[identity].master_key, client_state[identity].master_chain_code);
+        client_state[identity].kde_pub = client_state[identity].kde_prv.getPublic();
+
+        client_state[identity].hardened_prv_child = client_state[identity].kde_prv.getChild(P(client_state[identity].hardened_child_index++));
+        client_state[identity].hardened_pub_child = client_state[identity].hardened_prv_child.getPublic(); 
       }
-      generate_key_pair(key_pair); 
 
-      response->set_private_key("private key");
-      response->set_public_key("public key");
+      int faas_idx = client_state[identity].grand_child_index++;
+      Coin::HDKeychain grand_child = client_state[identity].hardened_prv_child.getChild(faas_idx);
+
+      std::string prv_key(grand_child.key().begin(), grand_child.key().end());
+
+      std::vector<unsigned char> serialized_parent_key = client_state[identity].hardened_pub_child.extkey();
+      std::string pub_key(serialized_parent_key.begin(), serialized_parent_key.end());
+
+      response->set_child_private_key(prv_key);        
+      response->set_parent_public_key(pub_key);
+      response->set_faas_idx(faas_idx); 
 
       return ::grpc::Status::OK;        
 

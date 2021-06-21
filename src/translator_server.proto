@@ -8,8 +8,9 @@ message RetrieveKeyPairRequest {
   }
 
 message RetrieveKeyPairResponse {
-    optional string private_key = 1;
-    optional string public_key = 2;
+    optional bytes child_private_key = 1;
+    optional bytes parent_public_key = 2;
+    required uint32 faas_idx = 3; 
   }
   
   service Translator {

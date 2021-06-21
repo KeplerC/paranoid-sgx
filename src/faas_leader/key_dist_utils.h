@@ -30,26 +30,37 @@
 #include "include/grpcpp/grpcpp.h"
 #include "include/grpcpp/server.h"
 
+#include <hdkeys.h>
+
+
 namespace examples {
 namespace secure_grpc {
 
 using grpc_server::Translator;
 
-#define MAX_WORKERS 16
+#define MAX_ACTIVE 16
 
 enum key_state {KEY_PAIR_INVALID,  KEY_PAIR_VALID};
 
 
 struct key_pair {
-    key_state valid; 
-    __uint64_t priv_key;
-    __int64_t pub_key; 
+    bytes_t master_key;
+    bytes_t master_chain_code;
+    //Master keypair 
+    Coin::HDKeychain kde_prv;
+    Coin::HDKeychain kde_pub;
+    //Hardened pub/priv keypairs 
+    Coin::HDKeychain hardened_prv_child;
+    Coin::HDKeychain hardened_pub_child;
+    //Index for child/grandchild kids 
+    uint64_t hardened_child_index; 
+    uint64_t grand_child_index; 
 };
 
-class TranslatorServerImpl final : public Translator::Service {
+class KeyDistributionEnclave final : public Translator::Service {
  public:
   // Configure the server with an ACL to enforce at the GetTranslation() RPC.
-  explicit TranslatorServerImpl(asylo::IdentityAclPredicate acl);
+  explicit KeyDistributionEnclave(asylo::IdentityAclPredicate acl);
 
  private:
   ::grpc::Status RetrieveKeyPair(
@@ -57,14 +68,10 @@ class TranslatorServerImpl final : public Translator::Service {
       const grpc_server::RetrieveKeyPairRequest *request,
       grpc_server::RetrieveKeyPairResponse *response) override;
 
-  // A map from words to their translations.
-  absl::flat_hash_map<std::string, std::string> translation_map_;
-
+  Coin::HDSeed hdSeed; 
   // An ACL that is enforced on the GetTranslation RPC.
   asylo::IdentityAclPredicate acl_;
-
-  struct key_pair key_pair_lst[MAX_WORKERS];
-  struct key_pair *find_free_key_pair_idx();
+  std::unordered_map<std::string, struct key_pair> client_state;
 
 };
 
