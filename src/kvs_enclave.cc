@@ -171,6 +171,7 @@ namespace asylo {
                             LOGI << "[CICBUF-ECALL] transmitted a data capsule pdu";
                             // Handle ack first
                             if (dc->sender == ROCKSDB_SENDER) {
+                                if (SINGLE_MACHINE_BENCHMARK) break;
                                 if (DC_SERVER_CRYPTO_ENABLED) {
                                     if (verify_dc(dc, verifying_key, /*to_verify_hash=*/false)) {
                                         LOGI << "ack_dc verification successful.";
@@ -537,6 +538,14 @@ namespace asylo {
 
             // send dc
             put_ocall(dc);
+
+            if (SINGLE_MACHINE_BENCHMARK && dc->msgType == "last_msg") {
+                // print start_time and end_time
+                int64_t test_end_time = get_current_time();
+
+                LOGD << "Start time: " << this->test_start_time;
+                LOGD << "End time: " << test_end_time;
+            }
 
             // if (dc->msgType == "last_msg") {
             //     LOGD << "actor last put_ocall end.";
