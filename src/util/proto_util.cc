@@ -32,14 +32,15 @@ namespace asylo {
         std::stringstream ss(payload_l_s);
         std::string txn_timestamp, txn_msgType, key, value;
 
-        std::vector<std::string> split = absl::StrSplit(payload_l_s, delim_str, absl::SkipEmpty());
+        std::vector<std::string> split = absl::StrSplit(payload_l_s, delim_str);
+	split.pop_back(); // remove the trailing empty element due to delim_str
 
         // std::cout << "====== deserialize_payload_l ======" << std::endl;
         
         if(split.size() % 4 != 0){
             LOG(ERROR) << "invalid payload size " << split.size();
             for(int i = 0; i < split.size(); i+=1) {
-                LOG(ERROR) << i << " " << split.at(4);
+                LOG(ERROR) << i << " " << split.at(i);
             }
             return payload_l;
         }

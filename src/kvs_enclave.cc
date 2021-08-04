@@ -201,6 +201,7 @@ namespace asylo {
 
                                     LOGD << "Start time: " << this->test_start_time;
                                     LOGD << "End time: " << test_end_time;
+				    LOGD << "Time Spent: " << test_end_time - this->test_start_time;
                                 }
                                 LOGI << "Received ack for Hash: " << dc->hash;
                                 break;  
@@ -545,7 +546,8 @@ namespace asylo {
 
                 LOGD << "Start time: " << this->test_start_time;
                 LOGD << "End time: " << test_end_time;
-            }
+            	LOGD << "Time Spent: " << test_end_time - this->test_start_time;
+	    }
 
             // if (dc->msgType == "last_msg") {
             //     LOGD << "actor last put_ocall end.";

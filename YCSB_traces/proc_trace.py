@@ -8,7 +8,8 @@ M_FINAL_SCRIPT = '''
 
 def proc_put(line):
     global M_FINAL_SCRIPT
-    M_FINAL_SCRIPT += ("\tput(\"{}\", \"{}\");\\\n".format(line[1], "default_value"))
+    # M_FINAL_SCRIPT += ("\tput(\"{}\", R\"{}\");\\\n".format(line[1], line[2].replace('"',"'").replace("\\","]")))
+    M_FINAL_SCRIPT += ("\tput(\"{}\", R\"({})\");\\\n".format(line[1], line[2].replace('"',"'").replace(",",".")))
 
 def proc_get(line):
     global M_FINAL_SCRIPT
