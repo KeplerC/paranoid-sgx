@@ -33,6 +33,20 @@ bool PQueue::enqueue(const kvs_payload *payload) {
     return true;
 }
 
+bool PQueue::enqueue_multi(const std::vector<kvs_payload> *payload_l) {
+    if (((*payload_l)[0]).txn_msgType != DEFAULT_MSGTYPE) {
+        // special message
+        sgx_spin_lock(&mq_spinlock);
+        msgqueue.insert(msgqueue.end(), payload_l->begin(), payload_l->end());
+        sgx_spin_unlock(&mq_spinlock);
+    } else {
+        sgx_spin_lock(&tq_spinlock);
+        txnqueue.insert(txnqueue.end(), payload_l->begin(), payload_l->end());
+        sgx_spin_unlock(&tq_spinlock);
+    }
+    return true;
+}
+
 void PQueue::dequeue_txnqueue(std::vector<kvs_payload> *payload_l, long unsigned int maxlen){
     unsigned int len_to_get = std::min(txnqueue.size(), maxlen);
     if (!txnqueue.empty()){

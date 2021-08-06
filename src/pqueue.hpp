@@ -9,6 +9,7 @@
 class PQueue {
 public:
     bool enqueue(const kvs_payload *payload);
+    bool enqueue_multi(const std::vector<kvs_payload> *payload_l);
     std::vector<kvs_payload> dequeue(long unsigned int maxlen = 1);
 
     PQueue(){ tq_spinlock = 0; mq_spinlock = 0;}

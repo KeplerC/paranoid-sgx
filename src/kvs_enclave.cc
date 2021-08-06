@@ -480,6 +480,19 @@ namespace asylo {
             // }
         }
 
+        void put_multi(std::vector<std::string> key_l, std::vector<std::string> value_l,
+                        std::string msgType = DEFAULT_MSGTYPE) {
+            std::vector<kvs_payload> payload_l(key_l.size());
+            for (int i = 0; i < payload_l.size(); i++) {
+                m_lamport_timer += 1;
+                asylo::KvToPayload(&payload_l[i], key_l[i], value_l[i], m_lamport_timer, msgType);
+                DUMP_PAYLOAD((&payload_l[i]));
+            }
+            
+            // enqueue to pqueue
+            pqueue.enqueue_multi(&payload_l);
+        }
+
         void handle() {
             // dequeue msg/txn from pqueue and then handle
             std::vector<kvs_payload> payload_l = pqueue.dequeue(BATCH_SIZE);
