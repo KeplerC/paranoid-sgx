@@ -435,7 +435,7 @@ namespace asylo {
             this->test_start_time = get_current_time();
             for (int i = 0; i < BENCHMARK_TIMES; i++) {
                  benchmark();
-                 benchmark2();
+//                 benchmark2();
              }
             put("last_msg_key", "default_value");
 
