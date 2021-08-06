@@ -538,7 +538,9 @@ namespace asylo {
             }
 
             // send dc
-            put_ocall(dc);
+            if (!SINGLE_MACHINE_BENCHMARK) {
+                put_ocall(dc);
+            }
 
             if (SINGLE_MACHINE_BENCHMARK && dc->msgType == "last_msg") {
                 // print start_time and end_time

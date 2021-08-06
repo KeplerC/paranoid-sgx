@@ -5,6 +5,7 @@
 // TODO: currently we get timestamp by ocall, we need optimization here
 #include <sys/time.h>
 #include "../crypto.h"
+#include "../common.h"
 
 std::string delim_str = "@@@";
 char delim = ';';
@@ -74,6 +75,7 @@ namespace asylo {
     }
 
     bool generate_hash(capsule_pdu *dc){
+        if (NO_CRYPTO) return true;
         const std::string aggregated = std::to_string(dc->sender) + std::to_string(dc->timestamp)
                                         +dc->payload_in_transit;
         std::vector<uint8_t> digest;
@@ -84,6 +86,7 @@ namespace asylo {
     }
 
     bool sign_dc(capsule_pdu *dc, const std::unique_ptr <SigningKey> &signing_key) {
+        if (NO_CRYPTO) return true;
         std::string aggregated = dc->hash + dc->prevHash;
         dc->signature = SignMessage(aggregated, signing_key);
         return true;
@@ -104,6 +107,7 @@ namespace asylo {
 
     bool verify_dc(const capsule_pdu *dc, const std::unique_ptr <VerifyingKey> &verifying_key, 
                     bool to_verify_hash){
+	    if (NO_CRYPTO) return true;
         
         // verify hash matches
         if (to_verify_hash) {
@@ -143,6 +147,7 @@ namespace asylo {
     }
 
     bool sign_dc_proto(hello_world::CapsulePDU *dcProto, const std::unique_ptr <SigningKey> &signing_key) {
+        if (NO_CRYPTO) return true;
         std::string aggregated = dcProto->hash() + dcProto->prevhash();
         dcProto->set_signature(SignMessage(aggregated, signing_key));
         LOGI << "sign_dc_proto - aggregated: " << aggregated << " ,signature: " << dcProto->signature();
@@ -165,7 +170,7 @@ namespace asylo {
 
     bool verify_dc_proto(const hello_world::CapsulePDU *dcProto, 
                         const std::unique_ptr <VerifyingKey> &verifying_key){
-        
+        if (NO_CRYPTO) return true;
         // verify hash matches
         bool hash_result = verify_hash_proto(dcProto);
         if (!hash_result) {
@@ -200,6 +205,10 @@ namespace asylo {
     }
 
     bool encrypt_payload_l(capsule_pdu *dc) {
+        if (NO_CRYPTO) {
+            dc->payload_in_transit = serialize_payload_l(dc->payload_l);
+            return true;
+        }
         std::string aggregated = serialize_payload_l(dc->payload_l);
         std::string encrypted_aggregated;
 
@@ -209,6 +218,10 @@ namespace asylo {
     }
 
     bool decrypt_payload_l(capsule_pdu *dc) {
+        if (NO_CRYPTO) {
+            dc->payload_l = deserialize_payload_l(dc->payload_in_transit);
+            return true;
+        }
         std::string decrypted_aggregated;
 
         ASSIGN_OR_RETURN_FALSE(decrypted_aggregated, DecryptMessage(dc->payload_in_transit));
