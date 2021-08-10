@@ -6,12 +6,14 @@ kvs_payload MemTable::get(const std::string &key){
     kvs_payload got; 
     sgx_spin_lock(&mt_spinlock);
 
-    if(memtable.contains(key)){
+    try{
         got = memtable.at(key);
-    } else {
-        LOGI << "Couldn't find key: " << key;
-        got.key = ""; 
+    } catch (...) {
+        sgx_spin_unlock(&mt_spinlock);
+        got.key = "";
+        return got;
     }
+
     sgx_spin_unlock(&mt_spinlock);
     return got;
 }
