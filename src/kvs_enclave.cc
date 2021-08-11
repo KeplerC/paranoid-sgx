@@ -40,6 +40,7 @@
 #include "src/util/proto_util.hpp"
 #include "benchmark.h"
 #include "benchmark2.h"
+#include "benchmark_load.h"
 #include "duktape/duktape.h"
 
 //GRPC 
@@ -198,10 +199,7 @@ namespace asylo {
                                 if (dc->msgType == "last_msg") {
                                     // print start_time and end_time
                                     int64_t test_end_time = get_current_time();
-
-                                    LOGD << "Start time: " << this->test_start_time;
-                                    LOGD << "End time: " << test_end_time;
-				    LOGD << "Time Spent: " << test_end_time - this->test_start_time;
+                                	LOGD << "Time Spent: " << test_end_time - this->test_start_time;
                                 }
                                 LOGI << "Received ack for Hash: " << dc->hash;
                                 break;  
@@ -431,13 +429,24 @@ namespace asylo {
             //     kvs_payload tmp_payload = get("default_key");
             //     DUMP_PAYLOAD((&tmp_payload));
             // }
-
-            this->test_start_time = get_current_time();
-            for (int i = 0; i < BENCHMARK_TIMES; i++) {
-                 benchmark();
-//                 benchmark2();
-             }
-            put("last_msg_key", "default_value");
+            
+            benchmark_load();
+            LOGD << "load done:" << get_current_time();
+            for (int iter = 1;;iter++) {
+                sleep(5);
+                std::cout << "Enter the number of benchmark times..." << std::endl;
+                int b_times;
+                std::cin >> b_times;
+                std::cout << "Number of times: " << b_times << std::endl;
+                this->test_start_time = get_current_time();
+                
+                for (int i = 0; i < b_times; i++) {
+                    benchmark();
+                    benchmark2();                                
+                }
+                put("last_msg_key", "default_value");
+                LOGD << "iteration " << std::to_string(iter) <<" done";
+            }
 
             return asylo::Status::OkStatus();
         }
@@ -464,7 +473,7 @@ namespace asylo {
         // std::vector<std::pair<int64_t, int64_t>> end_time_l;
         int64_t test_start_time;
 
-        void put(std::string key, std::string value, std::string msgType = DEFAULT_MSGTYPE) {
+        inline void put(std::string key, std::string value, std::string msgType = DEFAULT_MSGTYPE) {
             m_lamport_timer += 1;
             kvs_payload payload;
             asylo::KvToPayload(&payload, key, value, m_lamport_timer, msgType);
@@ -480,7 +489,7 @@ namespace asylo {
             // }
         }
 
-        void put_multi(std::vector<std::string> key_l, std::vector<std::string> value_l,
+        inline void put_multi(std::vector<std::string> key_l, std::vector<std::string> value_l,
                         std::string msgType = DEFAULT_MSGTYPE) {
             std::vector<kvs_payload> payload_l(key_l.size());
             for (int i = 0; i < payload_l.size(); i++) {
@@ -559,8 +568,6 @@ namespace asylo {
                 // print start_time and end_time
                 int64_t test_end_time = get_current_time();
 
-                LOGD << "Start time: " << this->test_start_time;
-                LOGD << "End time: " << test_end_time;
             	LOGD << "Time Spent: " << test_end_time - this->test_start_time;
 	    }
 
@@ -577,7 +584,7 @@ namespace asylo {
             delete dc;
         }
 
-        kvs_payload get(const std::string &key){
+        inline kvs_payload get(const std::string &key){
             return memtable.get(key);
         }
 
@@ -666,6 +673,7 @@ namespace asylo {
 
         M_BENCHMARK_CODE
         M_BENCHMARK_CODE2
+        M_BENCHMARK_CODE_LOAD
     };
 
     TrustedApplication *BuildTrustedApplication() { return new HelloApplication; }

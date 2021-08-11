@@ -50,10 +50,10 @@
 
 #define START_CLIENT_ID 2 // >=2 ; TOTAL_THREADS - START_CLIENT_ID = Num of clients on this node
 #define TOTAL_THREADS 3
-#define EPOCH_TIME 2
+#define EPOCH_TIME 60
 #define PERFORMANCE_MEASUREMENT_NUM_REPEATS 10
 #define NUM_CRYPTO_ACTORS 1 
-#define BATCH_SIZE 2000
+#define BATCH_SIZE 10000
 #define RUN_BOTH_CLIENT_AND_SERVER true
 #define NET_CLIENT_BASE_PORT 5555
 #define NET_SYNC_SERVER_PORT 5556
@@ -62,10 +62,10 @@
 #define NET_KEY_DIST_SERVER_PORT 3001
 #define NET_ROCKSDB_SERVER_JOIN_PORT 6676
 
-#define BENCHMARK_TIMES 100
+// #define BENCHMARK_TIMES 1
 // #define SEC_BETWEEN_BENCHMARK 0
-#define SINGLE_MACHINE_BENCHMARK true
-#define NO_CRYPTO true
+#define SINGLE_MACHINE_BENCHMARK false
+#define NO_CRYPTO false
 
 #define BENCHMARK_MODE true
 #define LOGI LOG_IF(INFO, !BENCHMARK_MODE)
@@ -73,9 +73,11 @@
 #if BENCHMARK_MODE
     #define M_BENCHMARK_CODE M_BENCHMARK_HERE 
     #define M_BENCHMARK_CODE2 M_BENCHMARK_HERE2
+    #define M_BENCHMARK_CODE_LOAD M_BENCHMARK_HERE_LOAD
 #else
     #define M_BENCHMARK_CODE void benchmark(){}
     #define M_BENCHMARK_CODE2 void benchmark2(){}
+    #define M_BENCHMARK_CODE_LOAD void benchmark_load(){}
 #endif
 
 enum OCALL_ID {
