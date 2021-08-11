@@ -541,6 +541,8 @@ public:
                 //create a socket to the client and save
                 if (this->rocksdb_clients.find(client_id) != this->rocksdb_clients.end()) {
                     LOG(WARNING) << "ERROR - ROCKSDB Connection already exists to client: " << client_id;
+                    this->rocksdb_clients[client_id] = new zmq::socket_t( context, ZMQ_PUSH);
+                    this->rocksdb_clients[client_id] -> connect (msg);
                 } else {
                     this->rocksdb_clients[client_id] = new zmq::socket_t( context, ZMQ_PUSH);
                     this->rocksdb_clients[client_id] -> connect (msg);
