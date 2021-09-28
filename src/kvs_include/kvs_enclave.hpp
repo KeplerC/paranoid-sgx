@@ -71,6 +71,7 @@
         uint32_t faas_idx; 
         std::unordered_map<int, secp256k1_key> enclave_worker_keys;
 
+
         void put_internal(capsule_pdu *dc, bool to_memtable, bool update_hash, bool to_network);
         std::string serialize_eoe_hashes();
         void compare_eoe_hashes_from_string(std::string s);
@@ -113,7 +114,7 @@
 
         duk_eval_string(ctx, "ctx");
         KVSClient *m = (KVSClient *) duk_to_pointer(ctx, -1);
-        // m->put(key, val, true, true, true);
+        m->put(key, val, "");
         return 0;           
     }
 
@@ -124,13 +125,13 @@
         KVSClient *m = (KVSClient *) duk_to_pointer(ctx, -1);
 
         duk_idx_t obj_idx = duk_push_object(ctx);
-        // capsule_pdu dc = m->get(key);
+        kvs_payload dc = m->get(key);
 
-        // duk_push_string(ctx, dc.payload.key.c_str());
-        // duk_put_prop_string(ctx, obj_idx, "key");
+        duk_push_string(ctx, dc.key.c_str());
+        duk_put_prop_string(ctx, obj_idx, "key");
 
-        // duk_push_string(ctx, dc.payload.value.c_str());
-        // duk_put_prop_string(ctx, obj_idx, "val");
+        duk_push_string(ctx, dc.value.c_str());
+        duk_put_prop_string(ctx, obj_idx, "val");
 
         return 1;           
     }

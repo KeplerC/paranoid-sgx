@@ -26,19 +26,19 @@
 #define __COMMON_H
 
 
-// #define NET_CLIENT_IP "35.247.29.237"
-// #define NET_SEED_SERVER_IP "34.83.138.211"
-// #define NET_SYNC_SERVER_IP "34.83.138.211"
-// #define NET_KEY_DIST_SERVER_IP "35.247.29.237"
-
-// ip of this machine
 #define NET_CLIENT_IP "localhost"
-// ip of seed server(router)
 #define NET_SEED_SERVER_IP "localhost"
-// ip of sync coordinator
 #define NET_SYNC_SERVER_IP "localhost"
-// ip of key distribution server
 #define NET_KEY_DIST_SERVER_IP "localhost"
+
+// // ip of this machine
+// #define NET_CLIENT_IP "localhost"
+// // ip of seed server(router)
+// #define NET_SEED_SERVER_IP "localhost"
+// // ip of sync coordinator
+// #define NET_SYNC_SERVER_IP "localhost"
+// // ip of key distribution server
+// #define NET_KEY_DIST_SERVER_IP "localhost"
 
 // Key for coordinator Request To Send(RTS)
 #define COORDINATOR_RTS_TYPE "PARANOID_RTS"

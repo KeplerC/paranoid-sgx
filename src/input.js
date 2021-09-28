@@ -1,9 +1,9 @@
 print("[ENCLAVE] ===CLIENT PUT=== ");
 print("[ENCLAVE] Generating a new capsule PDU ");
-put("default_key_longggggggggggggggggggggggg", "default_value_longggggggggggggggggggggggg");
+put("default_key", "default_value_longggggggggggggggggggggggg");payload = get("default_key");
 
 print("[ENCLAVE] ===CLIENT GET=== ");
-payload = get("default_key_longggggggggggggggggggggggg");
+payload = get("default_key");
 print("DataCapsule payload.key is " + payload.key);
 print("DataCapsule payload.value is " + payload.val);
 
