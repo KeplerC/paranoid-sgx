@@ -397,13 +397,13 @@ int run_coordinator(){
 int run_js() {
     // std::unique_ptr <asylo::SigningKey> signing_key = asylo::EcdsaP256Sha256SigningKey::Create().ValueOrDie();
     // Hardcoded signing_key (TODO: use key distribution server instead)
-    const absl::string_view signing_key_pem = {
-                R"pem(-----BEGIN EC PRIVATE KEY-----
-    MHcCAQEEIF0Z0yrz9NNVFQU1754rHRJs+Qt04mr3vEgNok8uyU8QoAoGCCqGSM49
-    AwEHoUQDQgAE2M/ETD1FV9EFzZBB1+emBFJuB1eh2/XyY3ZdNrT8lq7FQ0Z6ENdm
-    oG+ldQH94d6FPkRWOMwY+ppB+SQ8XnUFRA==
-    -----END EC PRIVATE KEY-----)pem"
-    };
+//    const absl::string_view signing_key_pem = {
+//                R"pem(-----BEGIN EC PRIVATE KEY-----
+//    MHcCAQEEIF0Z0yrz9NNVFQU1754rHRJs+Qt04mr3vEgNok8uyU8QoAoGCCqGSM49
+//    AwEHoUQDQgAE2M/ETD1FV9EFzZBB1+emBFJuB1eh2/XyY3ZdNrT8lq7FQ0Z6ENdm
+//    oG+ldQH94d6FPkRWOMwY+ppB+SQ8XnUFRA==
+//    -----END EC PRIVATE KEY-----)pem"
+//    };
 
     std::unique_ptr <asylo::SigningKey> signing_key(std::move(asylo::EcdsaP256Sha256SigningKey::CreateFromPem(
                                             signing_key_pem)).ValueOrDie());
@@ -412,22 +412,28 @@ int run_js() {
     ASSIGN_OR_RETURN(serialized_signing_key,
                             signing_key->SerializeToDer());
 
+
+
     std::vector <std::thread> worker_threads;
     Asylo_SGX* sgx = new Asylo_SGX("1", serialized_signing_key);
+
+    LOGI << "Init";
     sgx->init();
 
     sleep(1);
+    LOGI << "exe";
     sgx->execute();
-    sgx->execute_js(); 
+    LOGI << "exe JS";
+    sgx->execute_js();
+    LOGI << "finished running the code";
     return 0; 
 }
 
 int main(int argc, char *argv[]) {
-  // Part 0: Setup
     absl::ParseCommandLine(argc, argv);
 
     uint32_t mode = absl::GetFlag(FLAGS_mode);
-
+    LOGI << "Current Mode: "<< mode;
     switch(mode){
         case RUN_BOTH_CLIENT_AND_SERVER:
             run_client_server();

@@ -382,76 +382,78 @@ namespace asylo {
                     continue;
                 }
 
-                if(data_ptr->data){
-                    //Message exists!
-                    EcallParams *arg = (EcallParams *) data_ptr->data;
 
-                    char *code = (char *) arg->data;
-                    capsule_pdu *dc = new capsule_pdu(); // freed below
-                    CapsuleToCapsule(dc, (capsule_pdu *) arg->data);
-                    primitives::TrustedPrimitives::UntrustedLocalFree((capsule_pdu *) arg->data);
-                    m_lamport_timer = std::max(m_lamport_timer, dc->timestamp) + 1;
-                    switch(arg->ecall_id){
-                        case ECALL_PUT:
-                            LOGI << "[CICBUF-ECALL] transmitted a data capsule pdu";
-                            if (verify_dc(dc, verifying_key)) {
-                                LOGI << "dc verification successful.";
-                            } else {
-                                LOGI << "dc verification failed!!!";
-                            }
-                            // decrypt payload_l
-                            if (decrypt_payload_l(dc)) {
-                                LOGI << "dc payload_l decryption successful";
-                            } else {
-                                LOGI << "dc payload_l decryption failed!!!";
-                                break;
-                            }
-                            DUMP_CAPSULE(dc);
-                            // once received RTS, send the latest EOE
-                            if (dc->msgType == COORDINATOR_RTS_TYPE && !is_coordinator) {
-                                put(COORDINATOR_EOE_TYPE, m_prev_hash, COORDINATOR_EOE_TYPE);
-                                break;
-                            }
-                            else if (dc->msgType == COORDINATOR_EOE_TYPE && is_coordinator){
-                                // store EOE for future sync
-                                std::pair<std::string, int64_t> p;
-                                p.first = dc->payload_l[0].value;
-                                p.second = dc->timestamp;
-                                m_eoe_hashes[dc->sender] = p;
-                                // if EOE from all enclaves received, start sync 
-                                if(m_eoe_hashes.size() == TOTAL_THREADS - 2) { //minus 2 for server thread and coordinator thread
-                                    LOGI << "coordinator received all EOEs, sending report" << serialize_eoe_hashes();
-                                    put(COORDINATOR_SYNC_TYPE, serialize_eoe_hashes(), COORDINATOR_SYNC_TYPE);
-                                    // clear this epoch's EOE
-                                    m_eoe_hashes.clear();
+                if(data_ptr->data) {
+                    //Message exists!
+                    LOGI << "Received new data!";
+                    EcallParams *arg = (EcallParams *) data_ptr->data;
+                    if(arg->ecall_id == ECALL_RUN){
+                        char *code = (char *) arg->data;
+                        LOGI <<"duk eval string";
+                        duk_eval_string(ctx, code);
+                        data_ptr->data = 0;
+                    }else{
+                        capsule_pdu *dc = new capsule_pdu(); // freed below
+                        CapsuleToCapsule(dc, (capsule_pdu *) arg->data);
+                        primitives::TrustedPrimitives::UntrustedLocalFree((capsule_pdu *) arg->data);
+                        m_lamport_timer = std::max(m_lamport_timer, dc->timestamp) + 1;
+                        switch (arg->ecall_id) {
+                            case ECALL_PUT:
+                                LOGI << "[CICBUF-ECALL] transmitted a data capsule pdu";
+                                if (verify_dc(dc, verifying_key)) {
+                                    LOGI << "dc verification successful.";
+                                } else {
+                                    LOGI << "dc verification failed!!!";
                                 }
-                            }
-                            else if (dc->msgType == COORDINATOR_SYNC_TYPE && !is_coordinator ){
-                                compare_eoe_hashes_from_string(dc->payload_l[0].value);
-                                LOGI << "Received the sync report " << serialize_eoe_hashes();
-                                m_prev_hash = dc -> hash;
-                                // the following writes hash points to the prev sync point
-                                std::pair<std::string, int64_t> p;
-                                p.first = dc->hash;
-                                p.second = dc->timestamp;
-                                m_eoe_hashes[m_enclave_id] = p;
-                            }
-                            else {
-                                update_client_hash(dc);
-                                for (int i = 0; i < dc->payload_l.size(); i++) {
-                                    memtable.put(&(dc->payload_l[i]));
+                                // decrypt payload_l
+                                if (decrypt_payload_l(dc)) {
+                                    LOGI << "dc payload_l decryption successful";
+                                } else {
+                                    LOGI << "dc payload_l decryption failed!!!";
+                                    break;
                                 }
-                            }
-                            break;
-                        case ECALL_RUN:
-                            duk_eval_string(ctx, code);
-                            break;
-                        default:
-                            LOGI << "Invalid ECALL id: %d\n", arg->ecall_id;
+                                DUMP_CAPSULE(dc);
+                                // once received RTS, send the latest EOE
+                                if (dc->msgType == COORDINATOR_RTS_TYPE && !is_coordinator) {
+                                    put(COORDINATOR_EOE_TYPE, m_prev_hash, COORDINATOR_EOE_TYPE);
+                                    break;
+                                } else if (dc->msgType == COORDINATOR_EOE_TYPE && is_coordinator) {
+                                    // store EOE for future sync
+                                    std::pair <std::string, int64_t> p;
+                                    p.first = dc->payload_l[0].value;
+                                    p.second = dc->timestamp;
+                                    m_eoe_hashes[dc->sender] = p;
+                                    // if EOE from all enclaves received, start sync
+                                    if (m_eoe_hashes.size() ==
+                                        TOTAL_THREADS - 2) { //minus 2 for server thread and coordinator thread
+                                        LOGI << "coordinator received all EOEs, sending report" << serialize_eoe_hashes();
+                                        put(COORDINATOR_SYNC_TYPE, serialize_eoe_hashes(), COORDINATOR_SYNC_TYPE);
+                                        // clear this epoch's EOE
+                                        m_eoe_hashes.clear();
+                                    }
+                                } else if (dc->msgType == COORDINATOR_SYNC_TYPE && !is_coordinator) {
+                                    compare_eoe_hashes_from_string(dc->payload_l[0].value);
+                                    LOGI << "Received the sync report " << serialize_eoe_hashes();
+                                    m_prev_hash = dc->hash;
+                                    // the following writes hash points to the prev sync point
+                                    std::pair <std::string, int64_t> p;
+                                    p.first = dc->hash;
+                                    p.second = dc->timestamp;
+                                    m_eoe_hashes[m_enclave_id] = p;
+                                } else {
+                                    update_client_hash(dc);
+                                    for (int i = 0; i < dc->payload_l.size(); i++) {
+                                        memtable.put(&(dc->payload_l[i]));
+                                    }
+                                }
+                                break;
+                            default:
+                                LOGI << "Invalid ECALL id: %d\n", arg->ecall_id;
+                        }
+                        delete dc;
+                        primitives::TrustedPrimitives::UntrustedLocalFree(arg);
+                        data_ptr->data = 0;
                     }
-                    delete dc;
-                    primitives::TrustedPrimitives::UntrustedLocalFree(arg);
-                    data_ptr->data = 0;
                 }
 
                 data_ptr->isRead      = true;
