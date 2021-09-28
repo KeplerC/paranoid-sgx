@@ -26,10 +26,10 @@
 #define __COMMON_H
 
 
-#define NET_CLIENT_IP "35.247.29.237"
-#define NET_SEED_SERVER_IP "34.83.138.211"
-#define NET_SYNC_SERVER_IP "34.83.138.211"
-#define NET_KEY_DIST_SERVER_IP "34.83.138.211"
+#define NET_CLIENT_IP "localhost"
+#define NET_SEED_SERVER_IP "localhost"
+#define NET_SYNC_SERVER_IP "localhost"
+#define NET_KEY_DIST_SERVER_IP "localhost"
 
 // // ip of this machine
 // #define NET_CLIENT_IP "localhost"
