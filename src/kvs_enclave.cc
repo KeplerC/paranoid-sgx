@@ -42,7 +42,7 @@ namespace asylo {
             DUMP_PAYLOAD((&payload));
             // enqueue to pqueue
             pqueue.enqueue(&payload);
-
+            handle();
         }
 
         void KVSClient::handle() {
@@ -237,9 +237,8 @@ namespace asylo {
 
             if (input.HasExtension(hello_world::lambda_input)){
                 return start_eapp(this, input);
-            } 
-            // TODO: there still has some issues when the client starts before the client connects to the server
-            // if we want to consider it, probably we need to buffer the messages
+            }
+
             return asylo::Status::OkStatus();
         }
 

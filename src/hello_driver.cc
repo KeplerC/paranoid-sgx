@@ -102,6 +102,7 @@ oG+ldQH94d6FPkRWOMwY+ppB+SQ8XnUFRA==
 };
 
 void thread_run_zmq_client(unsigned thread_id, Asylo_SGX* sgx){
+    LOG(INFO) << "[thread_run_zmq_client]";
     zmq_comm zs = zmq_comm(NET_CLIENT_IP, thread_id, sgx);
     zs.run_client();
 }
@@ -150,7 +151,7 @@ int run_clients_only(){
 }
   
 
-int run_client_server() {
+int run_client_and_server() {
 
     std::unique_ptr <asylo::SigningKey> signing_key = asylo::EcdsaP256Sha256SigningKey::Create().ValueOrDie();
     asylo::CleansingVector<uint8_t> serialized_signing_key;
@@ -395,24 +396,12 @@ int run_coordinator(){
 }
 
 int run_js() {
-    // std::unique_ptr <asylo::SigningKey> signing_key = asylo::EcdsaP256Sha256SigningKey::Create().ValueOrDie();
-    // Hardcoded signing_key (TODO: use key distribution server instead)
-//    const absl::string_view signing_key_pem = {
-//                R"pem(-----BEGIN EC PRIVATE KEY-----
-//    MHcCAQEEIF0Z0yrz9NNVFQU1754rHRJs+Qt04mr3vEgNok8uyU8QoAoGCCqGSM49
-//    AwEHoUQDQgAE2M/ETD1FV9EFzZBB1+emBFJuB1eh2/XyY3ZdNrT8lq7FQ0Z6ENdm
-//    oG+ldQH94d6FPkRWOMwY+ppB+SQ8XnUFRA==
-//    -----END EC PRIVATE KEY-----)pem"
-//    };
-
     std::unique_ptr <asylo::SigningKey> signing_key(std::move(asylo::EcdsaP256Sha256SigningKey::CreateFromPem(
                                             signing_key_pem)).ValueOrDie());
 
     asylo::CleansingVector<uint8_t> serialized_signing_key;
     ASSIGN_OR_RETURN(serialized_signing_key,
                             signing_key->SerializeToDer());
-
-
 
     std::vector <std::thread> worker_threads;
     Asylo_SGX* sgx = new Asylo_SGX("1", serialized_signing_key);
@@ -436,7 +425,7 @@ int main(int argc, char *argv[]) {
     LOGI << "Current Mode: "<< mode;
     switch(mode){
         case RUN_BOTH_CLIENT_AND_SERVER:
-            run_client_server();
+            run_client_and_server();
             break;
         case RUN_CLIENT_ONLY:
             run_clients_only();
