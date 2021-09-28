@@ -280,19 +280,20 @@ void Asylo_SGX::execute(){
     input.MutableExtension(hello_world::buffer)->set_buffer((long int) circ_buffer_host);
     input.MutableExtension(hello_world::buffer)->set_enclave_id(m_name);
     *(input.MutableExtension(hello_world::crypto_param)->mutable_key()) = asylo::CopyToByteContainer<std::string>(serialized_signing_key);
+    //Load server/port
+    input.MutableExtension(hello_world::kvs_server_config)->set_server_address(NET_KEY_DIST_SERVER_IP);
+    input.MutableExtension(hello_world::kvs_server_config)->set_port(NET_KEY_DIST_SERVER_PORT);
 
-
+    LOGI << "executing fake client";
     asylo::Status status = this->client->EnterAndRun(input, &output);
     if (!status.ok()) {
         LOG(QFATAL) << "EnterAndRun failed: " << status;
     }
 
-    //Load server/port
-    input.MutableExtension(hello_world::kvs_server_config)->set_server_address(NET_KEY_DIST_SERVER_IP);
-    input.MutableExtension(hello_world::kvs_server_config)->set_port(NET_KEY_DIST_SERVER_PORT);
 
     //Sleep so that threads have time to process ALL requests
     sleep(1);
+
 }
 
 void Asylo_SGX::finalize(){
