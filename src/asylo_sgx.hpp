@@ -44,7 +44,8 @@ class Asylo_SGX{
         void init();
         void send_to_sgx(std::string message);
         void execute_coordinator();
-        void execute_js(std::string input_file);
+        void execute_js_file(std::string input_file);
+        void execute_js_code(std::string code);
         void start_sync_epoch_thread();
         void execute();
         void execute_mpl();
