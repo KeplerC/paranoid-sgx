@@ -7,6 +7,13 @@ payload = get("default_key");
 print("DataCapsule payload.key is " + payload.key);
 print("DataCapsule payload.value is " + payload.val);
 
+var x, y, z;  // Declare 3 variables
+x = 5;    // Assign the value 5 to x
+y = 6;    // Assign the value 6 to y
+z = x + y;  // Assign the sum of x and y to z
+print(z.toString());
+
+
 // put("6284781860667377", "2_o?.,Fg+S)'(~*"); 
 // put("8517097267634966", "&^?"); 
 // put("1820151046732198", "2+!,*)Ok64:Cc#"); 

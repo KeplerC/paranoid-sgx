@@ -19,7 +19,7 @@
 #include <kvs_enclave.hpp>
 #include "kvs_eapp.hpp"
 
-// #define USE_KEY_MANAGER
+#define USE_KEY_MANAGER
 
 namespace asylo {
         // void KVSClient::put(std::string key, std::string value, bool to_memtable = true, bool update_hash = true, bool to_network = true) {
@@ -391,7 +391,8 @@ namespace asylo {
                         LOGI <<"duk eval string";
                         duk_eval_string(ctx, code);
                         data_ptr->data = 0;
-                    }else{
+                    }
+                    else{
                         capsule_pdu *dc = new capsule_pdu(); // freed below
                         CapsuleToCapsule(dc, (capsule_pdu *) arg->data);
                         primitives::TrustedPrimitives::UntrustedLocalFree((capsule_pdu *) arg->data);

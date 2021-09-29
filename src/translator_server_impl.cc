@@ -36,8 +36,8 @@ TranslatorServerImpl::TranslatorServerImpl(asylo::IdentityAclPredicate acl):
 
 
   void generate_key_pair(struct key_pair *key_pair){
-    key_pair->priv_key = 0x1010; 
-    key_pair->pub_key = 0x1010; 
+    key_pair->priv_key = 0x1010;
+    key_pair->pub_key = 0x1010;
   }
 
   struct key_pair *TranslatorServerImpl::find_free_key_pair_idx(){
@@ -101,8 +101,8 @@ TranslatorServerImpl::TranslatorServerImpl(asylo::IdentityAclPredicate acl):
       }
       generate_key_pair(key_pair); 
 
-      response->set_private_key("private key");
-      response->set_public_key("public key");
+      response->set_private_key("priv kkkkkkey");
+      response->set_public_key("pub kkkkkkey");
 
       return ::grpc::Status::OK;        
 
