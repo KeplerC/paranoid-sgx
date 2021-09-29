@@ -398,7 +398,8 @@ namespace asylo {
                         LOGI <<"duk eval string";
                         duk_eval_string(ctx, code);
                         data_ptr->data = 0;
-                    }else{
+                    }
+                    else{
                         capsule_pdu *dc = new capsule_pdu(); // freed below
                         CapsuleToCapsule(dc, (capsule_pdu *) arg->data);
                         primitives::TrustedPrimitives::UntrustedLocalFree((capsule_pdu *) arg->data);

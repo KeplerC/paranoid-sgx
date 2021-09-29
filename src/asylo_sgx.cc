@@ -4,7 +4,7 @@
 #include "asylo/crypto/util/byte_container_util.h"
  
  ABSL_FLAG(std::string, enclave_path, "", "Path to enclave to load");
- ABSL_FLAG(std::string, input_file, "", "JS input file to execute!");
+
 
 static void* StartEnclaveResponder( void* hotMsgAsVoidP ) {
 
@@ -252,9 +252,9 @@ void Asylo_SGX::execute_mpl(){
     }
 }
 
-void Asylo_SGX::execute_js(){
-
-    std::string input_js = absl::GetFlag(FLAGS_input_file);
+void Asylo_SGX::execute_js(std::string input_file){
+    //
+    std::string input_js = input_file;
     std::ifstream t(input_js);
     std::stringstream buffer;
     buffer << t.rdbuf();
