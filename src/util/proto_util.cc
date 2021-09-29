@@ -119,10 +119,13 @@ namespace asylo {
         return true;
     }
 
-    bool encrypt_payload_l(capsule_pdu *dc) {
+    bool encrypt_payload_l(capsule_pdu *dc, bool encryption_needed) {
         std::string aggregated = serialize_payload_l(dc->payload_l);
+        if (!encryption_needed){
+            dc->payload_in_transit = aggregated;
+            return true;
+        }
         std::string encrypted_aggregated;
-
         ASSIGN_OR_RETURN_FALSE(encrypted_aggregated, EncryptMessage(aggregated));
         dc->payload_in_transit = encrypted_aggregated;
         return true;

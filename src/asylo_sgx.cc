@@ -62,12 +62,15 @@ static void *StartOcallResponder( void *arg ) {
 
         if(data_ptr->data){
             //Message exists!
+
+
             std::string in_s((char *) data_ptr->data, data_ptr->size);
             free(data_ptr->data); // allocated using malloc
 
             hello_world::CapsulePDU in_dc;
             in_dc.ParseFromString(in_s);
-
+            capsule_pdu *dc = new capsule_pdu();
+            asylo::CapsuleFromProto(dc, &in_dc);
             switch(data_ptr->ocall_id){
             case OCALL_PUT: {
                 // TODO: we do everything inside of the lock, this is slow
@@ -81,7 +84,11 @@ static void *StartOcallResponder( void *arg ) {
                 memcpy(msg.data(), out_s.c_str(), out_s.size());
                 if(in_dc.msgtype() == COORDINATOR_EOE_TYPE){
                     socket_ptr_to_sync->send(msg);
-                }else {
+                }
+                if(in_dc.msgtype() == "PSL_RET"){
+                    LOGI << in_dc.payload_in_transit();
+                }
+                else {
                     socket_ptr->send(msg);
                 }
                 break;

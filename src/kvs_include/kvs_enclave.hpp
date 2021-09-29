@@ -128,6 +128,14 @@
 
         return 1;           
     }
+
+    static duk_ret_t js_ret(duk_context *ctx){
+        std::string ret = duk_to_string(ctx, 0);
+        duk_eval_string(ctx, "ctx");
+        KVSClient *m = (KVSClient *) duk_to_pointer(ctx, -1);
+        m->put("psl_return", ret, "PSL_RET");
+        return 1;
+    }
 } // namespace
 
 } //namespace asylo 
