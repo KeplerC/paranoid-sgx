@@ -54,13 +54,21 @@ namespace asylo {
             capsule_pdu *dc = new capsule_pdu();
             asylo::PayloadListToCapsule(dc, &payload_l, m_enclave_id);
 
+            bool success;
+            // for return, do not encrypt(at least currently)
             // generate hash for update_hash and/or ocall
-            bool success = encrypt_payload_l(dc);
+
+            bool encryption_needed = true;
+            if(dc->msgType == "PSL_RET") {
+                encryption_needed = false;
+            }
+            success = encrypt_payload_l(dc, encryption_needed);
             if (!success) {
                 LOGI << "payload_l encryption failed!!!";
                 delete dc;
                 return;
             }
+
 
             // generate hash and update prev_hash
             success = generate_hash(dc);
@@ -320,7 +328,7 @@ namespace asylo {
             HotMsg_requestOCall( buffer, requestedCallID++, &args);
         }
 
-        int KVSClient::HotMsg_requestOCall( HotMsg* hotMsg, int dataID, void *data ) {
+    int KVSClient::HotMsg_requestOCall( HotMsg* hotMsg, int dataID, void *data ) {
             int i = 0;
             const uint32_t MAX_RETRIES = 10;
             uint32_t numRetries = 0;
@@ -481,6 +489,9 @@ namespace asylo {
 
             duk_push_c_function(ctx, js_print, 1 /*nargs*/);
             duk_put_global_string(ctx, "print");
+
+            duk_push_c_function(ctx, js_ret, 1 /*nargs*/);
+            duk_put_global_string(ctx, "psl_return");
 
             //Register memtable as global object
             duk_push_pointer(ctx, this); 

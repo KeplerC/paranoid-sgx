@@ -91,6 +91,7 @@ typedef struct {
 typedef struct {
     void*     data;
     ECALL_ID  ecall_id;
+    void* caller;
 } EcallParams;
 
 

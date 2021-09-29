@@ -422,7 +422,7 @@ int run_user(){
     buffer << t.rdbuf();
     std::string code = buffer.str();
 
-    socket_send->send(string_to_message("print(\"hello\");"));
+    socket_send->send(string_to_message(code));
 }
 
 int run_coordinator(){

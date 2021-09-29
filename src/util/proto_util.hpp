@@ -35,7 +35,7 @@ bool verify_dc_hd_wallet(std::unordered_map<int, secp256k1_key> enclave_worker_k
 
 bool verify_dc(std::unordered_map<int, secp256k1_key> enclave_worker_keys, const capsule_pdu *dc, const Coin::HDKeychain& key);
 
-bool encrypt_payload_l(capsule_pdu *dc);
+bool encrypt_payload_l(capsule_pdu *dc, bool encryption_need);
 
 bool decrypt_payload_l(capsule_pdu *dc);
 
