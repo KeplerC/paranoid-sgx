@@ -252,20 +252,22 @@ void Asylo_SGX::execute_mpl(){
     }
 }
 
-void Asylo_SGX::execute_js(std::string input_file){
+void Asylo_SGX::execute_js_file(std::string input_file){
     //
     std::string input_js = input_file;
     std::ifstream t(input_js);
     std::stringstream buffer;
     buffer << t.rdbuf();
-
     std::string code = buffer.str();
-
-    //LOG(INFO) << code;
-
     // Execute JS file 
     run_code(&code);
+    //Sleep so that threads have time to process ALL requests
+    sleep(1);
+    return;
+}
 
+void Asylo_SGX::execute_js_code(std::string code){
+    run_code(&code);
     //Sleep so that threads have time to process ALL requests
     sleep(1);
     return;

@@ -413,7 +413,12 @@ int run_user(){
     // socket for join requests
     zmq::socket_t* socket_send  = new  zmq::socket_t( context, ZMQ_PUSH);
     socket_send -> connect ("tcp://localhost:3005");
-    socket_send->send(string_to_message("/opt/my-project/src/input.js"));
+    std::ifstream t("/opt/my-project/src/input.js");
+    std::stringstream buffer;
+    buffer << t.rdbuf();
+    std::string code = buffer.str();
+
+    socket_send->send(string_to_message("print(\"hello\");"));
 }
 
 int run_coordinator(){
@@ -442,7 +447,6 @@ int run_coordinator(){
             zmq::socket_t* socket_to_worker  = new  zmq::socket_t( context, ZMQ_PUSH);
             socket_to_worker -> connect ("tcp://localhost:3006");
             socket_to_worker->send(string_to_message(msg));
-            break;
         }
     }
 
@@ -466,6 +470,10 @@ int run_worker(){
             { static_cast<void *>(socket_msg), 0, ZMQ_POLLIN, 0 },
     };
     std::string msg;
+    Asylo_SGX* sgx = new Asylo_SGX("1", serialized_signing_key);
+    sgx->init();
+    sleep(1);
+    sgx->execute();
     while (true) {
         // LOG(INFO) << "Start zmq";
         zmq::poll(pollitems.data(), pollitems.size(), 0);
@@ -477,17 +485,9 @@ int run_worker(){
             msg = message_to_string(message);
             // LOG(INFO) << "[Client " << m_addr << "]:  " + msg ;
             LOGI << msg;
-            break;
+            sgx->execute_js_code(msg);
         }
     }
-
-    Asylo_SGX* sgx = new Asylo_SGX("1", serialized_signing_key);
-    sgx->init();
-
-    sleep(1);
-    sgx->execute();
-    sgx->execute_js(msg);
-
 
     return 0;
 }
@@ -508,7 +508,7 @@ int run_js() {
     sleep(1);
     sgx->execute();
     std::string s = absl::GetFlag(FLAGS_input_file);
-    sgx->execute_js(s);
+    sgx->execute_js_file(s);
     LOGI << "finished running the code";
     return 0; 
 }
