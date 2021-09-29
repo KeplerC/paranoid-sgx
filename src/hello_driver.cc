@@ -435,11 +435,15 @@ void thread_user_receiving_result(){
             zmq::message_t message;
             socket_result.recv(&message);
             std::string result = message_to_string(message);
-            LOGI << result;
+            std::vector<std::string> split =absl::StrSplit(result, "@@@");
+            LOGI << split[3];
         }
     }
 }
 
+unsigned long int get_current_time(){
+    return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+}
 int run_user(){
     zmq::context_t context (1);
     // socket for join requests
@@ -454,10 +458,25 @@ int run_user(){
 //    std::string code = buffer.str();
 //    socket_send->send(string_to_message(code));
     std::string cmd;
+    std::string cmd_buffer = "";
     std::cout << "> ";
+    bool first_cmd_wait = false;
+    unsigned long int now =get_current_time();
     while(std::getline(std::cin, cmd)){
-        socket_send->send(string_to_message(cmd));
-        std::cout << "> ";
+        cmd_buffer += cmd;
+        cmd_buffer += "\n";
+        //buffer the message to reduce traffic
+        if(get_current_time() - now > 5){
+            if(cmd_buffer == cmd && !first_cmd_wait){
+                first_cmd_wait = true;
+                continue;
+            }
+            socket_send->send(string_to_message(cmd_buffer));
+            std::cout << "> ";
+            cmd_buffer = "";
+            first_cmd_wait = true;
+        }
+        now = get_current_time();
     }
 }
 
