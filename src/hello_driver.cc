@@ -420,34 +420,45 @@ std::string message_to_string(const zmq::message_t& message) {
     return std::string(static_cast<const char*>(message.data()), message.size());
 }
 
-int run_user(){
+void thread_user_receiving_result(){
     zmq::context_t context (1);
-    // socket for join requests
-    zmq::socket_t* socket_send  = new  zmq::socket_t( context, ZMQ_PUSH);
-    socket_send -> connect ("tcp://localhost:3005");
-    std::ifstream t("/opt/my-project/src/input.js");
-    std::stringstream buffer;
-    buffer << t.rdbuf();
-    std::string code = buffer.str();
-    socket_send->send(string_to_message(code));
-
     zmq::socket_t socket_result(context, ZMQ_PULL);
     socket_result.bind ("tcp://*:3007");
     std::vector<zmq::pollitem_t> pollitems = {
             { static_cast<void *>(socket_result), 0, ZMQ_POLLIN, 0 },
     };
-
     while (true) {
-            // LOG(INFO) << "Start zmq";
-            zmq::poll(pollitems.data(), pollitems.size(), 0);
-            // Join Request
-            if (pollitems[0].revents & ZMQ_POLLIN) {
-                zmq::message_t message;
-                socket_result.recv(&message);
-                std::string result = message_to_string(message);
-                LOGI << result;
-            }
+        // LOG(INFO) << "Start zmq";
+        zmq::poll(pollitems.data(), pollitems.size(), 0);
+        // Join Request
+        if (pollitems[0].revents & ZMQ_POLLIN) {
+            zmq::message_t message;
+            socket_result.recv(&message);
+            std::string result = message_to_string(message);
+            LOGI << result;
         }
+    }
+}
+
+int run_user(){
+    zmq::context_t context (1);
+    // socket for join requests
+    std::vector <std::thread> worker_threads;
+    worker_threads.push_back(std::thread(thread_user_receiving_result));
+
+    zmq::socket_t* socket_send  = new  zmq::socket_t( context, ZMQ_PUSH);
+    socket_send -> connect ("tcp://localhost:3005");
+//    std::ifstream t("/opt/my-project/src/input.js");
+//    std::stringstream buffer;
+//    buffer << t.rdbuf();
+//    std::string code = buffer.str();
+//    socket_send->send(string_to_message(code));
+    std::string cmd;
+    std::cout << "> ";
+    while(std::getline(std::cin, cmd)){
+        socket_send->send(string_to_message(cmd));
+        std::cout << "> ";
+    }
 }
 
 int run_coordinator(){
