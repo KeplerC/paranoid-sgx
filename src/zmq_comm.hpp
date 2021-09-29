@@ -42,7 +42,7 @@ public:
 
     [[noreturn]] void run_server();
     [[noreturn]] void run_client();
-
+    [[noreturn]] void run_js_client();
 private:
     std::string m_port;
     std::string m_addr;
@@ -55,6 +55,7 @@ private:
     int m_enclave_seq_number = 0;
     std::vector<std::string> group_addresses;
     std::vector<zmq::socket_t*> group_sockets;
+    std::string m_coordinator = "";
 
     zmq::message_t string_to_message(const std::string& s) {
         zmq::message_t msg(s.size());
@@ -74,6 +75,16 @@ private:
         socket->send(string_to_message(s));
     }
 
+    std::string serialize_group_addresses(){
+        std::string ret;
+        for( const std::string& s : group_addresses ) {
+            ret += "###" + s;
+        }
+        return ret;
+    }
 
-
+    std::vector<std::string> deserialize_group_addresses(std::string group_addresses){
+        std::vector<std::string> ret = absl::StrSplit(group_addresses, "@@@", absl::SkipEmpty());
+        return ret;
+    }
 };

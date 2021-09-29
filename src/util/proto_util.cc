@@ -31,17 +31,17 @@ namespace asylo {
         std::stringstream ss(payload_l_s);
         std::string txn_timestamp, txn_msgType, key, value;
 
-        std::vector<std::string> split = absl::StrSplit(payload_l_s, delim_str, absl::SkipEmpty());
+        std::vector<std::string> split = absl::StrSplit(payload_l_s, delim_str);
         
-        if(split.size() % 4 != 0){
+        if((split.size() -1) % 4 != 0){
             LOG(ERROR) << "invalid payload size " << split.size();
             for(int i = 0; i < split.size(); i+=1) {
-                LOG(ERROR) << i << " " << split.at(4);
+                LOG(ERROR) << i << " " << split[i];
             }
             return payload_l;
         }
 
-        for (int i=0; i < (split.size() / 4)  * 4; i+=4) {
+        for (int i=0; i < ((split.size()-1) / 4)  * 4; i+=4) {
             kvs_payload payload;
             txn_timestamp = split.at(i);
             txn_msgType = split.at(i + 1);
@@ -135,7 +135,7 @@ namespace asylo {
         std::string decrypted_aggregated;
 
         ASSIGN_OR_RETURN_FALSE(decrypted_aggregated, DecryptMessage(dc->payload_in_transit));
-        // std::cout << "After DecryptMessage: " << decrypted_aggregated << std::endl;
+        LOGI << "After DecryptMessage: " << decrypted_aggregated << std::endl;
         // std::cout << std::endl;
         dc->payload_l = deserialize_payload_l(decrypted_aggregated);
         return true;

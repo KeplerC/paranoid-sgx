@@ -403,6 +403,7 @@ namespace asylo {
                     else{
                         capsule_pdu *dc = new capsule_pdu(); // freed below
                         CapsuleToCapsule(dc, (capsule_pdu *) arg->data);
+                        DUMP_CAPSULE(dc);
                         primitives::TrustedPrimitives::UntrustedLocalFree((capsule_pdu *) arg->data);
                         m_lamport_timer = std::max(m_lamport_timer, dc->timestamp) + 1;
                         switch (arg->ecall_id) {

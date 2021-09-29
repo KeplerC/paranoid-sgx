@@ -47,6 +47,10 @@ static void *StartOcallResponder( void *arg ) {
     zmq::socket_t* socket_ptr_to_sync  = new  zmq::socket_t( context, ZMQ_PUSH);
     socket_ptr_to_sync -> connect ("tcp://" + std::string(NET_SYNC_SERVER_IP) +":" + std::to_string(NET_SYNC_SERVER_PORT));
 
+    zmq::socket_t* socket_ptr_for_result  = new  zmq::socket_t( context, ZMQ_PUSH);
+    socket_ptr_for_result -> connect ("tcp://" + std::string(NET_SEED_SERVER_IP) +":" + std::to_string(NET_SERVER_RESULT_PORT));
+
+
     while( true )
     {
         if( hotMsg->keepPolling != true ) {
@@ -86,7 +90,7 @@ static void *StartOcallResponder( void *arg ) {
                     socket_ptr_to_sync->send(msg);
                 }
                 if(in_dc.msgtype() == "PSL_RET"){
-                    LOGI << in_dc.payload_in_transit();
+                    socket_ptr_for_result -> send(msg);
                 }
                 else {
                     socket_ptr->send(msg);
