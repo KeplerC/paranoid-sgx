@@ -476,16 +476,16 @@ namespace asylo {
         void KVSClient::duk_init_mem_interface(duk_context *ctx) {
             //Register 'put' and 'get' functions
             duk_push_c_function(ctx, js_put, 2 /*nargs*/);
-            duk_put_global_string(ctx, "put");
+            duk_put_global_string(ctx, "psl_put");
 
             duk_push_c_function(ctx, js_get, 1 /*nargs*/);
-            duk_put_global_string(ctx, "get");
+            duk_put_global_string(ctx, "psl_get");
 
             duk_push_c_function(ctx, js_print, 1 /*nargs*/);
-            duk_put_global_string(ctx, "print");
+            duk_put_global_string(ctx, "console_print");
 
             duk_push_c_function(ctx, js_ret, 1 /*nargs*/);
-            duk_put_global_string(ctx, "psl_return");
+            duk_put_global_string(ctx, "print");
 
             //Register memtable as global object
             duk_push_pointer(ctx, this); 
