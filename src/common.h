@@ -49,7 +49,7 @@
 
 #define START_CLIENT_ID 2 // >=2 ; TOTAL_THREADS - START_CLIENT_ID = Num of clients on this node
 #define TOTAL_THREADS 3
-#define EPOCH_TIME 2
+#define EPOCH_TIME 20
 #define PERFORMANCE_MEASUREMENT_NUM_REPEATS 10
 #define NUM_CRYPTO_ACTORS 2
 #define BATCH_SIZE 2

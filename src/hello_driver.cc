@@ -436,7 +436,7 @@ void thread_user_receiving_result(){
             socket_result.recv(&message);
             std::string result = message_to_string(message);
             std::vector<std::string> split =absl::StrSplit(result, "@@@");
-            LOGI << split[3];
+            std::cout << "> "  << split[3] << std::endl;
         }
     }
 }
@@ -459,7 +459,6 @@ int run_user(){
 //    socket_send->send(string_to_message(code));
     std::string cmd;
     std::string cmd_buffer = "";
-    std::cout << "> ";
     bool first_cmd_wait = false;
     unsigned long int now =get_current_time();
     while(std::getline(std::cin, cmd)){
@@ -472,7 +471,6 @@ int run_user(){
                 continue;
             }
             socket_send->send(string_to_message(cmd_buffer));
-            std::cout << "> ";
             cmd_buffer = "";
             first_cmd_wait = true;
         }
