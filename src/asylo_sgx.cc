@@ -42,13 +42,13 @@ static void *StartOcallResponder( void *arg ) {
     zmq::context_t context (1);
     // to router
     zmq::socket_t* socket_ptr  = new  zmq::socket_t( context, ZMQ_PUSH);
-    socket_ptr -> connect ("tcp://" + std::string(NET_SEED_SERVER_IP) + ":6667");
+    socket_ptr -> connect ("tcp://" + std::string(NET_SEED_ROUTER_IP) + ":6667");
     // to sync server
     zmq::socket_t* socket_ptr_to_sync  = new  zmq::socket_t( context, ZMQ_PUSH);
-    socket_ptr_to_sync -> connect ("tcp://" + std::string(NET_SYNC_SERVER_IP) +":" + std::to_string(NET_SYNC_SERVER_PORT));
+    socket_ptr_to_sync -> connect ("tcp://" + std::string(NET_SEED_ROUTER_IP) +":" + std::to_string(NET_SYNC_SERVER_PORT));
 
     zmq::socket_t* socket_ptr_for_result  = new  zmq::socket_t( context, ZMQ_PUSH);
-    socket_ptr_for_result -> connect ("tcp://" + std::string(NET_SEED_SERVER_IP) +":" + std::to_string(NET_SERVER_RESULT_PORT));
+    socket_ptr_for_result -> connect ("tcp://" + std::string(NET_SEED_ROUTER_IP) +":" + std::to_string(NET_SERVER_RESULT_PORT));
 
 
     while( true )
