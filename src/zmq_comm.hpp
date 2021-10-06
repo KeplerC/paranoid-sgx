@@ -46,7 +46,7 @@ public:
 private:
     std::string m_port;
     std::string m_addr;
-    std::string m_seed_server_ip = NET_SEED_SERVER_IP;
+    std::string m_seed_server_ip = NET_SEED_ROUTER_IP;
     std::string m_seed_server_join_port = std::to_string(NET_SERVER_JOIN_PORT);
     std::string m_seed_server_mcast_port = std::to_string(NET_SERVER_MCAST_PORT);
     unsigned m_thread_id;
@@ -78,7 +78,7 @@ private:
     std::string serialize_group_addresses(){
         std::string ret;
         for( const std::string& s : group_addresses ) {
-            ret += "###" + s;
+            ret += GROUP_ADDR_DELIMIT + s;
         }
         return ret;
     }
