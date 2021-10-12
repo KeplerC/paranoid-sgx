@@ -2,9 +2,34 @@
  * This file manages the database as well as read/write requests.  
  */
 
+#include <fstream>
 #include <string>
+#include "../memtable.hpp"
 
-using namespace std;
+using namespace asylo;
+
+/*
+ * This function creates a new CapsuleDB instance.  It takes in information about the sizes of levels and other metadata to establish compaction rules.
+ * 
+ * Inputs: ???
+ * Outputs: An error code
+ */
+int spawnDB() {
+    
+    return 0;
+}
+
+
+/*
+ * This function connects to a CapsuleDB instance.
+ * 
+ * Input: None
+ * Output: An error code
+ */
+int connectDB() {
+    return 0;
+}
+
 
 /*
  * This function takes in a filled memtable, converts it to capsuleBlock format, and writes it to the DataCapsule.
@@ -12,7 +37,7 @@ using namespace std;
  * Input: A filled Memtable
  * Output: The hash(es) of the DataCapsule transactions
  */
-string put(Memtable newMemtable) {
+std::string put(Memtable newMemtable) {
     return "Temp";
 }
 

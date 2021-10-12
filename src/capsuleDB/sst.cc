@@ -2,18 +2,21 @@
  * This file defines an SST which is stored in a DataCapsule.  
  */
 
+#include <string>
+
 class CapsuleBlock {
     public:
         int metadata;
+        int level;
         int keyIndex;
-        int datablock;
+        std::string datablock;
 
         /*
          * This function takes a prepared SST and pushes it to the DataCapusle.
          * Input: None
          * Output: DataCapsule transaction hash.
          */
-        string writeOut() {
+        std::string writeOut() {
             return "Test";
         }
 
@@ -23,7 +26,7 @@ class CapsuleBlock {
          * Input: Transaction hash of the requested block.
          * Output: Error code or zero on success.
          */
-        void readIn(string transactionHash) {
-            return 0;
+        void readIn(std::string transactionHash) {
+            return;
         }
 };
