@@ -13,7 +13,7 @@ class CapsuleIndex {
             int numBlocks;
             int maxSize;
             std::list <std::string> recordHashes;
-            std::list < std::tuple<int, int> > keyRanges;
+            std::list < std::tuple<int, int, int> > keyRanges; // Key, Value, Timestamp
             std::list <filter> quotientForLevel;
         
             /*
