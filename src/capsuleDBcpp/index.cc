@@ -11,6 +11,7 @@ class CapsuleIndex {
     class Level {
         private:
             int numBlocks;
+            int maxSize;
             std::list <std::string> recordHashes;
             std::list < std::tuple<int, int> > keyRanges;
             std::list <filter> quotientForLevel;
