@@ -172,35 +172,21 @@ namespace asylo {
                             LOGI << "[CICBUF-ECALL] transmitted a data capsule pdu";
                             // Handle ack first
                             if (dc->sender == ROCKSDB_SENDER) {
-                                if (SINGLE_MACHINE_BENCHMARK) break;
-                                if (DC_SERVER_CRYPTO_ENABLED) {
-                                    if (verify_dc(dc, verifying_key, /*to_verify_hash=*/false)) {
-                                        LOGI << "ack_dc verification successful.";
-                                    } else {
-                                        LOGI << "ack_dc verification failed!!!";
-                                    }
+                                // verify signature
+                                if (verify_dc(dc, verifying_key, /*to_verify_hash=*/false)) {
+                                    LOGI << "ack_dc verification successful.";
+                                } else {
+                                    LOGI << "ack_dc verification failed!!!";
                                 }
 
-                                // std::pair<int64_t, int64_t> p;
-                                // p.first = get_current_time();
-                                // p.second = dc->timestamp;
-                                // this->end_time_l.push_back(p);
-
-                                // if (dc->msgType == "last_msg") {
-                                //     LOGD << "last multicast end. ";
-                                //     sleep(50);
-                                //     LOG(INFO) << "Printing end_time_l:";                        
-                                //     for (const auto t: this->end_time_l) {
-                                //         LOG(INFO) << t.first << " " << t.second;
-                                //     }
-                                //     LOG(INFO) << "Printing end_time_l done.";
-                                // }
-                                // print if received ack for hash, then return for now
+#if BENCHMARK_MODE 
                                 if (dc->msgType == "last_msg") {
-                                    // print start_time and end_time
+                                    // print time spent
                                     int64_t test_end_time = get_current_time();
                                 	LOGD << "Time Spent: " << test_end_time - this->test_start_time;
                                 }
+#endif
+                                // print if received ack for hash, then return for now
                                 LOGI << "Received ack for Hash: " << dc->hash;
                                 break;  
                             } 
@@ -412,26 +398,22 @@ namespace asylo {
             // TODO: there still has some issues when the client starts before the client connects to the server
             // if we want to consider it, probably we need to buffer the messages
 
+            // Test that the system works with simple put and get
+            for( uint64_t i=0; i < 2; ++i ) {
+                LOGI << "[ENCLAVE] ===CLIENT PUT SIMPLE TEST=== ";
+                put("default_key" + std::to_string(i), "default_value" + std::to_string(i));
+            }
 
-            // for( uint64_t i=0; i < 10; ++i ) {
-            //     LOGI << "[ENCLAVE] ===CLIENT PUT=== ";
-            //     LOGI << "[ENCLAVE] Generating a new capsule PDU ";
-            //     put("default_key", "default_value" + std::to_string(i));
-            // }
+            sleep(2);
 
+            for( uint64_t i=0; i < 2; ++i ) {
+                LOGI << "[ENCLAVE] ===CLIENT GET SIMPLE TEST=== ";
+                kvs_payload tmp_payload = get("default_key" + std::to_string(i));
+                DUMP_PAYLOAD((&tmp_payload));
+            }
 
-            // sleep(2);
-
-
-            // for( uint64_t i=0; i < 1; ++i ) {
-            //     //dc[i].id = i;
-            //     LOGI << "[ENCLAVE] ===CLIENT GET=== ";
-            //     kvs_payload tmp_payload = get("default_key");
-            //     DUMP_PAYLOAD((&tmp_payload));
-            // }
-            
+#if BENCHMARK_MODE 
             benchmark_load();
-            LOGD << "load done:" << get_current_time();
             for (int iter = 1;;iter++) {
                 sleep(5);
                 std::cout << "Enter the number of benchmark times..." << std::endl;
@@ -442,11 +424,12 @@ namespace asylo {
                 
                 for (int i = 0; i < b_times; i++) {
                     benchmark();
-                    benchmark2();                                
+                    benchmark2();
                 }
                 put("last_msg_key", "default_value");
                 LOGD << "iteration " << std::to_string(iter) <<" done";
             }
+#endif
 
             return asylo::Status::OkStatus();
         }
@@ -468,10 +451,9 @@ namespace asylo {
         std::string m_prev_hash;
         std::unordered_map<int, std::pair<std::string, int64_t>> m_eoe_hashes;
         int64_t m_lamport_timer;
-        // std::vector<std::pair<int64_t, int64_t>> start_time_l;
-        // int print_counter = 1;
-        // std::vector<std::pair<int64_t, int64_t>> end_time_l;
+#if BENCHMARK_MODE 
         int64_t test_start_time;
+#endif
 
         inline void put(std::string key, std::string value, std::string msgType = DEFAULT_MSGTYPE) {
             m_lamport_timer += 1;
@@ -480,26 +462,6 @@ namespace asylo {
             DUMP_PAYLOAD((&payload));
             // enqueue to pqueue
             pqueue.enqueue(&payload);
-            // if (--print_counter == 0) {
-            //     std::pair<int64_t, int64_t> p;
-            //     p.first = get_current_time();
-            //     p.second = m_lamport_timer;
-            //     start_time_l.push_back(p);
-            //     print_counter = BATCH_SIZE >= 10? BATCH_SIZE/3 : BATCH_SIZE;
-            // }
-        }
-
-        inline void put_multi(std::vector<std::string> key_l, std::vector<std::string> value_l,
-                        std::string msgType = DEFAULT_MSGTYPE) {
-            std::vector<kvs_payload> payload_l(key_l.size());
-            for (int i = 0; i < payload_l.size(); i++) {
-                m_lamport_timer += 1;
-                asylo::KvToPayload(&payload_l[i], key_l[i], value_l[i], m_lamport_timer, msgType);
-                DUMP_PAYLOAD((&payload_l[i]));
-            }
-            
-            // enqueue to pqueue
-            pqueue.enqueue_multi(&payload_l);
         }
 
         void handle() {
@@ -554,32 +516,15 @@ namespace asylo {
             // update hash map
             if(update_hash)
                 update_client_hash(dc);
-            
+
+#if BENCHMARK_MODE 
             if (dc->payload_l.back().key == "last_msg_key") {
                 dc->msgType = "last_msg";
             }
+#endif
 
             // send dc
-            if (!SINGLE_MACHINE_BENCHMARK) {
-                put_ocall(dc);
-            }
-
-            if (SINGLE_MACHINE_BENCHMARK && dc->msgType == "last_msg") {
-                // print start_time and end_time
-                int64_t test_end_time = get_current_time();
-
-            	LOGD << "Time Spent: " << test_end_time - this->test_start_time;
-	    }
-
-            // if (dc->msgType == "last_msg") {
-            //     LOGD << "actor last put_ocall end.";
-            //     sleep(2);
-            //     LOG(INFO) << "Printing start_time_l:";
-            //     for (const auto t: start_time_l) {
-            //         LOG(INFO) << t.first << " " << t.second;
-            //     }
-            //     LOG(INFO) << "Printing start_time_l done.";
-            // }
+            put_ocall(dc);
             
             delete dc;
         }

@@ -28,15 +28,12 @@ namespace asylo {
     }
 
     std::vector<kvs_payload> deserialize_payload_l(const std::string &payload_l_s) {
-        // std::cout << "deserialize_payload_l: " << payload_l_s << std::endl;
         std::vector<kvs_payload> payload_l;
         std::stringstream ss(payload_l_s);
         std::string txn_timestamp, txn_msgType, key, value;
 
         std::vector<std::string> split = absl::StrSplit(payload_l_s, delim_str);
 	split.pop_back(); // remove the trailing empty element due to delim_str
-
-        // std::cout << "====== deserialize_payload_l ======" << std::endl;
         
         if(split.size() % 4 != 0){
             LOG(ERROR) << "invalid payload size " << split.size();
@@ -53,20 +50,6 @@ namespace asylo {
             key = split.at(i + 2);
             value = split.at(i + 3);
 
-            // std::cout << "==================================" << std::endl;
-
-            // std::cout << "txn_msgType: " << txn_msgType << std::endl;
-
-            // std::cout << "==================================" << std::endl;
-
-            // std::cout << "key: " << key << std::endl;
-
-            // std::cout << "==================================" << std::endl;
-
-            // std::cout << "value: " << value << std::endl;
-
-            // std::cout << "==================================" << std::endl;
-
             KvToPayload(&payload, key, value, std::stoi(txn_timestamp), txn_msgType);
             payload_l.push_back(payload);
         }
@@ -75,7 +58,6 @@ namespace asylo {
     }
 
     bool generate_hash(capsule_pdu *dc){
-        if (NO_CRYPTO) return true;
         const std::string aggregated = std::to_string(dc->sender) + std::to_string(dc->timestamp)
                                         +dc->payload_in_transit;
         std::vector<uint8_t> digest;
@@ -86,7 +68,6 @@ namespace asylo {
     }
 
     bool sign_dc(capsule_pdu *dc, const std::unique_ptr <SigningKey> &signing_key) {
-        if (NO_CRYPTO) return true;
         std::string aggregated = dc->hash + dc->prevHash;
         dc->signature = SignMessage(aggregated, signing_key);
         return true;
@@ -106,9 +87,7 @@ namespace asylo {
     }
 
     bool verify_dc(const capsule_pdu *dc, const std::unique_ptr <VerifyingKey> &verifying_key, 
-                    bool to_verify_hash){
-	    if (NO_CRYPTO) return true;
-        
+                    bool to_verify_hash){        
         // verify hash matches
         if (to_verify_hash) {
             bool hash_result = verify_hash(dc);
@@ -121,7 +100,6 @@ namespace asylo {
         // verify signature
         bool sig_result = verify_signature(dc, verifying_key);
         if (!sig_result) {
-            // LOGI << "signature verification failed!!!";
             LOGI << "signature verification failed!!! aggregated: " << dc->hash+dc->prevHash 
                  << " ,signature: " << dc->signature;
             return false;
@@ -147,7 +125,6 @@ namespace asylo {
     }
 
     bool sign_dc_proto(hello_world::CapsulePDU *dcProto, const std::unique_ptr <SigningKey> &signing_key) {
-        if (NO_CRYPTO) return true;
         std::string aggregated = dcProto->hash() + dcProto->prevhash();
         dcProto->set_signature(SignMessage(aggregated, signing_key));
         LOGI << "sign_dc_proto - aggregated: " << aggregated << " ,signature: " << dcProto->signature();
@@ -170,14 +147,12 @@ namespace asylo {
 
     bool verify_dc_proto(const hello_world::CapsulePDU *dcProto, 
                         const std::unique_ptr <VerifyingKey> &verifying_key){
-        if (NO_CRYPTO) return true;
         // verify hash matches
         bool hash_result = verify_hash_proto(dcProto);
         if (!hash_result) {
             LOGI << "hash verification failed!!!";
             return false;
         }
-        // LOG(INFO) << "after verify_hash";
         // verify signature
         bool sig_result = verify_signature_proto(dcProto, verifying_key);
         if (!sig_result) {
@@ -205,10 +180,6 @@ namespace asylo {
     }
 
     bool encrypt_payload_l(capsule_pdu *dc) {
-        if (NO_CRYPTO) {
-            dc->payload_in_transit = serialize_payload_l(dc->payload_l);
-            return true;
-        }
         std::string aggregated = serialize_payload_l(dc->payload_l);
         std::string encrypted_aggregated;
 
@@ -218,15 +189,9 @@ namespace asylo {
     }
 
     bool decrypt_payload_l(capsule_pdu *dc) {
-        if (NO_CRYPTO) {
-            dc->payload_l = deserialize_payload_l(dc->payload_in_transit);
-            return true;
-        }
         std::string decrypted_aggregated;
 
         ASSIGN_OR_RETURN_FALSE(decrypted_aggregated, DecryptMessage(dc->payload_in_transit));
-        // std::cout << "After DecryptMessage: " << decrypted_aggregated << std::endl;
-        // std::cout << std::endl;
         dc->payload_l = deserialize_payload_l(decrypted_aggregated);
         return true;
     }

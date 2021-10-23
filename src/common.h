@@ -46,7 +46,6 @@
 #define DEFAULT_MSGTYPE ""
 
 #define ROCKSDB_SENDER 0
-#define DC_SERVER_CRYPTO_ENABLED true
 
 #define START_CLIENT_ID 2 // >=2 ; TOTAL_THREADS - START_CLIENT_ID = Num of clients on this node
 #define TOTAL_THREADS 3
@@ -62,12 +61,7 @@
 #define NET_KEY_DIST_SERVER_PORT 3001
 #define NET_ROCKSDB_SERVER_JOIN_PORT 6676
 
-// #define BENCHMARK_TIMES 1
-// #define SEC_BETWEEN_BENCHMARK 0
-#define SINGLE_MACHINE_BENCHMARK false
-#define NO_CRYPTO false
-
-#define BENCHMARK_MODE true
+#define BENCHMARK_MODE false
 #define LOGI LOG_IF(INFO, !BENCHMARK_MODE)
 #define LOGD LOG_IF(INFO, BENCHMARK_MODE)<< asylo::get_current_time() << " "
 #if BENCHMARK_MODE

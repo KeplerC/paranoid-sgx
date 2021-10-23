@@ -120,8 +120,6 @@ public:
         // to sync server
         zmq::socket_t* socket_ptr_to_sync  = new  zmq::socket_t( context, ZMQ_PUSH);
         socket_ptr_to_sync -> connect ("tcp://" + std::string(NET_SYNC_SERVER_IP) +":" + std::to_string(NET_SYNC_SERVER_PORT));
-
-        // std::vector<std::pair<int64_t, int64_t>> end_time_l_single;
         
         while( true )
         {
@@ -161,22 +159,6 @@ public:
                         socket_ptr->send(msg);
                     }
 
-                    // if (SINGLE_MACHINE_BENCHMARK) {
-                    //     std::pair<int64_t, int64_t> p;
-                    //     p.first = asylo::get_current_time();
-                    //     p.second = in_dc.timestamp();
-                    //     end_time_l_single.push_back(p);
-
-                    //     if (in_dc.msgtype() == "last_msg") {
-                    //         LOGD << "last multicast end. ";
-                    //         sleep(50);
-                    //         LOG(INFO) << "Printing end_time_l_single:";                        
-                    //         for (const auto t: end_time_l_single) {
-                    //             LOG(INFO) << t.first << " " << t.second;
-                    //         }
-                    //         LOG(INFO) << "Printing end_time_l_single done.";
-                    //     }
-                    // }
                     break;
                 }
                 default:
@@ -558,21 +540,23 @@ public:
                 hello_world::CapsulePDU in_dc;
                 in_dc.ParseFromString(msg);
 
+#if BENCHMARK_MODE 
+                if (in_dc.msgtype() != "last_msg") {
+                    continue;
+                }
+#endif
+
                 // Only stores DEFAULT_MSGTYPE msg from clients 
                 // NOTE: if removed/changed, needs to add check before sending ack
-                if (in_dc.msgtype() != DEFAULT_MSGTYPE && 
-                    in_dc.msgtype() != "last_msg") {
+                if (in_dc.msgtype() != DEFAULT_MSGTYPE) {
                     continue;
                 }
 
-                if (SINGLE_MACHINE_BENCHMARK) continue;
-
-                if (DC_SERVER_CRYPTO_ENABLED) {
-                    if (verify_dc_proto(&in_dc, verifying_key)) {
-                        LOGI << "[ROCKSDB] dc verification successful.";
-                    } else {
-                        LOGI << "[ROCKSDB] dc verification failed!!!";
-                    }
+                // verify dc signature
+                if (verify_dc_proto(&in_dc, verifying_key)) {
+                    LOGI << "[ROCKSDB] dc verification successful.";
+                } else {
+                    LOGI << "[ROCKSDB] dc verification failed!!!";
                 }
 
                 const char* key = in_dc.hash().c_str();
@@ -589,10 +573,9 @@ public:
                 ack_dc.set_timestamp(in_dc.timestamp());
                 ack_dc.set_msgtype(in_dc.msgtype());
 
-                if (DC_SERVER_CRYPTO_ENABLED) {
-                    if (!sign_dc_proto(&ack_dc, signing_key)) {
-                        LOGI << "[ROCKSDB] sign ack_dc failed!!!";
-                    }
+                // sign dc before sending
+                if (!sign_dc_proto(&ack_dc, signing_key)) {
+                    LOGI << "[ROCKSDB] sign ack_dc failed!!!";
                 }
 
                 ack_dc.SerializeToString(&ack_s);
@@ -670,7 +653,6 @@ int main(int argc, char *argv[]) {
     absl::ParseCommandLine(argc, argv);
     std::unique_ptr <asylo::SigningKey> signing_key(std::move(asylo::EcdsaP256Sha256SigningKey::CreateFromPem(
                                           signing_key_pem)).ValueOrDie());
-    // std::unique_ptr <asylo::SigningKey> signing_key = asylo::EcdsaP256Sha256SigningKey::Create().ValueOrDie();
     asylo::CleansingVector<uint8_t> serialized_signing_key;
     ASSIGN_OR_RETURN(serialized_signing_key,
                             signing_key->SerializeToDer());
@@ -706,7 +688,7 @@ int main(int argc, char *argv[]) {
         worker_threads.push_back(std::thread(thread_run_rocksdb_storage, 99));
         sleep(1 * 1000 * 1000);
     } else {
-        // thread START_CLIENT-n: clients
+        // thread START_CLIENT_ID~(TOTAL_THREADS-1): clients
         std::vector <std::thread> worker_threads;
         //start clients
         for (unsigned thread_id = START_CLIENT_ID; thread_id < TOTAL_THREADS; thread_id++) {
