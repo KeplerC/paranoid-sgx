@@ -32,12 +32,12 @@ int connectDB() {
 
 
 /*
- * This function takes in a filled memtable, converts it to capsuleBlock format, and writes it to the DataCapsule.
+ * This function takes in a key-value pair and writes it to CapsuleDB
  *
- * Input: A filled Memtable
- * Output: The hash(es) of the DataCapsule transactions
+ * Input: A KV pair
+ * Output: Nothing
  */
-std::string put(Memtable newMemtable) {
+void put(std:string key, char* value) {
     return "Temp";
 }
 
@@ -48,7 +48,7 @@ std::string put(Memtable newMemtable) {
  * Inputs: The key whose value is requested, the requesting enclave, and a return mode.
  * Output: The requested value or an error if the key does not exist.
  */
-int* get(int key, Enclave requester, bool isMulticast) {
+char* get(std:string key, Enclave requester, bool isMulticast) {
     return 0;
 }
 
