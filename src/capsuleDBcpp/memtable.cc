@@ -1,6 +1,7 @@
 #include "memtable.hpp"
 #include "asylo/util/logging.h"
 #include "common.h"
+#include "capsuleBlock.cc"
 
 kvs_payload MemTable::get(const std::string &key) {
     // First check if a lock is present. If not, key is not present and can return.
@@ -39,6 +40,7 @@ bool MemTable::put(const kvs_payload *payload) {
         }
         else{
             memtable[payload->key] = *payload;
+            write_out_if_full();
             LOGI << "[SAME PAYLOAD UPDATED] Timestamp of incoming payload key: " << payload->key
                  << ", timestamp: " << payload->txn_timestamp << " replaces "  << prev_timestamp;
             sgx_spin_unlock(lock);
@@ -50,8 +52,36 @@ bool MemTable::put(const kvs_payload *payload) {
         locklst[payload->key] = lock; // add new lock to locklst
         sgx_spin_lock(lock);
         memtable[payload->key] = *payload;
+        write_out_if_full();
         sgx_spin_unlock(lock);
         return true;
+    }
+}
+
+void MemTable::write_out_if_full() {
+    // TODO - capacity check: number of kv pairs, but should be based on amount of memory
+    if (memtable.size() > max_size) {
+        // write out entire memtable to level 0 of tree
+        Level level_zero = CapsuleIndex.levels.front();
+        CapsuleBlock capsule_block (0);
+        
+        // TODO - how to initialize min/max?
+        std::string min_key;
+        std::string max_key;
+
+        for ( const auto &p : memtable ) {
+            kvs_payload payload = p.second;
+            capsule_block.addKVPair(payload.key, payload.value, payload.txn_timestamp)
+            min_key = min(min_key, p.first);
+            max_key = max(max_key, p.first);
+        } 
+
+        capsule_block.setMinKey(min_key);
+        capsule_block.setMaxKey(max_key);
+
+        std::string record_hash = capsule_block.writeOut();
+        
+        level_zero.addBlock(&capsule_block, record_hash);
     }
 }
 

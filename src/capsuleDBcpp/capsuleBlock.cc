@@ -14,10 +14,8 @@ class CapsuleBlock {
         std::vector < std::tuple<std::string, unsigned char[], int> > kvPairs;  // Key, value, timestamp
     
     public:
-        CapsuleBlock(int l, std::string sk, std::string ek) {
+        CapsuleBlock(int l) {
             level = l;
-            startKey = sk;
-            endKey = ek;
         }
         /*
          * Returns the level of the capsule block
@@ -47,6 +45,20 @@ class CapsuleBlock {
         }
 
         /*
+         * Set the lower bound of keys in this block
+         */
+        void setMinKey(std::string k) {
+            startKey = k;
+        }
+
+        /*
+         * Set the upper bound of keys in this block
+         */
+        void setMaxKey(std::string k) {
+            endKey = k;
+        }
+
+        /*
          * This function takes a prepared block and pushes it to the DataCapusle.
          *
          * Input: None
@@ -54,6 +66,12 @@ class CapsuleBlock {
          */
         std::string writeOut() {
             return;
+        }
+
+        void addKVPair(std::string key, unsigned char* value, int timestamp) {
+            std::tuple<std::string, unsigned char[], int> element;
+            element = make_tuple(key, value, timestamp);
+            kvPairs.push_back(element);
         }
 
         /*
