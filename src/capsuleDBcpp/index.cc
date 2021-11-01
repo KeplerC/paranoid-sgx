@@ -9,12 +9,14 @@
 
 class CapsuleIndex {
     class Level {
-        private:
+        public:
             int numBlocks;
             int maxSize;
-            std::list <std::string> recordHashes;
-            std::list < std::tuple<int, int, int> > keyRanges; // Key, Value, Timestamp
-            std::list <filter> quotientForLevel;
+            std::string min_key;
+            std::string max_key;
+            std::vector <std::string> recordHashes;
+            std::vector <CapsuleBlock> blocks; 
+            Filter levelFilter;
         
             /*
             * Returns the number of blocks in this level.
@@ -32,8 +34,21 @@ class CapsuleIndex {
             * Input: New CapsuleBlock to be added.
             * Output: 0 on success, other int on error.
             */
-            int addBlock(CapsuleBlock* newBlock) {
-                return;
+            int addBlock(CapsuleBlock* newBlock, std::string hash) {
+                std::vector<CapsuleBlock>::iterator iter;
+                for (int i = 0; i < numBlocks; i++) {
+                    CapsuleBlock curr_block = blocks[i];
+                    if (curr_block.getMinKey() > (*newBlock).getMaxKey()) {
+                        blocks.insert(blocks.begin() + i, *newBlock);
+                        recordHashes.insert(recordHashes.begin() + i, hash);
+                        numBlocks++;
+                        if (numBlocks * blocksize > maxSize) {
+                            // trigger compaction
+                        }
+                        return 0;
+                    }
+                }
+                return -1;
             }
 
             /*
@@ -45,14 +60,26 @@ class CapsuleIndex {
             * Output: The hash which potentially contains the requested key, error code if not present
             */
             std::string getBlock(std::string key) {
-                return;
+                if (key < min_key || key > max_key) {
+                    return NULL;
+                }
+                // Otherwise search -> is Binary really needed?
+                
+                for (int i = 0; i < numBlocks; i++) {
+                    CapsuleBlock curr_block = blocks[i];
+                    if (key < curr_block.getMinKey()) {
+                        return recordHashes[i];
+                    }
+                }
+
+                return NULL;
             }
     };
 
     public:
         int numLevels;
         std::string prevIndexHash;
-        std::list <Level> levels;
+        std::vector <Level> levels;
 
         /*
          * Returns the number of levels in the database.
@@ -70,6 +97,20 @@ class CapsuleIndex {
          * Output: block hash or error code
          */
         std::string getBlock(int level, std::string key) {
-            return;
+            if (level < 0 || level >= numLevels) {
+                return NULL;
+            }
+            Level curr_level = levels[level];
+            if (curr_level.levelFilter.contains(key)) {
+                return curr_level.getBlock(key);
+            }
+            return NULL;
+        }
+
+        int add_hash(int level, std::string hash, CapsuleBlock block) {
+            if (level < 0 || level >= numLevels) {
+                return NULL;
+            }
+            return levels[level].addBlock(&block, hash);
         }
 };

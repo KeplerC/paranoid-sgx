@@ -4,13 +4,14 @@
 
 #include <string>
 #include <vector>
+#include <tuple>
 
 class CapsuleBlock {
     private:
         int level;
-        int startIndex;  // Defines the range of keys contained in this block
-        int endIndex;
-        std::vector <std::string, unsigned char[]> kvPairs;
+        std::string startKey;  // Defines the range of keys contained in this block
+        std::string endKey;
+        std::vector < std::tuple<std::string, unsigned char[], int> > kvPairs;  // Key, value, timestamp
     
     public:
         /*
@@ -27,8 +28,8 @@ class CapsuleBlock {
          *
          * Output: int representing the lowest key in the block
          */
-        int getMinIndex() {
-            return startIndex;
+        std::string getMinKey() {
+            return startKey;
         }
 
         /*
@@ -36,8 +37,8 @@ class CapsuleBlock {
          *
          * Output: int representing the highest key in the block
          */
-        int getMaxIndex() {
-            return endIndex;
+        std::string getMaxKey() {
+            return endKey;
         }
 
         /*
