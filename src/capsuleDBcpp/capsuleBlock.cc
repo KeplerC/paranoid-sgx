@@ -14,6 +14,11 @@ class CapsuleBlock {
         std::vector < std::tuple<std::string, unsigned char[], int> > kvPairs;  // Key, value, timestamp
     
     public:
+        CapsuleBlock(int l, std::string sk, std::string ek) {
+            level = l;
+            startKey = sk;
+            endKey = ek;
+        }
         /*
          * Returns the level of the capsule block
          *
@@ -61,3 +66,4 @@ class CapsuleBlock {
             return;
         }
 };
+
