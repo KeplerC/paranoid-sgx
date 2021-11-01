@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: busybox-sleep
+spec:
+  containers:
+  - name: busybox
+    image: keplerc/paranoid-asylo:standalone
+    args:
+    - "./scripts/run-server.sh"
