@@ -42,6 +42,7 @@ public:
 
     [[noreturn]] void run_server();
     [[noreturn]] void run_client();
+    [[noreturn]] void run_router();
     [[noreturn]] void run_js_client();
 private:
     std::string m_port;
@@ -55,6 +56,9 @@ private:
     int m_enclave_seq_number = 0;
     std::vector<std::string> group_addresses;
     std::vector<zmq::socket_t*> group_sockets;
+
+    zmq::socket_t* parent_socket;
+    std::vector<zmq::socket_t*> child_sockets;
     std::string m_coordinator = "";
 
     zmq::message_t string_to_message(const std::string& s) {
