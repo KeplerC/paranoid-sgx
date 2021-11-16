@@ -53,5 +53,5 @@ RUN apt-get install -y libzmq3-dev
 WORKDIR /
 ADD paranoid-sgx /paranoid-sgx
 WORKDIR /paranoid-sgx
-RUN bazel build --copt=-O3 //src:hello_world_sgx_sim  -- 
+RUN bazel build //src:hello_world_sgx_sim  -- 
 CMD ["./scripts/run-worker.sh"]
