@@ -1,10 +1,21 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: busybox-sleep
+  name: psl
 spec:
   containers:
-  - name: busybox
+  - name: server
     image: keplerc/paranoid-asylo:standalone
     args:
     - "./scripts/run-server.sh"
+    imagePullPolicy: IfNotPresent
+  - name: coordinator
+    image: keplerc/paranoid-asylo:standalone
+    args:
+    - "./scripts/run-coordinator.sh"
+    imagePullPolicy: IfNotPresent
+  - name: worker
+    image: keplerc/paranoid-asylo:standalone
+    args:
+    - "./scripts/run-worker.sh"
+    imagePullPolicy: IfNotPresent
