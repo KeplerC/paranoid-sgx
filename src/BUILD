@@ -33,7 +33,7 @@ package(
 
 proto_library(
     name = "hello_proto",
-    srcs = ["proto/hello.proto", "proto/capsule.proto"],
+    srcs = ["proto/hello.proto", "proto/capsule.proto", "proto/multicast_control.proto"],
     deps = [
         "@com_google_asylo//asylo:enclave_proto",
         ":translator_server_proto",
@@ -50,6 +50,11 @@ proto_library(
     name = "translator_server_proto",
     srcs = ["translator_server.proto"],
     tags = ASYLO_ALL_BACKEND_TAGS,
+)
+
+proto_library(
+    name = "multicast_control",
+    srcs = ["multicast_control.proto"],
 )
 
 cc_proto_library(
@@ -273,7 +278,7 @@ enclave_loader(
 
 enclave_loader(
     name = "hello_world",
-    srcs = ["pqueue.hpp", "zmq_comm.hpp", "zmq_comm.cc", "asylo_sgx.hpp", "asylo_sgx.cc", "sgx_spinlock.h", "spinlock.c", "hello_driver.cc", "kvs_include/capsule.h", "util/proto_util.hpp", "util/proto_util.cc", "hot_msg_pass.h",  "common.h", "benchmark.h", "crypto.h"],
+    srcs = ["pqueue.hpp", "zmq_comm.hpp", "zmq_comm.cc", "zmq_multicast.hpp", "zmq_multicast.cc", "asylo_sgx.hpp", "asylo_sgx.cc", "sgx_spinlock.h", "spinlock.c", "hello_driver.cc", "kvs_include/capsule.h", "util/proto_util.hpp", "util/proto_util.cc", "hot_msg_pass.h",  "common.h", "benchmark.h", "crypto.h"],
     backends = sgx.backend_labels,  # Has SGX loader dependencies
     enclaves = {"enclave": ":hello_enclave.so"},
     loader_args = [
@@ -299,7 +304,7 @@ enclave_loader(
 
 enclave_loader(
     name = "listener",
-    srcs = ["zmq_comm.hpp", "zmq_comm.cc", "asylo_sgx.hpp", "asylo_sgx.cc", "sgx_spinlock.h", "spinlock.c", "hello_driver.cc", "kvs_include/capsule.h", "util/proto_util.hpp", "util/proto_util.cc", "hot_msg_pass.h",  "common.h", "benchmark.h", "crypto.h"],
+    srcs = ["zmq_comm.hpp", "zmq_comm.cc", "zmq_multicast.hpp", "zmq_multicast.cc", "asylo_sgx.hpp", "asylo_sgx.cc", "sgx_spinlock.h", "spinlock.c", "hello_driver.cc", "kvs_include/capsule.h", "util/proto_util.hpp", "util/proto_util.cc", "hot_msg_pass.h",  "common.h", "benchmark.h", "crypto.h"],
     backends = sgx.backend_labels,  # Has SGX loader dependencies
     enclaves = {"enclave": ":hello_enclave.so"},
     loader_args = [
@@ -324,7 +329,7 @@ enclave_loader(
 
 enclave_loader(
     name = "js",
-    srcs = ["zmq_comm.hpp", "zmq_comm.cc", "asylo_sgx.hpp", "asylo_sgx.cc", "sgx_spinlock.h", "spinlock.c", "hello_driver.cc", "kvs_include/capsule.h", "util/proto_util.hpp", "util/proto_util.cc", "hot_msg_pass.h",  "common.h", "benchmark.h", "crypto.h"],
+    srcs = ["zmq_comm.hpp", "zmq_comm.cc", "zmq_multicast.hpp", "zmq_multicast.cc", "asylo_sgx.hpp", "asylo_sgx.cc", "sgx_spinlock.h", "spinlock.c", "hello_driver.cc", "kvs_include/capsule.h", "util/proto_util.hpp", "util/proto_util.cc", "hot_msg_pass.h",  "common.h", "benchmark.h", "crypto.h"],
     backends = sgx.backend_labels,  # Has SGX loader dependencies
     enclaves = {"enclave": ":hello_enclave.so"},
     loader_args = [

@@ -1,0 +1,61 @@
+
+syntax = "proto2";
+package MulticastMessage;
+
+//enum MessageType {
+//  ERROR = 1;
+//  JOIN = 2;
+////LEAVE = 3,
+//  ASSIGN_ID = 4;
+////ASSIGN_PARENT = 5,
+////ASSIGN_CHILD = 6,
+//  GIVE_ADDR = 7; // Just for the JS demo
+//}
+
+message ErrorMsg {
+  optional int64 errorCode = 1;
+}
+
+message LeaveMsg {
+  // TODO
+}
+
+message JoinMsg {
+  // Intentionally empty (Do we need anything here?)
+}
+
+message AssignIdMsg {
+  optional int64 newId = 1;
+}
+
+message AssignParentMsg {
+  // TODO
+}
+
+message AssignChildMsg {
+  // TODO
+}
+
+message GiveAddrMsg {
+  optional string addr = 1;
+}
+
+message MessageBody {
+  oneof msg {
+    ErrorMsg error = 1;
+    JoinMsg join = 2;
+    AssignIdMsg assignId = 4;
+    GiveAddrMsg giveAddr = 7;
+  }
+}
+
+message MessageHeader {
+//optional MessageType msgType = 1;
+  optional int64 timestamp = 2;
+  optional int64 sender_id = 3;
+}
+
+message ControlMessage {
+  optional MessageHeader header = 1;
+  optional MessageBody body = 2;
+}
