@@ -14,7 +14,7 @@ MulticastMessage::ControlMessage* MulticastHandler::recv() {
 }
 
 void MulticastHandler::recv(MulticastMessage::ControlMessage* msg) {
-    *msg = recv_proto(); // TODO this still copies internally
+    *msg = *recv_proto(); // TODO this still copies internally
 }
 
 void MulticastHandler::send_error(uint64_t error_code) {

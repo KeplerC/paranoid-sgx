@@ -1,7 +1,6 @@
 #include "zmq_comm.hpp"
 
-[[noreturn]] void zmq_comm::run_server(){
-    zmq::context_t context (1);
+[[noreturn]] void ZmqServer::run() {
     // socket for join requests
     zmq::socket_t socket_join (context, ZMQ_PULL);
     socket_join.bind ("tcp://*:" + std::to_string(NET_SERVER_JOIN_PORT));
@@ -69,8 +68,7 @@
     }
 }
 
-[[noreturn]] void zmq_comm::run_router(){
-    zmq::context_t context (1);
+[[noreturn]] void ZmqRouter::run() {
     // socket for join requests
     zmq::socket_t socket_join (context, ZMQ_PULL);
     socket_join.bind ("tcp://*:" + std::to_string(NET_SERVER_JOIN_PORT));
@@ -151,9 +149,7 @@
     }
 }
 
-[[noreturn]] void zmq_comm::run_client(){
-    zmq::context_t context (1);
-
+[[noreturn]] void ZmqClient::run() {
     zmq::socket_t socket_from_server (context, ZMQ_PULL);
     socket_from_server.bind ("tcp://*:" + m_port);
 
@@ -192,9 +188,7 @@
 }
 
 
-[[noreturn]] void zmq_comm::run_js_client(){
-    zmq::context_t context (1);
-
+[[noreturn]] void ZmqJsClient::run() {
     zmq::socket_t socket_from_server (context, ZMQ_PULL);
     socket_from_server.bind ("tcp://*:" + m_port);
 
@@ -241,5 +235,3 @@
         }
     }
 }
-
-

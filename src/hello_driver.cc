@@ -105,20 +105,20 @@ oG+ldQH94d6FPkRWOMwY+ppB+SQ8XnUFRA==
 
 void thread_run_zmq_client(unsigned thread_id, Asylo_SGX* sgx){
     LOG(INFO) << "[thread_run_zmq_client_worker]";
-    zmq_comm zs = zmq_comm(NET_WORKER_IP, thread_id, sgx);
-    zs.run_client();
+    zmq_comm* zs = new ZmqClient(NET_WORKER_IP, thread_id, sgx);
+    zs->run(); // run_client
 }
 
 void thread_run_zmq_js_client(unsigned thread_id, Asylo_SGX* sgx){
     LOG(INFO) << "[thread_run_zmq_client_worker]";
-    zmq_comm zs = zmq_comm(NET_WORKER_IP, thread_id, sgx);
-    zs.run_js_client();
+    zmq_comm* zs = new ZmqJsClient(NET_WORKER_IP, thread_id, sgx);
+    zs->run(); // run_js_client
 }
 
 void thread_run_zmq_router(unsigned thread_id){
     LOG(INFO) << "[thread_run_zmq_server]"; 
-    zmq_comm zs = zmq_comm(NET_SEED_ROUTER_IP, thread_id, nullptr);
-    zs.run_server();
+    zmq_comm* zs = new ZmqServer(NET_SEED_ROUTER_IP, thread_id, nullptr);
+    zs->run(); // run_server
 }
 void thread_start_fake_client(Asylo_SGX* sgx){
     sgx->execute();

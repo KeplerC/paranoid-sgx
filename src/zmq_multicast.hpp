@@ -5,7 +5,6 @@
 #include <fstream>
 #include <string>
 #include <thread>
-#include <function>
 
 #include <zmq.hpp>
 #include "common.h"
@@ -17,8 +16,7 @@
 class MulticastHandler {
 public:
     // TODO: std::function<> is easy to use but notoriously slow, replace later
-    MulticastHandler(zmq::socket_t* socket, uint64_t id,
-                     std::function<)
+    MulticastHandler(zmq::socket_t* socket, uint64_t id)
         : socket_(socket), id_(id) {};
 
     MulticastMessage::ControlMessage* recv();

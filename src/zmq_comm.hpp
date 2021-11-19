@@ -33,25 +33,28 @@
 
 class zmq_comm {
 public:
-    zmq_comm(std::string ip, unsigned thread_id, Asylo_SGX* sgx){
+    zmq_comm(std::string ip, unsigned thread_id, Asylo_SGX* sgx) :
+            m_thread_id(thread_id), m_sgx(sgx), context(1) {
             m_port = std::to_string(NET_CLIENT_BASE_PORT + thread_id);
             m_addr = "tcp://" + ip +":" + m_port;
-            m_thread_id = thread_id;
-            m_sgx = sgx;
-        }
+    }
 
-    [[noreturn]] void run_server();
-    [[noreturn]] void run_client();
-    [[noreturn]] void run_router();
-    [[noreturn]] void run_js_client();
-private:
+    [[noreturn]] virtual void run() = 0;
+
+   // [[noreturn]] void run_server();
+   // [[noreturn]] void run_client();
+   // [[noreturn]] void run_router();
+   // [[noreturn]] void run_js_client();
+
+protected:
+    unsigned m_thread_id;
+    Asylo_SGX* m_sgx;
+    zmq::context_t context;
     std::string m_port;
     std::string m_addr;
     std::string m_seed_server_ip = NET_SEED_ROUTER_IP;
     std::string m_seed_server_join_port = std::to_string(NET_SERVER_JOIN_PORT);
     std::string m_seed_server_mcast_port = std::to_string(NET_SERVER_MCAST_PORT);
-    unsigned m_thread_id;
-    Asylo_SGX* m_sgx;
 
     int m_enclave_seq_number = 0;
     std::vector<std::string> group_addresses;
@@ -91,4 +94,32 @@ private:
         std::vector<std::string> ret = absl::StrSplit(group_addresses, "@@@", absl::SkipEmpty());
         return ret;
     }
+};
+
+class ZmqServer: public zmq_comm {
+public:
+    ZmqServer(std::string ip, unsigned thread_id, Asylo_SGX* sgx) :
+        zmq_comm(ip, thread_id, sgx) {}
+    [[noreturn]] void run() override;
+};
+
+class ZmqClient: public zmq_comm {
+public:
+    ZmqClient(std::string ip, unsigned thread_id, Asylo_SGX* sgx) :
+        zmq_comm(ip, thread_id, sgx) {}
+    [[noreturn]] void run() override;
+};
+
+class ZmqRouter: public zmq_comm {
+public:
+    ZmqRouter(std::string ip, unsigned thread_id, Asylo_SGX* sgx) :
+        zmq_comm(ip, thread_id, sgx) {}
+    [[noreturn]] void run() override;
+};
+
+class ZmqJsClient: public zmq_comm {
+public:
+    ZmqJsClient(std::string ip, unsigned thread_id, Asylo_SGX* sgx) :
+        zmq_comm(ip, thread_id, sgx) {}
+    [[noreturn]] void run() override;
 };
