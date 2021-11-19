@@ -9,7 +9,7 @@ void MulticastHandler::send(const MulticastMessage::ControlMessage* msg) {
     send_string(str);
 }
 
-MulticastMessage::ControlMessage MulticastHandler::recv() {
+MulticastMessage::ControlMessage* MulticastHandler::recv() {
     return recv_proto();
 }
 
@@ -62,11 +62,12 @@ std::string MulticastHandler::recv_string() {
                        message.size());
 }
 
-MulticastMessage::ControlMessage MulticastHandler::recv_proto() {
+MulticastMessage::ControlMessage* MulticastHandler::recv_proto() {
     std::string str = recv_string();
 
-    MulticastMessage::ControlMessage msg;
-    msg.ParseFromString(str);
+    // TODO use unique pointers
+    MulticastMessage::ControlMessage* msg = new MulticastMessage::ControlMessage();
+    msg->ParseFromString(str);
 
     return msg;
 }

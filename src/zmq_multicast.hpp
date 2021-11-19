@@ -5,7 +5,7 @@
 #include <fstream>
 #include <string>
 #include <thread>
-#include <type_traits>
+#include <function>
 
 #include <zmq.hpp>
 #include "common.h"
@@ -16,11 +16,14 @@
 
 class MulticastHandler {
 public:
-    MulticastHandler(zmq::socket_t* socket, uint64_t id)
+    // TODO: std::function<> is easy to use but notoriously slow, replace later
+    MulticastHandler(zmq::socket_t* socket, uint64_t id,
+                     std::function<)
         : socket_(socket), id_(id) {};
 
-    MulticastMessage::ControlMessage recv();
+    MulticastMessage::ControlMessage* recv();
     void recv(MulticastMessage::ControlMessage* msg);
+  //void recv_forward(std::function<void(MulticastMessage::ControlMessage* msg)> dst);
 
     void send(const MulticastMessage::ControlMessage* msg);
     void send_error(uint64_t error_code);
@@ -29,7 +32,7 @@ public:
     void send_give_addr(std::string addr);
 
 private:
-    MulticastMessage::ControlMessage recv_proto();
+    MulticastMessage::ControlMessage* recv_proto();
     std::string recv_string();
     void send_string(const std::string& s);
     void send_proto(MulticastMessage::ControlMessage& msg);
@@ -37,5 +40,3 @@ private:
     zmq::socket_t* socket_;
     uint64_t id_;
 };
-
-
