@@ -98,11 +98,13 @@ protected:
 
 class ZmqServer: public zmq_comm {
 public:
-    ZmqServer(std::string ip, unsigned thread_id, Asylo_SGX* sgx) :
-        zmq_comm(ip, thread_id, sgx) {}
+    ZmqServer(std::string ip, unsigned thread_id, Asylo_SGX* sgx);
     [[noreturn]] void run() override;
 private:
-
+    zmq::socket_t socket_join;
+    zmq::socket_t socket_msg;
+    zmq::socket_t socket_control;
+    zmq::socket_t socket_result;
 };
 
 class ZmqClient: public zmq_comm {

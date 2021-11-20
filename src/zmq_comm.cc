@@ -1,19 +1,20 @@
 #include "zmq_comm.hpp"
 
-[[noreturn]] void ZmqServer::run() {
+ZmqServer::ZmqServer(std::string ip, unsigned thread_id, Asylo_SGX* sgx)
+                     : zmq_comm(ip, thread_id, sgx)
+                     , socket_join(context, ZMQ_PULL)
+                     , socket_msg(context, ZMQ_PULL)
+                     , socket_control(context, ZMQ_PULL)
+                     , socket_result(context, ZMQ_PULL) {
+    socket_join.bind("tcp://*:" + std::to_string(NET_SERVER_JOIN_PORT));
     // socket for join requests
-    zmq::socket_t socket_join (context, ZMQ_PULL);
-    socket_join.bind ("tcp://*:" + std::to_string(NET_SERVER_JOIN_PORT));
     // socket for new mcast messages
-    zmq::socket_t socket_msg (context, ZMQ_PULL);
-    socket_msg.bind ("tcp://*:" + std::to_string(NET_SERVER_MCAST_PORT));
+    socket_msg.bind("tcp://*:" + std::to_string(NET_SERVER_MCAST_PORT));
+    socket_control.bind("tcp://*:" + std::to_string(NET_SERVER_CONTROL_PORT));
+    socket_result.bind("tcp://*:" + std::to_string(NET_SERVER_RESULT_PORT));
+}
 
-    zmq::socket_t socket_control (context, ZMQ_PULL);
-    socket_control.bind ("tcp://*:" + std::to_string(NET_SERVER_CONTROL_PORT));
-    zmq::socket_t socket_result (context, ZMQ_PULL);
-    socket_result.bind ("tcp://*:" + std::to_string(NET_SERVER_RESULT_PORT));
-
-
+[[noreturn]] void ZmqServer::run() {
     //poll join and mcast messages
     std::vector<zmq::pollitem_t> pollitems = {
             { static_cast<void *>(socket_join), 0, ZMQ_POLLIN, 0 },
@@ -21,8 +22,8 @@
             { static_cast<void *>(socket_control), 0, ZMQ_POLLIN, 0 },
             { static_cast<void *>(socket_result), 0, ZMQ_POLLIN, 0 },
     };
-    //std::cout << "Start polling" << std::endl;
 
+    //std::cout << "Start polling" << std::endl;
     while (true) {
         zmq::poll(pollitems.data(), pollitems.size(), 0);
         // Join Request
@@ -185,7 +186,6 @@ ZmqClient::ZmqClient(std::string ip, unsigned thread_id, Asylo_SGX* sgx)
         }
     }
 }
-
 
 ZmqJsClient::ZmqJsClient(std::string ip, unsigned thread_id, Asylo_SGX* sgx)
                          : zmq_comm(ip, thread_id, sgx)
