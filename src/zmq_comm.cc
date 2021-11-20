@@ -1,20 +1,21 @@
 #include "zmq_comm.hpp"
 
 ZmqServer::ZmqServer(std::string ip, unsigned thread_id)
-                     : zmq_comm(ip, thread_id, {
-                        { static_cast<void *>(socket_join), 0, ZMQ_POLLIN, 0 },
-                        { static_cast<void *>(socket_msg), 0, ZMQ_POLLIN, 0 },
-                        { static_cast<void *>(socket_control), 0, ZMQ_POLLIN, 0 },
-                        { static_cast<void *>(socket_result), 0, ZMQ_POLLIN, 0 },
+                     : ZmqComm(ip, thread_id, {
+                        { static_cast<void *>(socket_join_), 0, ZMQ_POLLIN, 0 },
+                        { static_cast<void *>(socket_msg_), 0, ZMQ_POLLIN, 0 },
+                        { static_cast<void *>(socket_control_), 0, ZMQ_POLLIN, 0 },
+                        { static_cast<void *>(socket_result_), 0, ZMQ_POLLIN, 0 },
                      })
-                     , socket_join(context_, ZMQ_PULL)
-                     , socket_msg(context_, ZMQ_PULL)
-                     , socket_control(context_, ZMQ_PULL)
-                     , socket_result(context_, ZMQ_PULL) {
-    socket_join.bind("tcp://*:" + std::to_string(NET_SERVER_JOIN_PORT));
-    socket_msg.bind("tcp://*:" + std::to_string(NET_SERVER_MCAST_PORT));
-    socket_control.bind("tcp://*:" + std::to_string(NET_SERVER_CONTROL_PORT));
-    socket_result.bind("tcp://*:" + std::to_string(NET_SERVER_RESULT_PORT));
+                     , socket_join_(context_, ZMQ_PULL)
+                     , socket_msg_(context_, ZMQ_PULL)
+                     , socket_control_(context_, ZMQ_PULL)
+                     , socket_result_(context_, ZMQ_PULL)
+                     , wsocket_msg_(&socket_msg_, thread_id) {
+    socket_join_.bind("tcp://*:" + std::to_string(NET_SERVER_JOIN_PORT));
+    socket_msg_.bind("tcp://*:" + std::to_string(NET_SERVER_MCAST_PORT));
+    socket_control_.bind("tcp://*:" + std::to_string(NET_SERVER_CONTROL_PORT));
+    socket_result_.bind("tcp://*:" + std::to_string(NET_SERVER_RESULT_PORT));
 }
 
 void ZmqServer::net_setup() {
@@ -25,7 +26,7 @@ void ZmqServer::net_handler() {
     // Join Request
     if (pollitems_[0].revents & ZMQ_POLLIN){
         //Get the address
-        std::string msg = this->recv_string(&socket_join);
+        std::string msg = this->recv_string(&socket_join_);
         LOG(INFO)  << "[SERVER] JOIN FROM " + msg ;
         this->group_addresses_.push_back(msg);
 
@@ -38,7 +39,7 @@ void ZmqServer::net_handler() {
 
     //receive new message to mcast
     if (pollitems_[1].revents & ZMQ_POLLIN){
-        std::string msg = this->recv_string(&socket_msg);
+        std::string msg = this->recv_string(&socket_msg_);
         LOGI << "[SERVER] Mcast Message: " + msg ;
         //mcast to all the clients
         for (zmq::socket_t* socket : this->group_sockets_) {
@@ -47,7 +48,7 @@ void ZmqServer::net_handler() {
     }
 
     if (pollitems_[2].revents & ZMQ_POLLIN){
-        std::string coordinator_addr = this->recv_string(&socket_control);
+        std::string coordinator_addr = this->recv_string(&socket_control_);
         LOGI << "[SERVER] REV CONTRL Message from" << coordinator_addr ;
         zmq::socket_t* socket_ptr  = new  zmq::socket_t( context_, ZMQ_PUSH);
         socket_ptr -> connect (coordinator_addr + std::to_string(3010));
@@ -56,7 +57,7 @@ void ZmqServer::net_handler() {
     }
 
     if (pollitems_[3].revents & ZMQ_POLLIN){
-        std::string result = this->recv_string(&socket_result);
+        std::string result = this->recv_string(&socket_result_);
         LOGI << "[SERVER] REV result Message: " + result ;
         zmq::socket_t* socket_ptr  = new  zmq::socket_t( context_, ZMQ_PUSH);
         socket_ptr -> connect (this->coordinator_ + std::to_string(3011));
@@ -65,20 +66,20 @@ void ZmqServer::net_handler() {
 }
 
 ZmqRouter::ZmqRouter(std::string ip, unsigned thread_id)
-                     : zmq_comm(ip, thread_id, {
-                        { static_cast<void *>(socket_join), 0, ZMQ_POLLIN, 0 },
-                        { static_cast<void *>(socket_msg), 0, ZMQ_POLLIN, 0 },
-                        { static_cast<void *>(socket_control), 0, ZMQ_POLLIN, 0 },
-                        { static_cast<void *>(socket_result), 0, ZMQ_POLLIN, 0 },
+                     : ZmqComm(ip, thread_id, {
+                        { static_cast<void *>(socket_join_), 0, ZMQ_POLLIN, 0 },
+                        { static_cast<void *>(socket_msg_), 0, ZMQ_POLLIN, 0 },
+                        { static_cast<void *>(socket_control_), 0, ZMQ_POLLIN, 0 },
+                        { static_cast<void *>(socket_result_), 0, ZMQ_POLLIN, 0 },
                      })
-                     , socket_join(context_, ZMQ_PULL)
-                     , socket_msg(context_, ZMQ_PULL)
-                     , socket_control(context_, ZMQ_PULL)
-                     , socket_result(context_, ZMQ_PULL) {
-    socket_join.bind ("tcp://*:" + std::to_string(NET_SERVER_JOIN_PORT));
-    socket_msg.bind ("tcp://*:" + std::to_string(NET_SERVER_MCAST_PORT));
-    socket_control.bind ("tcp://*:" + std::to_string(NET_SERVER_CONTROL_PORT));
-    socket_result.bind ("tcp://*:" + std::to_string(NET_SERVER_RESULT_PORT));
+                     , socket_join_(context_, ZMQ_PULL)
+                     , socket_msg_(context_, ZMQ_PULL)
+                     , socket_control_(context_, ZMQ_PULL)
+                     , socket_result_(context_, ZMQ_PULL) {
+    socket_join_.bind ("tcp://*:" + std::to_string(NET_SERVER_JOIN_PORT));
+    socket_msg_.bind ("tcp://*:" + std::to_string(NET_SERVER_MCAST_PORT));
+    socket_control_.bind ("tcp://*:" + std::to_string(NET_SERVER_CONTROL_PORT));
+    socket_result_.bind ("tcp://*:" + std::to_string(NET_SERVER_RESULT_PORT));
 }
 
 void ZmqRouter::net_setup() {
@@ -91,7 +92,7 @@ void ZmqRouter::net_handler() {
     // Join Request
     // Curr: have router/worker node ask to join the parent
     if (pollitems_[0].revents & ZMQ_POLLIN){
-        std::string msg = this->recv_string(&socket_join);
+        std::string msg = this->recv_string(&socket_join_);
         LOGI << "[SERVER] JOIN FROM " + msg ;
 
         zmq::socket_t* socket_ptr  = new  zmq::socket_t( context_, ZMQ_PUSH);
@@ -102,7 +103,7 @@ void ZmqRouter::net_handler() {
 
     //receive new message by worker or another router to mcast
     if (pollitems_[1].revents & ZMQ_POLLIN){
-        std::string msg = this->recv_string(&socket_msg);
+        std::string msg = this->recv_string(&socket_msg_);
         LOGI << "[ROUTER] Mcast Message: " + msg;
         //TODO: mcast to children nodes (filtering)
         for (zmq::socket_t* socket : this -> child_sockets_) {
@@ -117,7 +118,7 @@ void ZmqRouter::net_handler() {
         std::string response;
 
         // TODO: Tokenize message to include sender addr, operation, metadata
-        std::string msg = this->recv_string(&socket_control);
+        std::string msg = this->recv_string(&socket_control_);
         std::string coordinator_addr = "";
         LOGI << "[SERVER] REV CONTRL Message from" << coordinator_addr ;
         // TODO: Parse msg body, send JOIN request to addr specified in message
@@ -134,7 +135,7 @@ void ZmqRouter::net_handler() {
     // Message the coordinator
     // Handles DISCONNECT requests to notify coordinator to update tree as necessary.
     if (pollitems_[3].revents & ZMQ_POLLIN){
-        std::string result = this->recv_string(&socket_result);
+        std::string result = this->recv_string(&socket_result_);
         LOGI << "[SERVER] REV result Message: " + result ;
         zmq::socket_t* socket_ptr  = new  zmq::socket_t(context_, ZMQ_PUSH);
         socket_ptr -> connect (this->coordinator_+ std::to_string(3011));
@@ -143,16 +144,17 @@ void ZmqRouter::net_handler() {
 }
 
 ZmqClient::ZmqClient(std::string ip, unsigned thread_id, Asylo_SGX* sgx)
-                     : zmq_comm(ip, thread_id, {
-                        { static_cast<void *>(socket_from_server), 0, ZMQ_POLLIN, 0 },
+                     : ZmqComm(ip, thread_id, {
+                        { static_cast<void *>(socket_from_server_), 0, ZMQ_POLLIN, 0 },
                      })
                      , sgx_(sgx)
-                     , socket_join(context_, ZMQ_PUSH)
-                     , socket_from_server(context_, ZMQ_PULL)
-                     , socket_send(context_, ZMQ_PUSH) {
-    socket_from_server.bind ("tcp://*:" + port_);
-    socket_join.connect ("tcp://" + seed_server_ip_ + ":" + seed_server_join_port_);
-    socket_send.connect ("tcp://" + seed_server_ip_ + ":" + seed_server_mcast_port_);
+                     , socket_join_(context_, ZMQ_PUSH)
+                     , socket_from_server_(context_, ZMQ_PULL)
+                     , socket_send_(context_, ZMQ_PUSH)
+                     , wsocket_from_server_(&socket_from_server_, thread_id) {
+    socket_from_server_.bind ("tcp://*:" + port_);
+    socket_join_.connect ("tcp://" + seed_server_ip_ + ":" + seed_server_join_port_);
+    socket_send_.connect ("tcp://" + seed_server_ip_ + ":" + seed_server_mcast_port_);
 }
 
 void ZmqClient::net_setup() {
@@ -160,7 +162,7 @@ void ZmqClient::net_setup() {
     LOG(INFO) << "tcp://" + seed_server_ip_ + ":" + seed_server_join_port_;
 
     //send join request to seed server
-    this->send_string(addr_, &socket_join);
+    this->send_string(addr_, &socket_join_);
 }
 
 void ZmqClient::net_handler() {
@@ -169,35 +171,37 @@ void ZmqClient::net_handler() {
     // Join Request
     if (pollitems_[0].revents & ZMQ_POLLIN) {
         //Get the address
-        std::string msg = this->recv_string(&socket_from_server);
-        // LOG(INFO) << "[Client " << addr_ << "]:  " + msg ;
-        // this -> send_string(port_ , socket_send);
+        std::string msg = this->recv_string(&socket_from_server_);
+        LOGI << "[Client " << addr_ << "]:  " + msg ;
+        // this -> send_string(port_ , socket_send_);
         this->sgx_->send_to_sgx(msg);
     }
 }
 
 ZmqJsClient::ZmqJsClient(std::string ip, unsigned thread_id, Asylo_SGX* sgx)
-                         : zmq_comm(ip, thread_id, {
-                            { static_cast<void *>(&socket_from_server), 0, ZMQ_POLLIN, 0 },
-                            { static_cast<void *>(&socket_code), 0, ZMQ_POLLIN, 0 },
+                         : ZmqComm(ip, thread_id, {
+                            { static_cast<void *>(&socket_from_server_), 0, ZMQ_POLLIN, 0 },
+                            { static_cast<void *>(&socket_code_), 0, ZMQ_POLLIN, 0 },
                          })
                          , sgx_(sgx)
-                         , socket_join(context_, ZMQ_PUSH)
-                         , socket_from_server(context_, ZMQ_PULL)
-                         , socket_code(context_, ZMQ_PULL)
-                         , socket_send(context_, ZMQ_PUSH) {
-    socket_join.connect ("tcp://" + seed_server_ip_ + ":" + seed_server_join_port_);
-    socket_from_server.bind ("tcp://*:" + port_);
-    socket_send.connect ("tcp://" + seed_server_ip_ + ":" + seed_server_mcast_port_);
-    socket_code.bind ("tcp://*:3006");
+                         , socket_join_(context_, ZMQ_PUSH)
+                         , socket_from_server_(context_, ZMQ_PULL)
+                         , socket_code_(context_, ZMQ_PULL)
+                         , socket_send_(context_, ZMQ_PUSH)
+                         , wsocket_from_server_(&socket_from_server_, thread_id)
+                         , wsocket_code_(&socket_code_, thread_id) {
+    socket_join_.connect ("tcp://" + seed_server_ip_ + ":" + seed_server_join_port_);
+    socket_from_server_.bind ("tcp://*:" + port_);
+    socket_send_.connect ("tcp://" + seed_server_ip_ + ":" + seed_server_mcast_port_);
+    socket_code_.bind ("tcp://*:3006");
 }
 
 void ZmqJsClient::net_setup() {
-    LOG(INFO) << "tcp://" + seed_server_ip_ + ":" + seed_server_mcast_port_;
-    LOG(INFO) << "tcp://" + seed_server_ip_ + ":" + seed_server_join_port_;
+    LOGI << "tcp://" + seed_server_ip_ + ":" + seed_server_mcast_port_;
+    LOGI << "tcp://" + seed_server_ip_ + ":" + seed_server_join_port_;
 
     //send join request to seed server
-    send_string(addr_, &socket_join);
+    send_string(addr_, &socket_join_);
 }
 
 void ZmqJsClient::net_handler() {
@@ -206,17 +210,23 @@ void ZmqJsClient::net_handler() {
     // Join Request
     if (pollitems_[0].revents & ZMQ_POLLIN) {
         //Get the address
-        std::string msg = this->recv_string(&socket_from_server);
-        LOG(INFO) << "[Client " << addr_ << "]:  " + msg ;
-        // this -> send_string(port_ , socket_send);
+        std::string msg = this->recv_string(&socket_from_server_);
+        LOGI << "[Client " << addr_ << "]:  " + msg ;
+        // this -> send_string(port_ , socket_send_);
         sgx_->send_to_sgx(msg);
     }
 
     if (pollitems_[1].revents & ZMQ_POLLIN) {
         //Get the address
-        std::string msg = this->recv_string(&socket_code);
-        // LOG(INFO) << "[Client " << addr_ << "]:  " + msg ;
-        // this -> send_string(port_ , socket_send);
+        //std::string msg = this->recv_string(&socket_code_);
+        auto proto = wsocket_code_.recv();
+        auto body = proto->mutable_body();
+        assert(body->has_code());
+
+        const std::string& msg = body->code().str();
+        
+        LOG(INFO) << "[Client " << addr_ << "]:  " + msg ;
+        // this -> send_string(port_ , socket_send_);
         sgx_->execute_js_code(msg);
     }
 }

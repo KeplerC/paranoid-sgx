@@ -40,22 +40,22 @@ message GiveAddrMsg {
   optional string addr = 1;
 }
 
+message ExecCodeMsg {
+  optional string str = 1;
+}
+
 message MessageBody {
   oneof msg {
     ErrorMsg error = 1;
     JoinMsg join = 2;
     AssignIdMsg assignId = 4;
     GiveAddrMsg giveAddr = 7;
+    ExecCodeMsg code = 10;
   }
 }
 
-message MessageHeader {
-//optional MessageType msgType = 1;
+message ControlMessage {
+  optional MessageBody body = 1;
   optional int64 timestamp = 2;
   optional int64 sender_id = 3;
-}
-
-message ControlMessage {
-  optional MessageHeader header = 1;
-  optional MessageBody body = 2;
 }

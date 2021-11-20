@@ -26,26 +26,28 @@
 #include "src/proto/hello.pb.h"
 #include "src/util/proto_util.hpp"
 
+#include "proto_comm.hpp"
 #include "asylo_sgx.hpp"
 
 // #include "asylo/identity/enclave_assertion_authority_config.proto.h"
 #include "asylo/identity/enclave_assertion_authority_configs.h"
 
-class zmq_comm {
+class ZmqComm {
 public:
-    zmq_comm(std::string ip, unsigned thread_id,
-             std::initializer_list<zmq::pollitem_t> poll_sockets)
-             : thread_id_(thread_id)
-             , context_(1)
-             , seed_server_ip_(NET_SEED_ROUTER_IP)
-             , seed_server_join_port_(std::to_string(NET_SERVER_JOIN_PORT))
-             , seed_server_mcast_port_(std::to_string(NET_SERVER_MCAST_PORT))
-             , enclave_seq_number_(0)
-             , coordinator_("")
-             , pollitems_(poll_sockets) {
+    ZmqComm(std::string ip, unsigned thread_id,
+            std::initializer_list<zmq::pollitem_t> poll_sockets)
+            : thread_id_(thread_id)
+            , context_(1)
+            , seed_server_ip_(NET_SEED_ROUTER_IP)
+            , seed_server_join_port_(std::to_string(NET_SERVER_JOIN_PORT))
+            , seed_server_mcast_port_(std::to_string(NET_SERVER_MCAST_PORT))
+            , enclave_seq_number_(0)
+            , coordinator_("")
+            , pollitems_(poll_sockets) {
         port_ = std::to_string(NET_CLIENT_BASE_PORT + thread_id);
         addr_ = "tcp://" + ip +":" + port_;
     }
+
     [[noreturn]] void run() {
         net_setup();
         while (true) {
@@ -114,56 +116,63 @@ protected:
     }
 };
 
-class ZmqServer: public zmq_comm {
+class ZmqServer: public ZmqComm {
 public:
     ZmqServer(std::string ip, unsigned thread_id);
 private:
-    zmq::socket_t socket_join;
-    zmq::socket_t socket_msg; // socket for new mcast messages
-    zmq::socket_t socket_control;
-    zmq::socket_t socket_result;
+    zmq::socket_t socket_join_;
+    zmq::socket_t socket_msg_; // socket for new mcast messages
+    zmq::socket_t socket_control_;
+    zmq::socket_t socket_result_;
+
+    ProtoSocket wsocket_msg_;
 
     void net_setup() override;
     void net_handler() override;
 };
 
-class ZmqClient: public zmq_comm {
+class ZmqClient: public ZmqComm {
 public:
     ZmqClient(std::string ip, unsigned thread_id, Asylo_SGX* sgx);
 private:
     Asylo_SGX* sgx_;
 
-    zmq::socket_t socket_join;
-    zmq::socket_t socket_from_server;
-    zmq::socket_t socket_send; //a socket to server to multicast
+    zmq::socket_t socket_join_;
+    zmq::socket_t socket_from_server_;
+    zmq::socket_t socket_send_; //a socket to server to multicast
+
+    ProtoSocket wsocket_from_server_;
 
     void net_setup() override;
     void net_handler() override;
 };
 
-class ZmqRouter: public zmq_comm {
+class ZmqRouter: public ZmqComm {
 public:
     ZmqRouter(std::string ip, unsigned thread_id);
 private:
-    zmq::socket_t socket_join; // socket for join requests
-    zmq::socket_t socket_msg; // socket for new mcast messages
-    zmq::socket_t socket_control;
-    zmq::socket_t socket_result;
+    zmq::socket_t socket_join_; // socket for join requests
+    zmq::socket_t socket_msg_; // socket for new mcast messages
+    zmq::socket_t socket_control_;
+    zmq::socket_t socket_result_;
 
     void net_setup() override;
     void net_handler() override;
 };
 
-class ZmqJsClient: public zmq_comm {
+class ZmqJsClient: public ZmqComm {
 public:
     ZmqJsClient(std::string ip, unsigned thread_id, Asylo_SGX* sgx);
 private:
     Asylo_SGX* sgx_;
 
-    zmq::socket_t socket_join;
-    zmq::socket_t socket_from_server;
-    zmq::socket_t socket_code;
-    zmq::socket_t socket_send; //a socket to server to multicast
+    zmq::socket_t socket_join_;
+    zmq::socket_t socket_from_server_;
+    zmq::socket_t socket_code_;
+    zmq::socket_t socket_send_; //a socket to server to multicast
+
+    ProtoSocket wsocket_from_server_;
+    ProtoSocket wsocket_code_;
 
     void net_setup() override;
     void net_handler() override;

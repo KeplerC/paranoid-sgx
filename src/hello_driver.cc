@@ -48,6 +48,7 @@
 
 #include "asylo_sgx.hpp"
 #include "zmq_comm.hpp"
+#include "proto_comm.hpp"
 
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -105,19 +106,19 @@ oG+ldQH94d6FPkRWOMwY+ppB+SQ8XnUFRA==
 
 void thread_run_zmq_client(unsigned thread_id, Asylo_SGX* sgx){
     LOG(INFO) << "[thread_run_zmq_client_worker]";
-    zmq_comm* zs = new ZmqClient(NET_WORKER_IP, thread_id, sgx);
+    ZmqComm* zs = new ZmqClient(NET_WORKER_IP, thread_id, sgx);
     zs->run(); // run_client
 }
 
 void thread_run_zmq_js_client(unsigned thread_id, Asylo_SGX* sgx){
     LOG(INFO) << "[thread_run_zmq_client_worker]";
-    zmq_comm* zs = new ZmqJsClient(NET_WORKER_IP, thread_id, sgx);
+    ZmqComm* zs = new ZmqJsClient(NET_WORKER_IP, thread_id, sgx);
     zs->run(); // run_js_client
 }
 
 void thread_run_zmq_router(unsigned thread_id){
     LOG(INFO) << "[thread_run_zmq_server]"; 
-    zmq_comm* zs = new ZmqServer(NET_SEED_ROUTER_IP, thread_id);
+    ZmqComm* zs = new ZmqServer(NET_SEED_ROUTER_IP, thread_id);
     zs->run(); // run_server
 }
 void thread_start_fake_client(Asylo_SGX* sgx){
@@ -274,7 +275,7 @@ int run_listener(){
         }
 
         //Wait for client enclaves first
-        for (int i=0; i<client_threads.size(); ++i) {
+        for (size_t i = 0; i<client_threads.size(); ++i) {
             if (client_threads[i].joinable())
                 client_threads.at(i).join();
         }
@@ -284,7 +285,7 @@ int run_listener(){
         exit(0);
 
         //Send cancellation singnals to ZMQ client threads
-        for (int i=0; i<worker_threads.size(); ++i) {
+        for (size_t i = 0; i<worker_threads.size(); ++i) {
              if (worker_threads[i].joinable())
                 worker_threads.at(i).join();
         }
@@ -448,11 +449,13 @@ int run_user(){
 
     zmq::socket_t* socket_send  = new  zmq::socket_t( context, ZMQ_PUSH);
     socket_send -> connect ("tcp://" + std::string(NET_JS_TASK_COORDINATOR_IP) + ":" + std::to_string(NET_COORDINATOR_FROM_USER_PORT));
+
 //    std::ifstream t("/opt/my-project/src/input.js");
 //    std::stringstream buffer;
 //    buffer << t.rdbuf();
 //    std::string code = buffer.str();
 //    socket_send->send(string_to_message(code));
+
     std::string cmd;
     std::string cmd_buffer = "";
     bool first_cmd_wait = false;
@@ -472,6 +475,8 @@ int run_user(){
         }
         now = get_current_time();
     }
+    
+    return 0;
 }
 
 int run_coordinator(){
@@ -518,10 +523,14 @@ int run_coordinator(){
             socket_for_membership.recv(&message);
             std::vector<std::string> addresses = absl::StrSplit(message_to_string(message), GROUP_ADDR_DELIMIT, absl::SkipEmpty());
             zmq::socket_t* socket_to_worker;
-            for( const std::string& a : addresses ) {
+            for([[maybe_unused]] const std::string& a : addresses ) {
                 socket_to_worker  = new  zmq::socket_t( context, ZMQ_PUSH);
-                socket_to_worker -> connect ("tcp://" + std::string(NET_WORKER_IP) + ":" + std::to_string(NET_WORKER_LISTEN_FOR_TASK_BASE_PORT));
-                socket_to_worker->send(string_to_message(code));
+                socket_to_worker -> connect ("tcp://"
+                                            + std::string(NET_WORKER_IP)
+                                            + ":"
+                                            + std::to_string(NET_WORKER_LISTEN_FOR_TASK_BASE_PORT));
+                ProtoSocket wsocket_to_worker(socket_to_worker, 0);
+                wsocket_to_worker.send_exec_code(code);
             }
         }
 
