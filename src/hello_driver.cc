@@ -117,7 +117,7 @@ void thread_run_zmq_js_client(unsigned thread_id, Asylo_SGX* sgx){
 
 void thread_run_zmq_router(unsigned thread_id){
     LOG(INFO) << "[thread_run_zmq_server]"; 
-    zmq_comm* zs = new ZmqServer(NET_SEED_ROUTER_IP, thread_id, nullptr);
+    zmq_comm* zs = new ZmqServer(NET_SEED_ROUTER_IP, thread_id);
     zs->run(); // run_server
 }
 void thread_start_fake_client(Asylo_SGX* sgx){
