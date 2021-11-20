@@ -33,36 +33,37 @@
 
 class zmq_comm {
 public:
-    zmq_comm(std::string ip, unsigned thread_id, Asylo_SGX* sgx) :
-            m_thread_id(thread_id), m_sgx(sgx), context(1) {
-            m_port = std::to_string(NET_CLIENT_BASE_PORT + thread_id);
-            m_addr = "tcp://" + ip +":" + m_port;
+    zmq_comm(std::string ip, unsigned thread_id, Asylo_SGX* sgx)
+             : thread_id_(thread_id)
+             , sgx_(sgx)
+             , context_(1)
+             , seed_server_ip_(NET_SEED_ROUTER_IP)
+             , seed_server_join_port_(std::to_string(NET_SERVER_JOIN_PORT))
+             , seed_server_mcast_port_(std::to_string(NET_SERVER_MCAST_PORT))
+             , enclave_seq_number_(0)
+             , coordinator_("") {
+        port_ = std::to_string(NET_CLIENT_BASE_PORT + thread_id);
+        addr_ = "tcp://" + ip +":" + port_;
     }
-
     [[noreturn]] virtual void run() = 0;
 
-   // [[noreturn]] void run_server();
-   // [[noreturn]] void run_client();
-   // [[noreturn]] void run_router();
-   // [[noreturn]] void run_js_client();
-
 protected:
-    unsigned m_thread_id;
-    Asylo_SGX* m_sgx;
-    zmq::context_t context;
-    std::string m_port;
-    std::string m_addr;
-    std::string m_seed_server_ip = NET_SEED_ROUTER_IP;
-    std::string m_seed_server_join_port = std::to_string(NET_SERVER_JOIN_PORT);
-    std::string m_seed_server_mcast_port = std::to_string(NET_SERVER_MCAST_PORT);
+    unsigned thread_id_;
+    Asylo_SGX* sgx_;
+    zmq::context_t context_;
+    std::string port_;
+    std::string addr_;
+    std::string seed_server_ip_;
+    std::string seed_server_join_port_;
+    std::string seed_server_mcast_port_;
 
-    int m_enclave_seq_number = 0;
-    std::vector<std::string> group_addresses;
-    std::vector<zmq::socket_t*> group_sockets;
+    int enclave_seq_number_;
+    std::vector<std::string> group_addresses_;
+    std::vector<zmq::socket_t*> group_sockets_;
 
-    zmq::socket_t* parent_socket;
-    std::vector<zmq::socket_t*> child_sockets;
-    std::string m_coordinator = "";
+    zmq::socket_t* parent_socket_;
+    std::vector<zmq::socket_t*> child_sockets_;
+    std::string coordinator_;
 
     zmq::message_t string_to_message(const std::string& s) {
         zmq::message_t msg(s.size());
@@ -73,24 +74,26 @@ protected:
     std::string message_to_string(const zmq::message_t& message) {
         return std::string(static_cast<const char*>(message.data()), message.size());
     }
+
     std::string recv_string(zmq::socket_t* socket) {
         zmq::message_t message;
         socket->recv(&message);
         return this->message_to_string(message);
     }
+
     void send_string(const std::string& s, zmq::socket_t* socket) {
         socket->send(string_to_message(s));
     }
 
-    std::string serialize_group_addresses(){
+    std::string serialize_group_addresses() {
         std::string ret;
-        for( const std::string& s : group_addresses ) {
+        for( const std::string& s : group_addresses_ ) {
             ret += GROUP_ADDR_DELIMIT + s;
         }
         return ret;
     }
 
-    std::vector<std::string> deserialize_group_addresses(std::string group_addresses){
+    std::vector<std::string> deserialize_group_addresses(std::string group_addresses) {
         std::vector<std::string> ret = absl::StrSplit(group_addresses, "@@@", absl::SkipEmpty());
         return ret;
     }
@@ -126,7 +129,6 @@ private:
     zmq::socket_t socket_msg; // socket for new mcast messages
     zmq::socket_t socket_control;
     zmq::socket_t socket_result;
-
 };
 
 class ZmqJsClient: public zmq_comm {
