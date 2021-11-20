@@ -188,31 +188,32 @@
 }
 
 
-[[noreturn]] void ZmqJsClient::run() {
-    zmq::socket_t socket_from_server (context, ZMQ_PULL);
+ZmqJsClient::ZmqJsClient(std::string ip, unsigned thread_id, Asylo_SGX* sgx)
+                         : zmq_comm(ip, thread_id, sgx)
+                         , socket_from_server(context, ZMQ_PULL)
+                         , socket_code(context, ZMQ_PULL)
+                         , socket_join(context, ZMQ_PUSH)
+                         , socket_send(context, ZMQ_PUSH)
+    {
     socket_from_server.bind ("tcp://*:" + m_port);
-
-    //send join request to seed server
-    zmq::socket_t* socket_join  = new  zmq::socket_t( context, ZMQ_PUSH);
-    socket_join -> connect ("tcp://" + m_seed_server_ip + ":" + m_seed_server_join_port);
-    this->send_string(m_addr, socket_join);
-
+    socket_join.connect ("tcp://" + m_seed_server_ip + ":" + m_seed_server_join_port);
     //a socket to server to multicast
-    zmq::socket_t* socket_send  = new  zmq::socket_t( context, ZMQ_PUSH);
-    socket_send -> connect ("tcp://" + m_seed_server_ip + ":" + m_seed_server_mcast_port);
-
-    zmq::socket_t socket_code (context, ZMQ_PULL);
+    socket_send.connect ("tcp://" + m_seed_server_ip + ":" + m_seed_server_mcast_port);
     socket_code.bind ("tcp://*:3006");
+}
 
+[[noreturn]] void ZmqJsClient::run() {
     LOG(INFO) << "tcp://" + m_seed_server_ip + ":" + m_seed_server_mcast_port;
     LOG(INFO) << "tcp://" + m_seed_server_ip + ":" + m_seed_server_join_port;
 
+    //send join request to seed server
+    this->send_string(m_addr, &socket_join);
+
     // poll for new messages
     std::vector<zmq::pollitem_t> pollitems = {
-            { static_cast<void *>(socket_from_server), 0, ZMQ_POLLIN, 0 },
-            { static_cast<void *>(socket_code), 0, ZMQ_POLLIN, 0 },
+            { static_cast<void *>(&socket_from_server), 0, ZMQ_POLLIN, 0 },
+            { static_cast<void *>(&socket_code), 0, ZMQ_POLLIN, 0 },
     };
-
 
     //start enclave
     while (true) {

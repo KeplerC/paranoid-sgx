@@ -101,6 +101,8 @@ public:
     ZmqServer(std::string ip, unsigned thread_id, Asylo_SGX* sgx) :
         zmq_comm(ip, thread_id, sgx) {}
     [[noreturn]] void run() override;
+private:
+
 };
 
 class ZmqClient: public zmq_comm {
@@ -108,6 +110,8 @@ public:
     ZmqClient(std::string ip, unsigned thread_id, Asylo_SGX* sgx) :
         zmq_comm(ip, thread_id, sgx) {}
     [[noreturn]] void run() override;
+private:
+
 };
 
 class ZmqRouter: public zmq_comm {
@@ -115,11 +119,17 @@ public:
     ZmqRouter(std::string ip, unsigned thread_id, Asylo_SGX* sgx) :
         zmq_comm(ip, thread_id, sgx) {}
     [[noreturn]] void run() override;
+private:
+
 };
 
 class ZmqJsClient: public zmq_comm {
 public:
-    ZmqJsClient(std::string ip, unsigned thread_id, Asylo_SGX* sgx) :
-        zmq_comm(ip, thread_id, sgx) {}
+    ZmqJsClient(std::string ip, unsigned thread_id, Asylo_SGX* sgx);
     [[noreturn]] void run() override;
+private:
+    zmq::socket_t socket_from_server;
+    zmq::socket_t socket_code;
+    zmq::socket_t socket_join;
+    zmq::socket_t socket_send;
 };
