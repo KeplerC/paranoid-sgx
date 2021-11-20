@@ -102,7 +102,7 @@ public:
     [[noreturn]] void run() override;
 private:
     zmq::socket_t socket_join;
-    zmq::socket_t socket_msg;
+    zmq::socket_t socket_msg; // socket for new mcast messages
     zmq::socket_t socket_control;
     zmq::socket_t socket_result;
 };
@@ -112,18 +112,20 @@ public:
     ZmqClient(std::string ip, unsigned thread_id, Asylo_SGX* sgx);
     [[noreturn]] void run() override;
 private:
-    zmq::socket_t socket_from_server;
     zmq::socket_t socket_join;
-    //a socket to server to multicast
-    zmq::socket_t socket_send;
+    zmq::socket_t socket_from_server;
+    zmq::socket_t socket_send; //a socket to server to multicast
 };
 
 class ZmqRouter: public zmq_comm {
 public:
-    ZmqRouter(std::string ip, unsigned thread_id, Asylo_SGX* sgx) :
-        zmq_comm(ip, thread_id, sgx) {}
+    ZmqRouter(std::string ip, unsigned thread_id, Asylo_SGX* sgx);
     [[noreturn]] void run() override;
 private:
+    zmq::socket_t socket_join; // socket for join requests
+    zmq::socket_t socket_msg; // socket for new mcast messages
+    zmq::socket_t socket_control;
+    zmq::socket_t socket_result;
 
 };
 
@@ -132,8 +134,8 @@ public:
     ZmqJsClient(std::string ip, unsigned thread_id, Asylo_SGX* sgx);
     [[noreturn]] void run() override;
 private:
+    zmq::socket_t socket_join;
     zmq::socket_t socket_from_server;
     zmq::socket_t socket_code;
-    zmq::socket_t socket_join;
-    zmq::socket_t socket_send;
+    zmq::socket_t socket_send; //a socket to server to multicast
 };
