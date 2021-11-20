@@ -107,11 +107,13 @@ private:
 
 class ZmqClient: public zmq_comm {
 public:
-    ZmqClient(std::string ip, unsigned thread_id, Asylo_SGX* sgx) :
-        zmq_comm(ip, thread_id, sgx) {}
+    ZmqClient(std::string ip, unsigned thread_id, Asylo_SGX* sgx);
     [[noreturn]] void run() override;
 private:
-
+    zmq::socket_t socket_from_server;
+    zmq::socket_t socket_join;
+    //a socket to server to multicast
+    zmq::socket_t socket_send;
 };
 
 class ZmqRouter: public zmq_comm {
