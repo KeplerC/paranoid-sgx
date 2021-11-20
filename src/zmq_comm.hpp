@@ -33,7 +33,8 @@
 
 class zmq_comm {
 public:
-    zmq_comm(std::string ip, unsigned thread_id, Asylo_SGX* sgx)
+    zmq_comm(std::string ip, unsigned thread_id, Asylo_SGX* sgx,
+             std::initializer_list<zmq::pollitem_t> poll_sockets)
              : thread_id_(thread_id)
              , sgx_(sgx)
              , context_(1)
@@ -41,7 +42,8 @@ public:
              , seed_server_join_port_(std::to_string(NET_SERVER_JOIN_PORT))
              , seed_server_mcast_port_(std::to_string(NET_SERVER_MCAST_PORT))
              , enclave_seq_number_(0)
-             , coordinator_("") {
+             , coordinator_("")
+             , pollitems_(poll_sockets) {
         port_ = std::to_string(NET_CLIENT_BASE_PORT + thread_id);
         addr_ = "tcp://" + ip +":" + port_;
     }
@@ -64,6 +66,12 @@ protected:
     zmq::socket_t* parent_socket_;
     std::vector<zmq::socket_t*> child_sockets_;
     std::string coordinator_;
+
+    std::vector<zmq::pollitem_t> pollitems_;
+
+    void poll() {
+        zmq::poll(pollitems_.data(), pollitems_.size(), 0);
+    }
 
     zmq::message_t string_to_message(const std::string& s) {
         zmq::message_t msg(s.size());
