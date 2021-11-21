@@ -104,6 +104,8 @@ oG+ldQH94d6FPkRWOMwY+ppB+SQ8XnUFRA==
 -----END EC PRIVATE KEY-----)pem"
 };
 
+zmq::context_t context(1);
+
 void thread_run_zmq_client(unsigned thread_id, Asylo_SGX* sgx){
     LOG(INFO) << "[thread_run_zmq_client_worker]";
     ZmqComm* zs = new ZmqClient(NET_WORKER_IP, thread_id, sgx);

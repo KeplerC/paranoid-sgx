@@ -120,12 +120,15 @@ class ZmqServer: public ZmqComm {
 public:
     ZmqServer(std::string ip, unsigned thread_id);
 private:
-    zmq::socket_t socket_join_;
-    zmq::socket_t socket_msg_; // socket for new mcast messages
-    zmq::socket_t socket_control_;
-    zmq::socket_t socket_result_;
+    zmq::socket_t zsock_join_;
+    zmq::socket_t zsock_msg_; // socket for new mcast messages
+    zmq::socket_t zsock_control_;
+    zmq::socket_t zsock_result_;
 
-    ProtoSocket wsocket_msg_;
+    ProtoSocket socket_join_;
+    ProtoSocket socket_msg_; // socket for new mcast messages
+    ProtoSocket socket_control_;
+    ProtoSocket socket_result_;
 
     void net_setup() override;
     void net_handler() override;
@@ -137,11 +140,13 @@ public:
 private:
     Asylo_SGX* sgx_;
 
-    zmq::socket_t socket_join_;
-    zmq::socket_t socket_from_server_;
-    zmq::socket_t socket_send_; //a socket to server to multicast
+    zmq::socket_t zsock_join_;
+    zmq::socket_t zsock_from_server_;
+    zmq::socket_t zsock_send_; //a socket to server to multicast
 
-    ProtoSocket wsocket_from_server_;
+    ProtoSocket socket_join_;
+    ProtoSocket socket_from_server_;
+    ProtoSocket socket_send_;
 
     void net_setup() override;
     void net_handler() override;
@@ -151,10 +156,15 @@ class ZmqRouter: public ZmqComm {
 public:
     ZmqRouter(std::string ip, unsigned thread_id);
 private:
-    zmq::socket_t socket_join_; // socket for join requests
-    zmq::socket_t socket_msg_; // socket for new mcast messages
-    zmq::socket_t socket_control_;
-    zmq::socket_t socket_result_;
+    zmq::socket_t zsock_join_; // socket for join requests
+    zmq::socket_t zsock_msg_; // socket for new mcast messages
+    zmq::socket_t zsock_control_;
+    zmq::socket_t zsock_result_;
+
+    ProtoSocket socket_join_;
+    ProtoSocket socket_msg_; // socket for new mcast messages
+    ProtoSocket socket_control_;
+    ProtoSocket socket_result_;
 
     void net_setup() override;
     void net_handler() override;
@@ -166,13 +176,15 @@ public:
 private:
     Asylo_SGX* sgx_;
 
-    zmq::socket_t socket_join_;
-    zmq::socket_t socket_from_server_;
-    zmq::socket_t socket_code_;
-    zmq::socket_t socket_send_; //a socket to server to multicast
+    zmq::socket_t zsock_join_;
+    zmq::socket_t zsock_from_server_;
+    zmq::socket_t zsock_code_;
+    zmq::socket_t zsock_send_; //a socket to server to multicast
 
-    ProtoSocket wsocket_from_server_;
-    ProtoSocket wsocket_code_;
+    ProtoSocket socket_join_;
+    ProtoSocket socket_from_server_;
+    ProtoSocket socket_code_;
+    ProtoSocket socket_send_;
 
     void net_setup() override;
     void net_handler() override;

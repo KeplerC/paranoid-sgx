@@ -27,11 +27,9 @@ public:
     void send(const MulticastMessage::ControlMessage* msg);
 
     void send_error(uint64_t error_code);
-    void send_join();
+    void send_join(std::string addr);
     void send_assign_id(uint64_t new_id);
-    void send_give_addr(std::string addr);
     void send_exec_code(std::string code);
-
 private:
     MulticastMessage::ControlMessage* recv_proto();
     std::string recv_string();
@@ -41,3 +39,15 @@ private:
     zmq::socket_t* socket_;
     uint64_t id_;
 };
+
+namespace MulticastMessage {
+    std::string* unpack_join(MulticastMessage::ControlMessage* msg);
+    std::string* unpack_exec_code(MulticastMessage::ControlMessage* msg);
+
+    // hella memory leaks
+    std::string unpack_join(ProtoSocket& sock);
+    std::string unpack_exec_code(ProtoSocket& sock);
+    // TODO move the serialization methods here?
+    //ControlMessage* pack_join(std::string addr);
+}
+

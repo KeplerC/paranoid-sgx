@@ -9,7 +9,6 @@ package MulticastMessage;
 //  ASSIGN_ID = 4;
 ////ASSIGN_PARENT = 5,
 ////ASSIGN_CHILD = 6,
-//  GIVE_ADDR = 7; // Just for the JS demo
 //}
 
 message ErrorMsg {
@@ -21,7 +20,7 @@ message LeaveMsg {
 }
 
 message JoinMsg {
-  // Intentionally empty (Do we need anything here?)
+  optional string addr = 1;
 }
 
 message AssignIdMsg {
@@ -36,10 +35,6 @@ message AssignChildMsg {
   // TODO
 }
 
-message GiveAddrMsg {
-  optional string addr = 1;
-}
-
 message ExecCodeMsg {
   optional string str = 1;
 }
@@ -49,7 +44,6 @@ message MessageBody {
     ErrorMsg error = 1;
     JoinMsg join = 2;
     AssignIdMsg assignId = 4;
-    GiveAddrMsg giveAddr = 7;
     ExecCodeMsg code = 10;
   }
 }
