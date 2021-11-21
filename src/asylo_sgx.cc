@@ -66,7 +66,7 @@ static void *StartOcallResponder( void *arg ) {
 
         if(data_ptr->data){
             //Message exists!
-
+            LOGI << "[CICBUF-OCALL] received data";
 
             std::string in_s((char *) data_ptr->data, data_ptr->size);
             free(data_ptr->data); // allocated using malloc
@@ -90,6 +90,7 @@ static void *StartOcallResponder( void *arg ) {
                     socket_ptr_to_sync->send(msg);
                 }
                 if(in_dc.msgtype() == "PSL_RET"){
+                    LOGI << "Sending PSL_RET " << out_s;
                     socket_ptr_for_result -> send(msg);
                 }
                 else {
