@@ -62,13 +62,13 @@ namespace asylo {
             if(dc->msgType == "PSL_RET") {
                 encryption_needed = false;
             }
+
             success = encrypt_payload_l(dc, encryption_needed);
             if (!success) {
                 LOGI << "payload_l encryption failed!!!";
                 delete dc;
                 return;
             }
-
 
             // generate hash and update prev_hash
             success = generate_hash(dc);
@@ -79,7 +79,7 @@ namespace asylo {
             }
             dc->prevHash = m_prev_hash;
             m_prev_hash = dc->hash;
-
+            DUMP_CAPSULE(dc);
             // sign dc
             success = sign_dc(dc, enclave_key_pair, faas_idx);
             if (!success) {
@@ -87,7 +87,6 @@ namespace asylo {
                 delete dc;
                 return;
             }
-            DUMP_CAPSULE(dc);
 
             // to_memtable and/or update_hash based on msgType
             bool to_memtable = (dc->msgType == "")? true : false;
@@ -333,11 +332,11 @@ namespace asylo {
             const uint32_t MAX_RETRIES = 10;
             uint32_t numRetries = 0;
             int data_index = dataID % (MAX_QUEUE_LENGTH - 1);
-
             //Request call
             while( true ) {
                 HotData* data_ptr = (HotData*) hotMsg -> MsgQueue[data_index];
                 sgx_spin_lock( &data_ptr->spinlock );
+
 
                 if( data_ptr-> isRead == true ) {
                     data_ptr-> isRead  = false;

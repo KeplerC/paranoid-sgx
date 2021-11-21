@@ -54,7 +54,7 @@
             std::string coordinator_addr = this->recv_string(&socket_control);
             LOGI << "[SERVER] REV CONTRL Message from" << coordinator_addr ;
             zmq::socket_t* socket_ptr  = new  zmq::socket_t( context, ZMQ_PUSH);
-            socket_ptr -> connect (coordinator_addr + std::to_string(3010));
+            socket_ptr -> connect (coordinator_addr + std::to_string(NET_COORDINATOR_RECV_MEMBERSHIP_PORT));
             this->send_string(this->serialize_group_addresses(), socket_ptr);
             this->m_coordinator = coordinator_addr;
         }
@@ -63,7 +63,7 @@
             std::string result = this->recv_string(&socket_result);
             LOGI << "[SERVER] REV result Message: " + result ;
             zmq::socket_t* socket_ptr  = new  zmq::socket_t( context, ZMQ_PUSH);
-            socket_ptr -> connect (this->m_coordinator+ std::to_string(3011));
+            socket_ptr -> connect (this->m_coordinator+ std::to_string(NET_COORDINATOR_RECV_RESULT_PORT));
             this->send_string(result, socket_ptr);
         }
     }
@@ -126,7 +126,7 @@
     socket_send -> connect ("tcp://" + m_seed_server_ip + ":" + m_seed_server_mcast_port);
 
     zmq::socket_t socket_code (context, ZMQ_PULL);
-    socket_code.bind ("tcp://*:3006");
+    socket_code.bind ("tcp://*:" + m_recv_code_port);
 
     LOG(INFO) << "tcp://" + m_seed_server_ip + ":" + m_seed_server_mcast_port;
     LOG(INFO) << "tcp://" + m_seed_server_ip + ":" + m_seed_server_join_port;

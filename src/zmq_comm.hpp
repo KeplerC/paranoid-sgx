@@ -35,8 +35,10 @@ class zmq_comm {
 public:
     zmq_comm(std::string ip, unsigned thread_id, Asylo_SGX* sgx){
             m_port = std::to_string(NET_CLIENT_BASE_PORT + thread_id);
+            m_recv_code_port = std::to_string(NET_WORKER_LISTEN_FOR_TASK_BASE_PORT + thread_id);
             m_addr = "tcp://" + ip +":" + m_port;
             m_thread_id = thread_id;
+            LOGI << "[thread created with recv_code_port] " << m_recv_code_port;
             m_sgx = sgx;
         }
 
@@ -45,6 +47,7 @@ public:
     [[noreturn]] void run_js_client();
 private:
     std::string m_port;
+    std::string m_recv_code_port;
     std::string m_addr;
     std::string m_seed_server_ip = NET_SEED_ROUTER_IP;
     std::string m_seed_server_join_port = std::to_string(NET_SERVER_JOIN_PORT);
