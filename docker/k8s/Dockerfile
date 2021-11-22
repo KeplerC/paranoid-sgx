@@ -18,7 +18,8 @@ RUN apt-get update && \
         ocaml-nox \
         ocamlbuild \
         protobuf-compiler \
-        python \
+        python3 \
+        python3-pip \
         wget && \
     tar -C /tmp -xzf /tmp/sgx_2.4.tar.gz && \
     cd /tmp/linux-sgx-sgx_2.4 && \
@@ -49,6 +50,8 @@ RUN apt-get update && \
 ENV PATH=${PATH}:/opt/intel/sgxsdk/bin:/opt/intel/sgxsdk/bin/x64
 
 RUN apt-get install -y libzmq3-dev
+
+RUN pip3 install zmq
 
 WORKDIR /
 ADD paranoid-sgx /paranoid-sgx
