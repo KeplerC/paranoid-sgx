@@ -7,7 +7,7 @@ from random import choice
 
 
 return_addr = "tcp://128.32.37.26:3007"
-local_dispatcher_addr = "tcp://128.32.37.26:30050"
+local_dispatcher_addr = "tcp://128.32.37.46:30050"
 
 
 

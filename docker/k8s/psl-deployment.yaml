@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: psl-deployment
+  labels:
+    app: psl
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: psl
+  template:    
+    metadata:
+      labels:
+        app: psl
+    spec:    
+      containers:
+      - name: server
+        image: keplerc/paranoid-asylo:standalone
+        args:
+        - "./scripts/run-server.sh"
+        imagePullPolicy: IfNotPresent
+      - name: coordinator
+        image: keplerc/paranoid-asylo:standalone
+        args:
+        - "./scripts/run-coordinator.sh"
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 3005
+      - name: worker
+        image: keplerc/paranoid-asylo:standalone
+        args:
+        - "./scripts/run-worker.sh"
+        imagePullPolicy: IfNotPresent
