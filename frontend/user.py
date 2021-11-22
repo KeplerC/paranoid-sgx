@@ -5,10 +5,12 @@ import threading
 import time
 from random import choice
 
-
-return_addr = "tcp://128.32.37.26:3007"
-local_dispatcher_addr = "tcp://128.32.37.46:30050"
-
+my_ip = "128.32.37.46"
+server_ip = "128.32.37.26"
+my_ip = server_ip = "localhost"
+return_addr = "tcp://" + my_ip + ":3007"
+local_dispatcher_addr = "tcp://" + server_ip + ":3005"
+delimiter = "@@@"
 
 
 class ServerTask(threading.Thread):
@@ -31,13 +33,16 @@ class ServerTask(threading.Thread):
                     msg = recv_result_socket.recv()
                     print(msg)
 
+def serialize_message(code):
+    return (return_addr + delimiter + code).encode()
+
 def main():
     server = ServerTask()
     server.start()
     context = zmq.Context()
     zmq_socket = context.socket(zmq.PUSH)
     zmq_socket.connect(local_dispatcher_addr)
-    zmq_socket.send(b"print(1+1)")
+    zmq_socket.send(serialize_message("print(1+1)"))
     server.join()
 
 main()

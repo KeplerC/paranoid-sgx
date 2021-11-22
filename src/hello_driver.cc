@@ -495,6 +495,7 @@ int run_local_dispatcher(){
     };
 
     std::string code = "";
+    std::string return_addr = "localhost";
     while (true) {
         // LOG(INFO) << "Start zmq";
         zmq::poll(pollitems.data(), pollitems.size(), 0);
@@ -505,9 +506,11 @@ int run_local_dispatcher(){
             //Get code from client
             zmq::message_t message;
             socket_from_user.recv(&message);
-            code = message_to_string(message);
-            // LOG(INFO) << "[Client " << m_addr << "]:  " + msg ;
-            LOGI << code;
+            //code = message_to_string(message);
+            std::vector<std::string> splitted_messages = absl::StrSplit(message_to_string(message), GROUP_ADDR_DELIMIT, absl::SkipEmpty());
+            return_addr = splitted_messages[0];
+            code = splitted_messages[1];
+            LOGI << "[Client " << return_addr << "]:  " + code ;
 
             //aloha to query for available worker nodes
             zmq::socket_t* socket_ptr  = new  zmq::socket_t( context, ZMQ_PUSH);
@@ -536,9 +539,10 @@ int run_local_dispatcher(){
             zmq::message_t message;
             socket_for_result.recv(&message);
             std::string result = message_to_string(message);
-            LOGI << result;
+            LOGI << "return sent to " << return_addr << " " <<  result;
+
             zmq::socket_t* socket_ptr  = new  zmq::socket_t( context, ZMQ_PUSH);
-            socket_ptr -> connect ("tcp://" + std::string(NET_USER_IP) + ":" + std::to_string(NET_USER_RECV_RESULT_PORT));
+            socket_ptr -> connect (return_addr);
             socket_ptr->send(string_to_message(result));
         }
 
