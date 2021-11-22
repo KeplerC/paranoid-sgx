@@ -6,8 +6,8 @@ import time
 from random import choice
 
 
-return_addr = "tcp://localhost:3007"
-local_dispatcher_addr = "tcp://localhost:3005"
+return_addr = "tcp://128.32.37.26:3007"
+local_dispatcher_addr = "tcp://128.32.37.26:30050"
 
 
 
