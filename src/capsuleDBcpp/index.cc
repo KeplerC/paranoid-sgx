@@ -6,6 +6,7 @@
 #include <list>
 #include <tuple>
 #include "capsuleBlock.cc"
+#include "../bloom/bloom_filter.hpp"
 
 class CapsuleIndex {
     class Level {
@@ -16,7 +17,7 @@ class CapsuleIndex {
             std::string max_key;
             std::vector <std::string> recordHashes;
             std::vector <CapsuleBlock> blocks; 
-            Filter levelFilter;
+            bloom_filter levelFilter;
         
             /*
             * Returns the number of blocks in this level.
@@ -112,5 +113,15 @@ class CapsuleIndex {
                 return NULL;
             }
             return levels[level].addBlock(&block, hash);
+        }
+
+        /* 
+         * Creates a new level and appends it to the index.
+         * 
+         * Input: None
+         * Output: Returns the index of the new level.
+         */
+        int addLevel() {
+            
         }
 };
