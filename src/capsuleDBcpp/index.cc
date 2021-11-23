@@ -7,6 +7,7 @@
 #include <tuple>
 #include "capsuleBlock.cc"
 #include "../bloom/bloom_filter.hpp"
+#include "capsuledb.cc"
 
 class CapsuleIndex {
     class Level {
@@ -118,10 +119,22 @@ class CapsuleIndex {
         /* 
          * Creates a new level and appends it to the index.
          * 
-         * Input: None
+         * Input: Size of the level (Stored in vector in capsuledb.cc)
          * Output: Returns the index of the new level.
          */
-        int addLevel() {
+        int addLevel(int size) {
+            Level newLevel;
+            newLevel.numBlocks = 0;
+            newLevel.maxSize = size;
             
+            bloom_parameters params;
+            params.projected_element_count = 750000;
+            params.false_positive_probability = 0.05;
+            params.compute_optimal_parameters();
+            bloom_filter filter(params);
+            newLevel.levelFilter = filter;
+
+            numLevels++;
+            return numLevels - 1; 
         }
 };
