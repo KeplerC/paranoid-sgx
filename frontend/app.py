@@ -56,10 +56,10 @@ def index():
         if (not request.form["num_lambda"] or not request.form["js_code"]):
             pass
         else:
-            context = zmq.Context()
-            zmq_socket = context.socket(zmq.PUSH)
-            zmq_socket.connect(local_dispatcher_addr)
             for i in range(int(request.form["num_lambda"])):
+                context = zmq.Context()
+                zmq_socket = context.socket(zmq.PUSH)
+                zmq_socket.connect(local_dispatcher_addr)
                 zmq_socket.send(serialize_message(request.form["js_code"]))
     global logs
     global results
