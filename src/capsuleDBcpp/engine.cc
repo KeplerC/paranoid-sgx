@@ -51,13 +51,3 @@ void put(std:string key, char* value) {
 char* get(std:string key, Enclave requester, bool isMulticast) {
     return 0;
 }
-
-/*
- * This function checks a level to see whether it has overflowed.  If so, then it triggers compaction at that level.
- *  
- * Input: A level to check
- * Output: True if compaction is needed, false otherwise.
- */
-void checkCompaction (int level) {
-    return;
-}

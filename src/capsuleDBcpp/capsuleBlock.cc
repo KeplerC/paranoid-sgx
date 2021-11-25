@@ -44,6 +44,10 @@ class CapsuleBlock {
             return endKey;
         }
 
+        std::vector < std::tuple<std::string, unsigned char[], int> > getKVPairs() {
+            return kvPairs;
+        }
+
         /*
          * Set the lower bound of keys in this block
          */

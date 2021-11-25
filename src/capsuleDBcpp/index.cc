@@ -8,16 +8,25 @@
 #include "capsuleBlock.cc"
 #include "../bloom/bloom_filter.hpp"
 #include "capsuledb.cc"
+#include <cmath>
 
 class CapsuleIndex {
     class Level {
+        private:
+            bloom_filter create_filter() {
+                bloom_parameters params;
+                params.projected_element_count = 750000;
+                params.false_positive_probability = 0.05;
+                params.compute_optimal_parameters();
+                return filter(params);
+            }
         public:
+            int index;
             int numBlocks;
             int maxSize;
             std::string min_key;
             std::string max_key;
             std::vector <std::string> recordHashes;
-            std::vector <CapsuleBlock> blocks; 
             bloom_filter levelFilter;
         
             /*
@@ -27,6 +36,13 @@ class CapsuleIndex {
             */
             int getNumBlocks() {
                 return numBlocks;
+            }
+
+            /*
+            * Sets the number of blocks in this level.
+            */
+            void setNumBlocks(int n) {
+                numBlocks = n;
             }
 
             /*
@@ -44,9 +60,7 @@ class CapsuleIndex {
                         blocks.insert(blocks.begin() + i, *newBlock);
                         recordHashes.insert(recordHashes.begin() + i, hash);
                         numBlocks++;
-                        if (numBlocks * blocksize > maxSize) {
-                            // trigger compaction
-                        }
+                        compact(index);
                         return 0;
                     }
                 }
@@ -126,15 +140,89 @@ class CapsuleIndex {
             Level newLevel;
             newLevel.numBlocks = 0;
             newLevel.maxSize = size;
+            newLevel.index = numLevels;
             
-            bloom_parameters params;
-            params.projected_element_count = 750000;
-            params.false_positive_probability = 0.05;
-            params.compute_optimal_parameters();
-            bloom_filter filter(params);
-            newLevel.levelFilter = filter;
+            newLevel.levelFilter = create_filter();
 
             numLevels++;
             return numLevels - 1; 
+        }
+
+        /*
+        * This function manages the compaction process.  It assumes that compaction is needed and does not check the size of the level.
+        * It wil recursively handle further compactions if necessary.
+        * 
+        * Input: Level to compact.
+        * Output: Error code or 0 on success.
+        */
+        int compact(int level) {
+            
+            /*
+            pseudocode:
+            For every Capsule Block at current level (iterate in order of oldest to newest):
+                For every key in Capsule Block:
+                    Put key into an appropriate Capsule Block in next level (do we need binary search?)
+            Delete all Capsule Blocks from current level
+            */
+
+            if (level < 0 || level >= numLevels) {
+                return -1;
+            }
+
+            // if we need to compact the last level, create a new level under it 10 times as large
+            if (level == numLevels - 1) {
+                addLevel(24 * pow(10, numLevels)); 
+            }
+
+            Level curr_level = levels[level];
+
+            // compaction trigger condition
+            if (curr_level.numBlocks * blocksize > curr_level.maxSize) {
+                for (int i = 0; i < curr_level.numBlocks; i++) {
+                    std::string curr_block_hash = curr_level.getBlock(curr_level.recordHashes[i]);
+                    
+                    // TODO: call function to query DataCapsule for block with hash
+                    // e.g. CapsuleBlock curr_block = DataCapsule.get(curr_block_hash);
+                    CapsuleBlock curr_block;
+
+                    std::vector < std::tuple<std::string, unsigned char[], int> > kvPairs = curr_block.getKVPairs();
+                    for (std::tuple<std::string, unsigned char[], int> kvt : kvPairs) {
+                        std::string key = std::get<0>(kvt);
+                        unsigned char* value = std::get<1>(kvt);
+                        int timestamp = std::get<2>(kvt);
+                        
+                        // find appropriate block in next level
+                        CapsuleBlock next_block = find_containing_block(key, level + 1);
+                        next_block.addKVPair(key, value, timestamp);
+                    }
+                }
+
+                // wipe current level - delete capsule blocks and reset bloom filter
+                // TODO: how does deletion work in DataCapsule?
+                curr_level.setNumBlocks(0);
+                curr_level.levelFilter = create_filter()
+
+                // recursively check for compaction at next level
+                compact(level + 1);
+            }
+
+            return 0;
+        }
+
+        // TODO: binary search
+        // TODO: how to add new blocks if all blocks in level are full? do we have to redistribute all the kv pairs?
+        CapsuleBlock find_containing_block(std::string key, int level) {
+            Level level = levels[level];
+            for (int i = 0; i < level.numBlocks; i++) {
+                std::string curr_block_hash = level.getBlock(level.recordHashes[i]);
+                
+                // TODO: call function to query DataCapsule for block with hash
+                // e.g. CapsuleBlock curr_block = DataCapsule.get(curr_block_hash);
+                CapsuleBlock curr_block;
+
+                if (i == level.numBlocks - 1 || key.compare(curr_block.getMaxKey()) <= 0) {
+                    return curr_block;
+                }
+            }
         }
 };

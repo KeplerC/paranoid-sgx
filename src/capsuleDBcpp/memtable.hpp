@@ -12,7 +12,7 @@ private:
     int max_size;
     bool put(const kvs_payload *payload);
     kvs_payload get(const std::string &key);
-    void flush_if_full();
+    void write_out_if_full();
     Memtable(){ }
 public:
     absl::flat_hash_map<std::string, kvs_payload> memtable;

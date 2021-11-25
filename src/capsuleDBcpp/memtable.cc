@@ -1,5 +1,5 @@
-#include "memtable.hpp"
-#include "asylo/util/logging.h"
+// #include "memtable.hpp"
+// #include "asylo/util/logging.h"
 #include "common.h"
 #include "capsuleBlock.cc"
 
