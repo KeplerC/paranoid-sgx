@@ -14,4 +14,8 @@ class CapsuleDB {
             oG+ldQH94d6FPkRWOMwY+ppB+SQ8XnUFRA==
             -----END EC PRIVATE KEY-----)pem"
         };
+        //TODO
+        Memtable *memtable;
+        std::vector<CapsuleIndex> capIndexVec;
+        char* get(const std::string &key, Enclave requester, bool isMulticast = false);
 };
