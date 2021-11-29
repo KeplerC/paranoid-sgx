@@ -474,7 +474,7 @@ int run_user(){
     }
 }
 
-int run_coordinator(){
+int run_local_dispatcher(){
 
     zmq::context_t context (1);
     zmq::socket_t socket_from_user(context, ZMQ_PULL);
@@ -495,17 +495,22 @@ int run_coordinator(){
     };
 
     std::string code = "";
+    std::string return_addr = "localhost";
     while (true) {
         // LOG(INFO) << "Start zmq";
         zmq::poll(pollitems.data(), pollitems.size(), 0);
         // Join Request
+        // receive code from user
+        //
         if (pollitems[0].revents & ZMQ_POLLIN) {
             //Get code from client
             zmq::message_t message;
             socket_from_user.recv(&message);
-            code = message_to_string(message);
-            // LOG(INFO) << "[Client " << m_addr << "]:  " + msg ;
-            LOGI << code;
+            //code = message_to_string(message);
+            std::vector<std::string> splitted_messages = absl::StrSplit(message_to_string(message), GROUP_ADDR_DELIMIT, absl::SkipEmpty());
+            return_addr = splitted_messages[0];
+            code = splitted_messages[1];
+            LOGI << "[Client " << return_addr << "]:  " + code ;
 
             //aloha to query for available worker nodes
             zmq::socket_t* socket_ptr  = new  zmq::socket_t( context, ZMQ_PUSH);
@@ -513,14 +518,19 @@ int run_coordinator(){
             socket_ptr -> send(string_to_message("tcp://" + std::string(NET_JS_TASK_COORDINATOR_IP) +":"));
         }
 
+        //receive
         if (pollitems[1].revents & ZMQ_POLLIN) {
             zmq::message_t message;
             socket_for_membership.recv(&message);
             std::vector<std::string> addresses = absl::StrSplit(message_to_string(message), GROUP_ADDR_DELIMIT, absl::SkipEmpty());
             zmq::socket_t* socket_to_worker;
+            int thread_count = 2;
             for( const std::string& a : addresses ) {
+                LOG(INFO)  << "[RECEIVED WORKER ADDR] " + a ;
                 socket_to_worker  = new  zmq::socket_t( context, ZMQ_PUSH);
-                socket_to_worker -> connect ("tcp://" + std::string(NET_WORKER_IP) + ":" + std::to_string(NET_WORKER_LISTEN_FOR_TASK_BASE_PORT));
+                socket_to_worker -> connect ("tcp://" + std::string(NET_WORKER_IP) + ":" + std::to_string(NET_WORKER_LISTEN_FOR_TASK_BASE_PORT +  thread_count));
+                LOGI << "[connected to recv_code_port] " << std::to_string(NET_WORKER_LISTEN_FOR_TASK_BASE_PORT +  thread_count);
+                thread_count += 1;
                 socket_to_worker->send(string_to_message(code));
             }
         }
@@ -529,9 +539,10 @@ int run_coordinator(){
             zmq::message_t message;
             socket_for_result.recv(&message);
             std::string result = message_to_string(message);
-            LOGI << result;
+            LOGI << "return sent to " << return_addr << " " <<  result;
+
             zmq::socket_t* socket_ptr  = new  zmq::socket_t( context, ZMQ_PUSH);
-            socket_ptr -> connect ("tcp://" + std::string(NET_USER_IP) + ":" + std::to_string(NET_USER_RECV_RESULT_PORT));
+            socket_ptr -> connect (return_addr);
             socket_ptr->send(string_to_message(result));
         }
 
@@ -560,29 +571,28 @@ int run_worker(){
     //        worker_threads.push_back(std::thread(thread_start_fake_client, sgx));
     //    }
 
-    unsigned thread_id = 2;
-    worker_threads.push_back(std::thread(thread_run_zmq_router, 0));
-    Asylo_SGX* sgx = new Asylo_SGX( std::to_string(thread_id), serialized_signing_key);
-    sgx->init();
-    sleep(1);
-    worker_threads.push_back(std::thread(thread_start_coordinator, sgx));
-    worker_threads.push_back(std::thread(thread_run_zmq_js_client, thread_id, sgx));
-    sleep(1000);
-
-//    int num_threads = 3;
-//    Asylo_SGX* sgx_r = new Asylo_SGX( std::to_string(1), serialized_signing_key);
-//    sgx_r->init();
-//    sleep(1);
+//    unsigned thread_id = 2;
 //    worker_threads.push_back(std::thread(thread_run_zmq_router, 0));
-//    worker_threads.push_back(std::thread(thread_start_coordinator, sgx_r));
-//
-//    for (unsigned thread_id = START_CLIENT_ID; thread_id < num_threads; thread_id++) {
-//        //unsigned thread_id = 2;
-//        Asylo_SGX* sgx = new Asylo_SGX( std::to_string(thread_id), serialized_signing_key);
-//        sgx->init();
-//        sleep(1);
-//        worker_threads.push_back(std::thread(thread_run_zmq_js_client, thread_id, sgx));
-//    }
+//    Asylo_SGX* sgx = new Asylo_SGX( std::to_string(thread_id), serialized_signing_key);
+//    sgx->init();
+//    sleep(1);
+//    worker_threads.push_back(std::thread(thread_start_coordinator, sgx));
+//    worker_threads.push_back(std::thread(thread_run_zmq_js_client, thread_id, sgx));
+//    sleep(1000);
+
+    int num_threads = 4; //# of worker = num_threads - 2
+    worker_threads.push_back(std::thread(thread_run_zmq_router, 0));
+
+    for (unsigned thread_id = START_CLIENT_ID; thread_id < num_threads; thread_id++) {
+        //unsigned thread_id = 2;
+        Asylo_SGX* sgx = new Asylo_SGX( std::to_string(thread_id), serialized_signing_key);
+        sgx->init();
+        sleep(2);
+        worker_threads.push_back(std::thread(thread_start_coordinator, sgx));
+        worker_threads.push_back(std::thread(thread_run_zmq_js_client, thread_id, sgx));
+        sleep(1);
+    }
+    sleep(1000);
 
     return 0;
 }
@@ -635,7 +645,7 @@ int main(int argc, char *argv[]) {
             break;
         case COORDINATOR_MODE:
             LOGI << "running in coordinator mode";
-            run_coordinator();
+            run_local_dispatcher();
             break;
         case WORKER_MODE:
             LOGI << "running in worker mode";
