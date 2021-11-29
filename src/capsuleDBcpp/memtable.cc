@@ -1,5 +1,5 @@
-// #include "memtable.hpp"
-// #include "asylo/util/logging.h"
+#include "memtable.hpp"
+#include "asylo/util/logging.h"
 #include "common.h"
 #include "capsuleBlock.cc"
 
@@ -58,22 +58,23 @@ bool MemTable::put(const kvs_payload *payload) {
     }
 }
 
+/* This function writes out entire memtable to level 0 of tree if the number of kv pairs exceeds capacity.
+ */
 void MemTable::write_out_if_full() {
-    // TODO - capacity check: number of kv pairs, but should be based on amount of memory
+    // capacity check: number of kv pairs (upperbounds amount of memory when we constrain kv size) 
     if (memtable.size() > max_size) {
-        // write out entire memtable to level 0 of tree
         Level level_zero = CapsuleIndex.levels.front();
         CapsuleBlock capsule_block (0);
         
-        // TODO - how to initialize min/max?
-        std::string min_key;
-        std::string max_key;
+        // initialize min/max
+        std::string min_key = memtable.begin()->first;
+        std::string max_key = memtable.begin()->first;
 
         for ( const auto &p : memtable ) {
             kvs_payload payload = p.second;
             capsule_block.addKVPair(payload.key, payload.value, payload.txn_timestamp)
-            min_key = min(min_key, p.first);
-            max_key = max(max_key, p.first);
+            min_key = min(std::string(min_key), std::string(p.first));
+            max_key = max(std::string(max_key), std::string(p.first));
         } 
 
         capsule_block.setMinKey(min_key);
