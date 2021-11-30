@@ -33,13 +33,14 @@ int connectDB() {
 
 
 /*
- * This function takes in a key-value pair and writes it to CapsuleDB
+ * This function takes in a kvs_payload and writes it to CapsuleDB
  *
- * Input: A KV pair
+ * Input: A kvs payload
  * Output: Nothing
  */
-void put(std:string key, char* value) {
-    return "Temp";
+void CapsuleDB::put(const kvs_payload *payload)
+{
+    memtable->put(payload);
 }
 
 /* 
