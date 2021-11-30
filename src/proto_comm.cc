@@ -13,18 +13,16 @@ void ProtoSocket::bind(std::string endpoint) {
 }
 
 // TODO reference semantics, or do we just rely on move optimization here?
-void ProtoSocket::send(const MulticastMessage::ControlMessage* msg) {
-    std::string str;
-    msg->SerializeToString(&str);
-    send_string(str);
+void ProtoSocket::send(MulticastMessage::ControlMessage& msg) {
+    send_proto(msg);
 }
 
-MulticastMessage::ControlMessage* ProtoSocket::recv() {
+MulticastMessage::ControlMessage ProtoSocket::recv() {
     return recv_proto();
 }
 
 void ProtoSocket::recv(MulticastMessage::ControlMessage* msg) {
-    *msg = *recv_proto(); // TODO this still copies internally
+    *msg = recv_proto();
 }
 
 void ProtoSocket::send_error(uint64_t error_code) {
@@ -67,69 +65,64 @@ void ProtoSocket::send_exec_code(std::string code) {
     send_proto(message);
 }
 
-std::string ProtoSocket::recv_string() {
+MulticastMessage::ControlMessage ProtoSocket::recv_proto() {
     zmq::message_t message;
     socket_->recv(&message);
-    return std::string(static_cast<const char*>(message.data()),
-                       message.size());
-}
+    std::string str (static_cast<const char*>(message.data()), message.size());
 
-MulticastMessage::ControlMessage* ProtoSocket::recv_proto() {
-    std::string str = recv_string();
+    MulticastMessage::ControlMessage msg;
+    msg.ParseFromString(str);
 
-    // TODO use unique pointers
-    MulticastMessage::ControlMessage* msg = new MulticastMessage::ControlMessage();
-    msg->ParseFromString(str);
+    assert(msg.has_body());
+    assert(msg.has_timestamp());
+    assert(msg.has_sender_id());
 
-    assert(msg->has_body());
-    assert(msg->has_timestamp());
-    assert(msg->has_sender_id());
+    LOGI<<"Received proto: "<<msg.ShortDebugString()<<std::endl;
 
     return msg;
 }
 
-void ProtoSocket::send_string(const std::string& s) {
-    zmq::message_t msg(s.size());
-    memcpy(msg.data(), s.c_str(), s.size());
-    socket_->send(msg);
-}
-
-void ProtoSocket::send_proto(MulticastMessage::ControlMessage& msg) {
+void ProtoSocket::send_proto(MulticastMessage::ControlMessage& proto) {
     // TODO shouldn't this be a lamport clock or something
     using namespace std::chrono;
     int64_t timestamp = duration_cast<milliseconds>(
                             system_clock::now().time_since_epoch()).count();
 
     // Set message header
-    msg.set_timestamp(timestamp);
-    msg.set_sender_id(id_);
+    proto.set_timestamp(timestamp);
+    proto.set_sender_id(id_);
 
-    send(&msg);
+    // Serialize into wire format
+    std::string str;
+    proto.SerializeToString(&str);
+
+    // Create and send packet via ZMQ
+    zmq::message_t msg(str.size());
+    memcpy(msg.data(), str.c_str(), str.size());
+    socket_->send(msg);
+
+    LOGI<<"Sent proto: "<<proto.ShortDebugString()<<std::endl;
 }
 
 std::string MulticastMessage::unpack_join(ProtoSocket& sock) {
-    ControlMessage* msg = sock.recv();
-    std::string str(*unpack_join(msg));
-    // TODO free the msg pointer
-    return str;
+    ControlMessage msg(sock.recv());
+    return *unpack_join(msg);
 }
 
 std::string MulticastMessage::unpack_exec_code(ProtoSocket& sock) {
-    ControlMessage* msg = sock.recv();
-    std::string addr(*unpack_exec_code(msg));
-    // TODO free the msg pointer
-    return addr;
+    ControlMessage msg = sock.recv();
+    return *unpack_exec_code(msg);
 }
 
-std::string* MulticastMessage::unpack_join(MulticastMessage::ControlMessage* msg) {
-    auto body = msg->mutable_body();
+std::string* MulticastMessage::unpack_join(MulticastMessage::ControlMessage& msg) {
+    auto body = msg.mutable_body();
     assert(body->has_join());
 
     return body->mutable_join()->mutable_addr();
 }
 
-std::string* MulticastMessage::unpack_exec_code(MulticastMessage::ControlMessage* msg) {
-    auto body = msg->mutable_body();
+std::string* MulticastMessage::unpack_exec_code(MulticastMessage::ControlMessage& msg) {
+    auto body = msg.mutable_body();
     assert(body->has_code());
 
     return body->mutable_code()->mutable_str();
