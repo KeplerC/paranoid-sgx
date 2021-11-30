@@ -180,8 +180,8 @@ void ZmqClient::net_handler() {
 
 ZmqJsClient::ZmqJsClient(std::string ip, unsigned thread_id, Asylo_SGX* sgx)
                          : ZmqComm(ip, thread_id, {
-                            { static_cast<void *>(&socket_from_server_), 0, ZMQ_POLLIN, 0 },
-                            { static_cast<void *>(&socket_code_), 0, ZMQ_POLLIN, 0 },
+                            { static_cast<void *>(socket_from_server_), 0, ZMQ_POLLIN, 0 },
+                            { static_cast<void *>(socket_code_), 0, ZMQ_POLLIN, 0 },
                          })
                          , sgx_(sgx)
                          , socket_join_(context_, ZMQ_PUSH)

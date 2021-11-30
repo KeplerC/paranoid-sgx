@@ -14,7 +14,7 @@
 
 class ProtoSocket {
 public:
-    // TODO: std::function<> is easy to use but notoriously slow, replace later
+    // Non-owning pointer, TODO use unique_ptr instead )
     ProtoSocket(zmq::socket_t* socket, uint64_t id)
         : socket_(socket), id_(id) {};
 
