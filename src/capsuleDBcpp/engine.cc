@@ -15,11 +15,11 @@ using namespace asylo;
  * Inputs: ???
  * Outputs: An error code
  */
-int spawnDB() {
-    
+int spawnDB()
+{
+
     return 0;
 }
-
 
 /*
  * This function connects to a CapsuleDB instance.
@@ -27,10 +27,10 @@ int spawnDB() {
  * Input: None
  * Output: An error code
  */
-int connectDB() {
+int connectDB()
+{
     return 0;
 }
-
 
 /*
  * This function takes in a kvs_payload and writes it to CapsuleDB
@@ -40,7 +40,10 @@ int connectDB() {
  */
 void CapsuleDB::put(const kvs_payload *payload)
 {
-    memtable->put(payload);
+    if (!memtable->put(payload))
+    {
+        LOGI << "Failed to write key in the Database";
+    }
 }
 
 /* 
