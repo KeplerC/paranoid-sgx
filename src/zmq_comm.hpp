@@ -34,27 +34,8 @@
 
 class ZmqComm {
 public:
-    ZmqComm(std::string ip, unsigned thread_id)
-            : thread_id_(thread_id)
-            , context_(1)
-            , seed_server_ip_(NET_SEED_ROUTER_IP)
-            , seed_server_join_port_(std::to_string(NET_SERVER_JOIN_PORT))
-            , seed_server_mcast_port_(std::to_string(NET_SERVER_MCAST_PORT))
-            , enclave_seq_number_(0)
-            , coordinator_("") {
-        port_ = std::to_string(NET_CLIENT_BASE_PORT + thread_id);
-        addr_ = "tcp://" + ip +":" + port_;
-        LOGI << "[ZmqComm] Constructing agent: ID "<<thread_id
-             << ", Address " << addr_;
-    }
-
-    [[noreturn]] void run() {
-        net_setup();
-        while (true) {
-            poll();
-            net_handler();
-        }
-    }
+    ZmqComm(std::string ip, unsigned thread_id);
+    [[noreturn]] void run();
 
 protected:
     unsigned thread_id_;
@@ -66,21 +47,13 @@ protected:
     std::string seed_server_mcast_port_;
 
     int enclave_seq_number_;
-    std::vector<std::string> group_addresses_;
-    std::vector<zmq::socket_t*> group_sockets_;
-
-    zmq::socket_t* parent_socket_;
-    std::vector<zmq::socket_t*> child_sockets_;
     std::string coordinator_;
 
     std::vector<zmq::pollitem_t> pollitems_;
 
     virtual void net_setup() = 0;
     virtual void net_handler() = 0;
-
-    void poll() {
-        zmq::poll(pollitems_.data(), pollitems_.size(), 0);
-    }
+    void poll();
 
     zmq::message_t string_to_message(const std::string& s) {
         zmq::message_t msg(s.size());
@@ -102,18 +75,6 @@ protected:
         socket->send(string_to_message(s));
     }
 
-    std::string serialize_group_addresses() {
-        std::string ret;
-        for( const std::string& s : group_addresses_ ) {
-            ret += GROUP_ADDR_DELIMIT + s;
-        }
-        return ret;
-    }
-
-    std::vector<std::string> deserialize_group_addresses(std::string group_addresses) {
-        std::vector<std::string> ret = absl::StrSplit(group_addresses, "@@@", absl::SkipEmpty());
-        return ret;
-    }
 };
 
 class ZmqServer: public ZmqComm {
@@ -130,8 +91,14 @@ private:
     ProtoSocket socket_control_;
     ProtoSocket socket_result_;
 
+    std::vector<std::string> group_addresses_;
+    std::vector<zmq::socket_t*> group_sockets_;
+
     void net_setup() override;
     void net_handler() override;
+
+    std::string serialize_group_addresses();
+    std::vector<std::string> deserialize_group_addresses(std::string);
 };
 
 class ZmqClient: public ZmqComm {
@@ -165,6 +132,9 @@ private:
     ProtoSocket socket_msg_; // socket for new mcast messages
     ProtoSocket socket_control_;
     ProtoSocket socket_result_;
+
+    zmq::socket_t* parent_socket_;
+    std::vector<zmq::socket_t*> child_sockets_;
 
     void net_setup() override;
     void net_handler() override;

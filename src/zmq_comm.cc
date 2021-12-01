@@ -1,5 +1,30 @@
 #include "zmq_comm.hpp"
 
+ZmqComm::ZmqComm(std::string ip, unsigned thread_id)
+            : thread_id_(thread_id)
+            , context_(1)
+            , seed_server_ip_(NET_SEED_ROUTER_IP)
+            , seed_server_join_port_(std::to_string(NET_SERVER_JOIN_PORT))
+            , seed_server_mcast_port_(std::to_string(NET_SERVER_MCAST_PORT))
+            , enclave_seq_number_(0)
+            , coordinator_("") {
+    port_ = std::to_string(NET_CLIENT_BASE_PORT + thread_id);
+    addr_ = "tcp://" + ip +":" + port_;
+    LOGI << "[ZmqComm] Constructing agent: ID "<<thread_id
+         << ", Address " << addr_;
+}
+
+[[noreturn]] void ZmqComm::run() {
+    net_setup();
+    while (true) {
+        poll();
+        net_handler();
+    }
+}
+
+void ZmqComm::poll() {
+    zmq::poll(pollitems_.data(), pollitems_.size(), 0);
+}
 
 ZmqServer::ZmqServer(std::string ip, unsigned thread_id)
                      : ZmqComm(ip, thread_id)
@@ -39,7 +64,7 @@ void ZmqServer::net_handler() {
         ////create a socket to the client and save
         zmq::socket_t* socket_ptr  = new  zmq::socket_t(context_, ZMQ_PUSH);
         socket_ptr -> connect (msg);
-        this->child_sockets_.push_back(socket_ptr);
+        this->group_sockets_.push_back(socket_ptr);
         //this->send_string("Ack Join", socket_ptr);
     }
 
@@ -154,6 +179,19 @@ void ZmqRouter::net_handler() {
         socket_ptr -> connect (this->coordinator_+ std::to_string(3011));
         this->send_string(result, socket_ptr);
     }
+}
+
+std::string ZmqServer::serialize_group_addresses() {
+    std::string ret;
+    for( const std::string& s : group_addresses_ ) {
+        ret += GROUP_ADDR_DELIMIT + s;
+    }
+    return ret;
+}
+
+std::vector<std::string> ZmqServer::deserialize_group_addresses(std::string group_addresses) {
+    std::vector<std::string> ret = absl::StrSplit(group_addresses, "@@@", absl::SkipEmpty());
+    return ret;
 }
 
 ZmqClient::ZmqClient(std::string ip, unsigned thread_id, Asylo_SGX* sgx)
