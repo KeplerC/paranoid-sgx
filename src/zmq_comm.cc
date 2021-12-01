@@ -63,6 +63,7 @@ void ZmqServer::net_handler() {
 
         ////create a socket to the client and save
         zmq::socket_t* socket_ptr  = new  zmq::socket_t(context_, ZMQ_PUSH);
+
         socket_ptr -> connect (msg);
         this->group_sockets_.push_back(socket_ptr);
         //this->send_string("Ack Join", socket_ptr);
@@ -70,29 +71,37 @@ void ZmqServer::net_handler() {
 
     //receive new message to mcast
     if (pollitems_[1].revents & ZMQ_POLLIN){
-        std::string msg = this->recv_string(&zsock_msg_);
-        LOGI << "[SERVER] Mcast Message: " + msg ;
+        MulticastMessage::ControlMessage msg(socket_msg_.recv());
+        LOGI << "[SERVER] Mcast Message: " + msg.ShortDebugString();
         //mcast to all the clients
         for (zmq::socket_t* socket : this->group_sockets_) {
-            this->send_string(msg, socket);
+            // TODO convert group_sockets_ to a vector of ProtoSockets
+            ProtoSocket proto_socket(socket, thread_id_);
+            proto_socket.send(msg);
         }
     }
 
     if (pollitems_[2].revents & ZMQ_POLLIN){
-        std::string coordinator_addr = this->recv_string(&zsock_control_);
+        std::string coordinator_addr = MulticastMessage::unpack_raw_str(socket_control_);
         LOGI << "[SERVER] REV CONTRL Message from" << coordinator_addr ;
+
         zmq::socket_t* socket_ptr  = new  zmq::socket_t(context_, ZMQ_PUSH);
-        socket_ptr -> connect (coordinator_addr + std::to_string(3010));
-        this->send_string(this->serialize_group_addresses(), socket_ptr);
+        ProtoSocket socket(socket_ptr, thread_id_);
+        socket.connect(coordinator_addr + std::to_string(3010));
+
+        socket.send_raw_str(this->serialize_group_addresses());
         this->coordinator_ = coordinator_addr;
     }
 
     if (pollitems_[3].revents & ZMQ_POLLIN){
-        std::string result = this->recv_string(&zsock_result_);
+        std::string result = MulticastMessage::unpack_raw_str(socket_result_);
         LOGI << "[SERVER] REV result Message: " + result ;
+
         zmq::socket_t* socket_ptr  = new  zmq::socket_t(context_, ZMQ_PUSH);
-        socket_ptr -> connect (this->coordinator_ + std::to_string(3011));
-        this->send_string(result, socket_ptr);
+        ProtoSocket socket(socket_ptr, thread_id_);
+        socket.connect(this->coordinator_ + std::to_string(3011));
+
+        socket.send_raw_str(result);
     }
 }
 
@@ -226,7 +235,7 @@ void ZmqClient::net_handler() {
     // LOG(INFO) << "Start zmq";
     if (pollitems_[0].revents & ZMQ_POLLIN) {
         //Get the address
-        std::string msg = this->recv_string(&zsock_from_server_);
+        std::string msg = MulticastMessage::unpack_raw_str(socket_from_server_);
         LOGI << "[Client " << addr_ << "]:  " + msg ;
         // this -> send_string(port_ , socket_send_);
         this->sgx_->send_to_sgx(msg);
@@ -265,14 +274,11 @@ void ZmqJsClient::net_setup() {
 }
 
 void ZmqJsClient::net_handler() {
-    //start enclave
-    // LOG(INFO) << "Start zmq";
-    // Join Request
-    
     if (pollitems_[0].revents & ZMQ_POLLIN) {
         //Get the address
-        std::string msg = this->recv_string(&zsock_from_server_);
+        std::string msg = MulticastMessage::unpack_raw_bytes(socket_from_server_);
         LOGI << "[Client " << addr_ << "]:  " + msg ;
+
         // this -> send_string(port_ , zsock_send_);
         sgx_->send_to_sgx(msg);
     }
@@ -280,8 +286,8 @@ void ZmqJsClient::net_handler() {
     if (pollitems_[1].revents & ZMQ_POLLIN) {
         //Get the address
         std::string msg = MulticastMessage::unpack_exec_code(socket_code_);
-
         LOG(INFO) << "[Client " << addr_ << "]:  " + msg ;
+
         // this -> send_string(port_ , socket_send_);
         sgx_->execute_js_code(msg);
     }

@@ -1,4 +1,5 @@
 #include "asylo_sgx.hpp"
+#include "proto_comm.hpp"
 #include <sstream>
 #include <fstream>
 #include "asylo/crypto/util/byte_container_util.h"
@@ -42,13 +43,16 @@ static void *StartOcallResponder( void *arg ) {
     zmq::context_t context (1);
     // to router
     zmq::socket_t* socket_ptr  = new  zmq::socket_t( context, ZMQ_PUSH);
-    socket_ptr -> connect ("tcp://" + std::string(NET_SEED_ROUTER_IP) + ":6667");
+    ProtoSocket socket (socket_ptr, -1);
+    socket.connect ("tcp://" + std::string(NET_SEED_ROUTER_IP) + ":6667");
     // to sync server
     zmq::socket_t* socket_ptr_to_sync  = new  zmq::socket_t( context, ZMQ_PUSH);
-    socket_ptr_to_sync -> connect ("tcp://" + std::string(NET_SEED_ROUTER_IP) +":" + std::to_string(NET_SYNC_SERVER_PORT));
+    ProtoSocket socket_to_sync (socket_ptr_to_sync, -1);
+    socket_to_sync.connect ("tcp://" + std::string(NET_SEED_ROUTER_IP) +":" + std::to_string(NET_SYNC_SERVER_PORT));
 
     zmq::socket_t* socket_ptr_for_result  = new  zmq::socket_t( context, ZMQ_PUSH);
-    socket_ptr_for_result -> connect ("tcp://" + std::string(NET_SEED_ROUTER_IP) +":" + std::to_string(NET_SERVER_RESULT_PORT));
+    ProtoSocket socket_for_result (socket_ptr_for_result, -1);
+    socket_for_result.connect ("tcp://" + std::string(NET_SEED_ROUTER_IP) +":" + std::to_string(NET_SERVER_RESULT_PORT));
 
 
     while( true )
@@ -67,7 +71,6 @@ static void *StartOcallResponder( void *arg ) {
         if(data_ptr->data){
             //Message exists!
 
-
             std::string in_s((char *) data_ptr->data, data_ptr->size);
             free(data_ptr->data); // allocated using malloc
 
@@ -84,16 +87,14 @@ static void *StartOcallResponder( void *arg ) {
 
                 std::string out_s;
                 in_dc.SerializeToString(&out_s);
-                zmq::message_t msg(out_s.size());
-                memcpy(msg.data(), out_s.c_str(), out_s.size());
                 if(in_dc.msgtype() == COORDINATOR_EOE_TYPE){
-                    socket_ptr_to_sync->send(msg);
+                    socket_to_sync.send_raw_bytes(out_s);
                 }
                 if(in_dc.msgtype() == "PSL_RET"){
-                    socket_ptr_for_result -> send(msg);
+                    socket_for_result.send_raw_bytes(out_s);
                 }
                 else {
-                    socket_ptr->send(msg);
+                    socket.send_raw_bytes(out_s);
                 }
                 break;
             }
@@ -103,7 +104,7 @@ static void *StartOcallResponder( void *arg ) {
             data_ptr->data = 0;
         }
 
-        data_ptr->isRead      = true;
+        data_ptr->isRead = true;
         sgx_spin_unlock( &data_ptr->spinlock );
 
 

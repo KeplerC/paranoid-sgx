@@ -449,14 +449,15 @@ int run_user(){
     std::vector <std::thread> worker_threads;
     worker_threads.push_back(std::thread(thread_user_receiving_result));
 
-    zmq::socket_t* socket_send  = new  zmq::socket_t( context, ZMQ_PUSH);
-    socket_send -> connect ("tcp://" + std::string(NET_JS_TASK_COORDINATOR_IP) + ":" + std::to_string(NET_COORDINATOR_FROM_USER_PORT));
+    zmq::socket_t* raw_socket_send = new zmq::socket_t( context, ZMQ_PUSH);
+    ProtoSocket socket_send(raw_socket_send, 0);
+    socket_send.connect ("tcp://" + std::string(NET_JS_TASK_COORDINATOR_IP) + ":" + std::to_string(NET_COORDINATOR_FROM_USER_PORT));
 
 //    std::ifstream t("/opt/my-project/src/input.js");
 //    std::stringstream buffer;
 //    buffer << t.rdbuf();
 //    std::string code = buffer.str();
-//    socket_send->send(string_to_message(code));
+//    socket_send.send(code);
 
     std::string cmd;
     std::string cmd_buffer = "";
@@ -471,7 +472,7 @@ int run_user(){
                 first_cmd_wait = true;
                 continue;
             }
-            socket_send->send(string_to_message(cmd_buffer));
+            socket_send.send_raw_str(cmd_buffer);
             cmd_buffer = "";
             first_cmd_wait = true;
         }
@@ -485,13 +486,19 @@ int run_coordinator(){
 
     zmq::context_t context (1);
     zmq::socket_t socket_from_user(context, ZMQ_PULL);
-    socket_from_user.bind ("tcp://*:" +  std::to_string(NET_COORDINATOR_FROM_USER_PORT));
+    ProtoSocket wrapped_socket_from_user(&socket_from_user, 0);
+    wrapped_socket_from_user.bind
+        ("tcp://*:" + std::to_string(NET_COORDINATOR_FROM_USER_PORT));
 
     zmq::socket_t socket_for_membership(context, ZMQ_PULL);
-    socket_for_membership.bind ("tcp://*:" +  std::to_string(NET_COORDINATOR_RECV_MEMBERSHIP_PORT));
+    ProtoSocket wrapped_socket_for_membership(&socket_for_membership, 0);
+    wrapped_socket_for_membership.bind
+        ("tcp://*:" + std::to_string(NET_COORDINATOR_RECV_MEMBERSHIP_PORT));
 
     zmq::socket_t socket_for_result(context, ZMQ_PULL);
-    socket_for_result.bind ("tcp://*:"+ std::to_string(NET_COORDINATOR_RECV_RESULT_PORT));
+    ProtoSocket wrapped_socket_for_result(&socket_for_result, 0);
+    wrapped_socket_for_result.bind
+        ("tcp://*:" + std::to_string(NET_COORDINATOR_RECV_RESULT_PORT));
 
 
     // poll for new messages
@@ -508,42 +515,44 @@ int run_coordinator(){
         // Join Request
         if (pollitems[0].revents & ZMQ_POLLIN) {
             //Get code from client
-            zmq::message_t message;
-            socket_from_user.recv(&message);
-            code = message_to_string(message);
+            code = MulticastMessage::unpack_raw_str(wrapped_socket_from_user);
             // LOG(INFO) << "[Client " << m_addr << "]:  " + msg ;
             LOGI << code;
 
             //aloha to query for available worker nodes
             zmq::socket_t* socket_ptr  = new  zmq::socket_t( context, ZMQ_PUSH);
-            socket_ptr -> connect ("tcp://" + std::string(NET_SEED_ROUTER_IP) + ":" + std::to_string(NET_SERVER_CONTROL_PORT));
-            socket_ptr -> send(string_to_message("tcp://" + std::string(NET_JS_TASK_COORDINATOR_IP) +":"));
+            ProtoSocket socket(socket_ptr, 0);
+            socket.connect("tcp://" + std::string(NET_SEED_ROUTER_IP) + ":" +
+                           std::to_string(NET_SERVER_CONTROL_PORT));
+            socket.send_raw_str("tcp://" + std::string(NET_JS_TASK_COORDINATOR_IP) +":");
         }
 
         if (pollitems[1].revents & ZMQ_POLLIN) {
-            zmq::message_t message;
-            socket_for_membership.recv(&message);
-            std::vector<std::string> addresses = absl::StrSplit(message_to_string(message), GROUP_ADDR_DELIMIT, absl::SkipEmpty());
+            std::string msg = MulticastMessage::unpack_raw_str(wrapped_socket_for_membership);
+
+            std::vector<std::string> addresses = absl::StrSplit(msg, GROUP_ADDR_DELIMIT, absl::SkipEmpty());
             zmq::socket_t* socket_to_worker;
             for([[maybe_unused]] const std::string& a : addresses ) {
-                socket_to_worker  = new  zmq::socket_t( context, ZMQ_PUSH);
-                socket_to_worker -> connect ("tcp://"
-                                            + std::string(NET_WORKER_IP)
-                                            + ":"
-                                            + std::to_string(NET_WORKER_LISTEN_FOR_TASK_BASE_PORT));
+                socket_to_worker = new  zmq::socket_t( context, ZMQ_PUSH);
                 ProtoSocket wsocket_to_worker(socket_to_worker, 0);
+                wsocket_to_worker.connect("tcp://"
+                                         + std::string(NET_WORKER_IP)
+                                         + ":"
+                                         + std::to_string(NET_WORKER_LISTEN_FOR_TASK_BASE_PORT));
                 wsocket_to_worker.send_exec_code(code);
             }
         }
 
         if (pollitems[2].revents & ZMQ_POLLIN) {
-            zmq::message_t message;
-            socket_for_result.recv(&message);
-            std::string result = message_to_string(message);
-            LOGI << result;
+            std::string result = MulticastMessage::unpack_raw_str(wrapped_socket_for_result);
+            //std::string result = message_to_string(message);
+            //LOGI << result;
+
             zmq::socket_t* socket_ptr  = new  zmq::socket_t( context, ZMQ_PUSH);
-            socket_ptr -> connect ("tcp://" + std::string(NET_USER_IP) + ":" + std::to_string(NET_USER_RECV_RESULT_PORT));
-            socket_ptr->send(string_to_message(result));
+            ProtoSocket socket(socket_ptr, 0);
+            socket.connect ("tcp://" + std::string(NET_USER_IP) + ":" +
+                            std::to_string(NET_USER_RECV_RESULT_PORT));
+            socket.send_raw_str(result);
         }
 
     }
