@@ -42,7 +42,7 @@ namespace asylo {
             DUMP_PAYLOAD((&payload));
             // enqueue to pqueue
             pqueue.enqueue(&payload);
-
+            //TODO: Add send to CapsuleDB
         }
 
         void KVSClient::handle() {
@@ -105,6 +105,7 @@ namespace asylo {
         }
 
         kvs_payload KVSClient::get(const std::string &key){
+            //TODO: Handle get via capsuleDB
             return memtable.get(key);
         }
 

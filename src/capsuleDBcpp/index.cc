@@ -18,7 +18,8 @@ class CapsuleIndex {
                 params.projected_element_count = 750000;
                 params.false_positive_probability = 0.05;
                 params.compute_optimal_parameters();
-                return filter(params);
+                bloom_filter filter(params);
+                return filter;
             }
         public:
             int index;
