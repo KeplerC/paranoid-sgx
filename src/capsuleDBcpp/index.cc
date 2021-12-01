@@ -9,6 +9,7 @@
 #include "../bloom/bloom_filter.hpp"
 #include "capsuledb.cc"
 #include <cmath>
+#include "fakeCapsule.cc"
 
 class CapsuleIndex {
     class Level {
@@ -55,6 +56,14 @@ class CapsuleIndex {
             */
             int addBlock(CapsuleBlock* newBlock, std::string hash) {
                 std::vector<CapsuleBlock>::iterator iter;
+                if (!min_key) {
+                    min_key = (*newBlock).getMinKey();
+                }
+                if (!max_key) {
+                    max_key = (*newBlock).getMaxKey();
+                }
+                min_key = min(std::string(min), std::string((*newBlock).getMinKey()));
+                max_key = max(std::string(max), std::string((*newBlock).getMaxKey()));
                 for (int i = 0; i < numBlocks; i++) {
                     CapsuleBlock curr_block = blocks[i];
                     if (curr_block.getMinKey() > (*newBlock).getMaxKey()) {
@@ -182,9 +191,8 @@ class CapsuleIndex {
                 for (int i = 0; i < curr_level.numBlocks; i++) {
                     std::string curr_block_hash = curr_level.getBlock(curr_level.recordHashes[i]);
                     
-                    // TODO: call function to query DataCapsule for block with hash
-                    // e.g. CapsuleBlock curr_block = DataCapsule.get(curr_block_hash);
-                    CapsuleBlock curr_block;
+                    // call function to query DataCapsule for block with hash
+                    CapsuleBlock curr_block = getCapsuleBlock(curr_block_hash);
 
                     std::vector < std::tuple<std::string, unsigned char[], int> > kvPairs = curr_block.getKVPairs();
                     for (std::tuple<std::string, unsigned char[], int> kvt : kvPairs) {
@@ -195,12 +203,17 @@ class CapsuleIndex {
                         // find appropriate block in next level
                         CapsuleBlock next_block = find_containing_block(key, level + 1);
                         next_block.addKVPair(key, value, timestamp);
+                        std::string hash = putCapsuleBlock(next_block);
+                        recordHashes[i] = hash;
                     }
                 }
 
                 // wipe current level - delete capsule blocks and reset bloom filter
                 // TODO: how does deletion work in DataCapsule?
                 curr_level.setNumBlocks(0);
+                curr_level.recordHashes = NULL;
+                curr_level.min_key = NULL;
+                curr_level.max_key = NULL;
                 curr_level.levelFilter = create_filter()
 
                 // recursively check for compaction at next level
@@ -210,20 +223,20 @@ class CapsuleIndex {
             return 0;
         }
 
-        // TODO: binary search
+        // optional TODO: binary search
         // TODO: how to add new blocks if all blocks in level are full? do we have to redistribute all the kv pairs?
         CapsuleBlock find_containing_block(std::string key, int level) {
             Level level = levels[level];
             for (int i = 0; i < level.numBlocks; i++) {
                 std::string curr_block_hash = level.getBlock(level.recordHashes[i]);
                 
-                // TODO: call function to query DataCapsule for block with hash
-                // e.g. CapsuleBlock curr_block = DataCapsule.get(curr_block_hash);
-                CapsuleBlock curr_block;
+                // call function to query DataCapsule for block with hash
+                CapsuleBlock curr_block = getCapsuleBlock(curr_block_hash);
 
                 if (i == level.numBlocks - 1 || key.compare(curr_block.getMaxKey()) <= 0) {
                     return curr_block;
                 }
             }
+            
         }
 };
