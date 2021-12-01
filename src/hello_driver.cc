@@ -485,27 +485,27 @@ int run_user(){
 int run_coordinator(){
 
     zmq::context_t context (1);
-    zmq::socket_t socket_from_user(context, ZMQ_PULL);
-    ProtoSocket wrapped_socket_from_user(&socket_from_user, 0);
-    wrapped_socket_from_user.bind
+    zmq::socket_t zsock_from_user(context, ZMQ_PULL);
+    ProtoSocket socket_from_user(&zsock_from_user, 0);
+    socket_from_user.bind
         ("tcp://*:" + std::to_string(NET_COORDINATOR_FROM_USER_PORT));
 
-    zmq::socket_t socket_for_membership(context, ZMQ_PULL);
-    ProtoSocket wrapped_socket_for_membership(&socket_for_membership, 0);
-    wrapped_socket_for_membership.bind
+    zmq::socket_t zsock_for_membership(context, ZMQ_PULL);
+    ProtoSocket socket_for_membership(&zsock_for_membership, 0);
+    socket_for_membership.bind
         ("tcp://*:" + std::to_string(NET_COORDINATOR_RECV_MEMBERSHIP_PORT));
 
-    zmq::socket_t socket_for_result(context, ZMQ_PULL);
-    ProtoSocket wrapped_socket_for_result(&socket_for_result, 0);
-    wrapped_socket_for_result.bind
+    zmq::socket_t zsock_for_result(context, ZMQ_PULL);
+    ProtoSocket socket_for_result(&zsock_for_result, 0);
+    socket_for_result.bind
         ("tcp://*:" + std::to_string(NET_COORDINATOR_RECV_RESULT_PORT));
 
 
     // poll for new messages
     std::vector<zmq::pollitem_t> pollitems = {
-            { static_cast<void *>(socket_from_user), 0, ZMQ_POLLIN, 0 },
-            { static_cast<void *>(socket_for_membership), 0, ZMQ_POLLIN, 0 },
-            { static_cast<void *>(socket_for_result), 0, ZMQ_POLLIN, 0 },
+            { static_cast<void *>(zsock_from_user), 0, ZMQ_POLLIN, 0 },
+            { static_cast<void *>(zsock_for_membership), 0, ZMQ_POLLIN, 0 },
+            { static_cast<void *>(zsock_for_result), 0, ZMQ_POLLIN, 0 },
     };
 
     std::string code = "";
@@ -515,7 +515,7 @@ int run_coordinator(){
         // Join Request
         if (pollitems[0].revents & ZMQ_POLLIN) {
             //Get code from client
-            code = MulticastMessage::unpack_raw_str(wrapped_socket_from_user);
+            code = MulticastMessage::unpack_raw_str(socket_from_user.recv());
             // LOG(INFO) << "[Client " << m_addr << "]:  " + msg ;
             LOGI << code;
 
@@ -528,33 +528,31 @@ int run_coordinator(){
         }
 
         if (pollitems[1].revents & ZMQ_POLLIN) {
-            std::string msg = MulticastMessage::unpack_raw_str(wrapped_socket_for_membership);
+            std::string msg = MulticastMessage::unpack_raw_str(socket_for_membership.recv());
 
             std::vector<std::string> addresses = absl::StrSplit(msg, GROUP_ADDR_DELIMIT, absl::SkipEmpty());
-            zmq::socket_t* socket_to_worker;
+            zmq::socket_t* zsock_to_worker;
             for([[maybe_unused]] const std::string& a : addresses ) {
-                socket_to_worker = new  zmq::socket_t( context, ZMQ_PUSH);
-                ProtoSocket wsocket_to_worker(socket_to_worker, 0);
-                wsocket_to_worker.connect("tcp://"
+                zsock_to_worker = new  zmq::socket_t( context, ZMQ_PUSH);
+                ProtoSocket socket_to_worker(zsock_to_worker, 0);
+                socket_to_worker.connect("tcp://"
                                          + std::string(NET_WORKER_IP)
                                          + ":"
                                          + std::to_string(NET_WORKER_LISTEN_FOR_TASK_BASE_PORT));
-                wsocket_to_worker.send_exec_code(code);
+                socket_to_worker.send_exec_code(code);
             }
         }
 
         if (pollitems[2].revents & ZMQ_POLLIN) {
-            std::string result = MulticastMessage::unpack_raw_str(wrapped_socket_for_result);
-            //std::string result = message_to_string(message);
-            //LOGI << result;
+            std::string result = MulticastMessage::unpack_raw_str(socket_for_result.recv());
+            LOGI << result;
 
-            zmq::socket_t* socket_ptr  = new  zmq::socket_t( context, ZMQ_PUSH);
-            ProtoSocket socket(socket_ptr, 0);
+            zmq::socket_t* zsock_ptr = new zmq::socket_t(context, ZMQ_PUSH);
+            ProtoSocket socket(zsock_ptr, 0);
             socket.connect ("tcp://" + std::string(NET_USER_IP) + ":" +
                             std::to_string(NET_USER_RECV_RESULT_PORT));
             socket.send_raw_str(result);
         }
-
     }
 
     return 0;

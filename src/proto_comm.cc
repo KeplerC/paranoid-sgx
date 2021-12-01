@@ -141,50 +141,30 @@ void ProtoSocket::send_proto(MulticastMessage::ControlMessage& proto) {
     }
 }
 
-std::string MulticastMessage::unpack_join(ProtoSocket& sock) {
-    ControlMessage msg(sock.recv());
-    return *unpack_join(msg);
-}
-
-std::string MulticastMessage::unpack_exec_code(ProtoSocket& sock) {
-    ControlMessage msg = sock.recv();
-    return *unpack_exec_code(msg);
-}
-
-std::string MulticastMessage::unpack_raw_str(ProtoSocket& sock) {
-    ControlMessage msg = sock.recv();
-    return *unpack_raw_str(msg);
-}
-
-std::string MulticastMessage::unpack_raw_bytes(ProtoSocket& sock) {
-    ControlMessage msg = sock.recv();
-    return *unpack_raw_bytes(msg);
-}
-
-std::string* MulticastMessage::unpack_join(MulticastMessage::ControlMessage& msg) {
+std::string MulticastMessage::unpack_join(MulticastMessage::ControlMessage&& msg) {
     auto body = msg.mutable_body();
     assert(body->has_join());
 
-    return body->mutable_join()->mutable_addr();
+    return *(body->mutable_join()->mutable_addr());
 }
 
-std::string* MulticastMessage::unpack_exec_code(MulticastMessage::ControlMessage& msg) {
+std::string MulticastMessage::unpack_exec_code(MulticastMessage::ControlMessage&& msg) {
     auto body = msg.mutable_body();
     assert(body->has_code());
 
-    return body->mutable_code()->mutable_str();
+    return *(body->mutable_code()->mutable_str());
 }
 
-std::string* MulticastMessage::unpack_raw_str(MulticastMessage::ControlMessage& msg) {
+std::string MulticastMessage::unpack_raw_str(MulticastMessage::ControlMessage&& msg) {
     auto body = msg.mutable_body();
     assert(body->has_raw_str());
 
-    return body->mutable_raw_str()->mutable_str();
+    return *(body->mutable_raw_str()->mutable_str());
 }
 
-std::string* MulticastMessage::unpack_raw_bytes(MulticastMessage::ControlMessage& msg) {
+std::string MulticastMessage::unpack_raw_bytes(MulticastMessage::ControlMessage&& msg) {
     auto body = msg.mutable_body();
     assert(body->has_raw_bytes());
 
-    return body->mutable_raw_bytes()->mutable_bytestr();
+    return *(body->mutable_raw_bytes()->mutable_bytestr());
 }

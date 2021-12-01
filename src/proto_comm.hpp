@@ -47,15 +47,10 @@ private:
 
 namespace MulticastMessage {
     // hella memory leaks
-    std::string* unpack_join(MulticastMessage::ControlMessage& msg);
-    std::string* unpack_exec_code(MulticastMessage::ControlMessage& msg);
-    std::string* unpack_raw_str(MulticastMessage::ControlMessage& msg);
-    std::string* unpack_raw_bytes(MulticastMessage::ControlMessage& msg);
-
-    std::string unpack_join(ProtoSocket& sock);
-    std::string unpack_exec_code(ProtoSocket& sock);
-    std::string unpack_raw_str(ProtoSocket& sock);
-    std::string unpack_raw_bytes(ProtoSocket& sock);
+    std::string unpack_join(MulticastMessage::ControlMessage&& msg);
+    std::string unpack_exec_code(MulticastMessage::ControlMessage&& msg);
+    std::string unpack_raw_str(MulticastMessage::ControlMessage&& msg);
+    std::string unpack_raw_bytes(MulticastMessage::ControlMessage&& msg);
     // TODO move the serialization methods here?
     //ControlMessage* pack_join(std::string addr);
 }
