@@ -2,12 +2,7 @@
 
 
 ZmqServer::ZmqServer(std::string ip, unsigned thread_id)
-                     : ZmqComm(ip, thread_id, {
-                        { static_cast<void *>(zsock_join_), 0, ZMQ_POLLIN, 0 },
-                        { static_cast<void *>(zsock_msg_), 0, ZMQ_POLLIN, 0 },
-                        { static_cast<void *>(zsock_control_), 0, ZMQ_POLLIN, 0 },
-                        { static_cast<void *>(zsock_result_), 0, ZMQ_POLLIN, 0 },
-                     })
+                     : ZmqComm(ip, thread_id)
                      , zsock_join_(context_, ZMQ_PULL)
                      , zsock_msg_(context_, ZMQ_PULL)
                      , zsock_control_(context_, ZMQ_PULL)
@@ -24,21 +19,36 @@ ZmqServer::ZmqServer(std::string ip, unsigned thread_id)
 }
 
 void ZmqServer::net_setup() {
+    pollitems_ = std::vector<zmq::pollitem_t>({
+        { static_cast<void *>(zsock_join_), 0, ZMQ_POLLIN, 0 },
+        { static_cast<void *>(zsock_msg_), 0, ZMQ_POLLIN, 0 },
+        { static_cast<void *>(zsock_control_), 0, ZMQ_POLLIN, 0 },
+        { static_cast<void *>(zsock_result_), 0, ZMQ_POLLIN, 0 }
+    });
+    //this->pollitems_ = new_pollitems;
 }
 
 void ZmqServer::net_handler() {
     //std::cout << "Start polling" << std::endl;
     // Join Request
     if (pollitems_[0].revents & ZMQ_POLLIN){
-        //Get the address
-        std::string msg = this->recv_string(&zsock_join_);
-        LOG(INFO)  << "[SERVER] JOIN FROM " + msg ;
-        this->group_addresses_.push_back(msg);
+        ////Get the address
+        //std::string msg = this->recv_string(&zsock_join_);
+        //LOG(INFO)  << "[SERVER] JOIN FROM " + msg ;
+        //this->group_addresses_.push_back(msg);
 
-        //create a socket to the client and save
-        zmq::socket_t* socket_ptr  = new zmq::socket_t(context_, ZMQ_PUSH);
+        ////create a socket to the client and save
+        //zmq::socket_t* socket_ptr  = new zmq::socket_t(context_, ZMQ_PUSH);
+        //socket_ptr -> connect (msg);
+        //this->group_sockets_.push_back(socket_ptr);
+        ////this->send_string("Ack Join", socket_ptr);
+        
+        std::string msg = MulticastMessage::unpack_join(socket_join_);
+        LOGI << "[SERVER] JOIN FROM " + msg ;
+
+        zmq::socket_t* socket_ptr  = new  zmq::socket_t(context_, ZMQ_PUSH);
         socket_ptr -> connect (msg);
-        this->group_sockets_.push_back(socket_ptr);
+        this->child_sockets_.push_back(socket_ptr);
         //this->send_string("Ack Join", socket_ptr);
     }
 
@@ -71,12 +81,7 @@ void ZmqServer::net_handler() {
 }
 
 ZmqRouter::ZmqRouter(std::string ip, unsigned thread_id)
-                     : ZmqComm(ip, thread_id, {
-                        { static_cast<void *>(zsock_join_), 0, ZMQ_POLLIN, 0 },
-                        { static_cast<void *>(zsock_msg_), 0, ZMQ_POLLIN, 0 },
-                        { static_cast<void *>(zsock_control_), 0, ZMQ_POLLIN, 0 },
-                        { static_cast<void *>(zsock_result_), 0, ZMQ_POLLIN, 0 },
-                     })
+                     : ZmqComm(ip, thread_id)
                      , zsock_join_(context_, ZMQ_PULL)
                      , zsock_msg_(context_, ZMQ_PULL)
                      , zsock_control_(context_, ZMQ_PULL)
@@ -93,6 +98,12 @@ ZmqRouter::ZmqRouter(std::string ip, unsigned thread_id)
 }
 
 void ZmqRouter::net_setup() {
+    pollitems_ = std::vector<zmq::pollitem_t>({
+        { static_cast<void *>(zsock_join_), 0, ZMQ_POLLIN, 0 },
+        { static_cast<void *>(zsock_msg_), 0, ZMQ_POLLIN, 0 },
+        { static_cast<void *>(zsock_control_), 0, ZMQ_POLLIN, 0 },
+        { static_cast<void *>(zsock_result_), 0, ZMQ_POLLIN, 0 }
+    });
 }
 
 void ZmqRouter::net_handler() {
@@ -155,9 +166,7 @@ void ZmqRouter::net_handler() {
 }
 
 ZmqClient::ZmqClient(std::string ip, unsigned thread_id, Asylo_SGX* sgx)
-                     : ZmqComm(ip, thread_id, {
-                        { static_cast<void *>(zsock_from_server_), 0, ZMQ_POLLIN, 0 },
-                     })
+                     : ZmqComm(ip, thread_id)
                      , sgx_(sgx)
                      , zsock_join_(context_, ZMQ_PUSH)
                      , zsock_from_server_(context_, ZMQ_PULL)
@@ -174,6 +183,10 @@ ZmqClient::ZmqClient(std::string ip, unsigned thread_id, Asylo_SGX* sgx)
 void ZmqClient::net_setup() {
     LOG(INFO) << "tcp://" + seed_server_ip_ + ":" + seed_server_mcast_port_;
     LOG(INFO) << "tcp://" + seed_server_ip_ + ":" + seed_server_join_port_;
+
+    pollitems_ = std::vector<zmq::pollitem_t>({
+            { static_cast<void *>(zsock_from_server_), 0, ZMQ_POLLIN, 0 }
+    });
 
     //send join request to seed server
     socket_join_.send_join(addr_);
@@ -192,10 +205,7 @@ void ZmqClient::net_handler() {
 }
 
 ZmqJsClient::ZmqJsClient(std::string ip, unsigned thread_id, Asylo_SGX* sgx)
-                         : ZmqComm(ip, thread_id, {
-                            { static_cast<void *>(zsock_from_server_), 0, ZMQ_POLLIN, 0 },
-                            { static_cast<void *>(zsock_code_), 0, ZMQ_POLLIN, 0 },
-                         })
+                         : ZmqComm(ip, thread_id)
                          , sgx_(sgx)
                          , zsock_join_(context_, ZMQ_PUSH)
                          , zsock_from_server_(context_, ZMQ_PULL)
@@ -215,6 +225,11 @@ ZmqJsClient::ZmqJsClient(std::string ip, unsigned thread_id, Asylo_SGX* sgx)
 void ZmqJsClient::net_setup() {
     LOGI << "tcp://" + seed_server_ip_ + ":" + seed_server_mcast_port_;
     LOGI << "tcp://" + seed_server_ip_ + ":" + seed_server_join_port_;
+
+    pollitems_ = std::vector<zmq::pollitem_t>({
+        { static_cast<void *>(zsock_from_server_), 0, ZMQ_POLLIN, 0 },
+        { static_cast<void *>(zsock_code_), 0, ZMQ_POLLIN, 0 }
+    });
 
     //send join request to seed server
     socket_join_.send_join(addr_);

@@ -34,16 +34,14 @@
 
 class ZmqComm {
 public:
-    ZmqComm(std::string ip, unsigned thread_id,
-            std::initializer_list<zmq::pollitem_t> poll_sockets)
+    ZmqComm(std::string ip, unsigned thread_id)
             : thread_id_(thread_id)
             , context_(1)
             , seed_server_ip_(NET_SEED_ROUTER_IP)
             , seed_server_join_port_(std::to_string(NET_SERVER_JOIN_PORT))
             , seed_server_mcast_port_(std::to_string(NET_SERVER_MCAST_PORT))
             , enclave_seq_number_(0)
-            , coordinator_("")
-            , pollitems_(poll_sockets) {
+            , coordinator_("") {
         port_ = std::to_string(NET_CLIENT_BASE_PORT + thread_id);
         addr_ = "tcp://" + ip +":" + port_;
     }
