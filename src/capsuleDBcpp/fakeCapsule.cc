@@ -4,6 +4,7 @@
 #include <fstream>
 #include <boost/archive/text_oarchive.hpp>
 #include <boost/archive/text_iarchive.hpp>
+#include <sstream>
 
 void sha256_string(char *string, char outputBuffer[65])
 {
@@ -22,11 +23,14 @@ void sha256_string(char *string, char outputBuffer[65])
 
 std::string putCapsuleBlock(CapsuleBlock inputBlock) {
     // Serialize Block
-    char blockToStore[65];
+    char * serializedBlock;
+    std::stringstream toBeHashed;
+    boost::archive::text_oarchive testAr(toBeHashed);
     
     // Hash bytestream
     char blockHash[65];
-    sha256_string(blockToStore, blockHash);
+    toBeHashed >> serializedBlock;
+    sha256_string(serializedBlock, blockHash);
 
     // Serialize and store block
     std::ofstream storedBlock(blockHash);
@@ -46,15 +50,19 @@ CapsuleBlock getCapsuleBlock(std::string inputHash) {
     boost::archive::text_iarchive ia(storedBlock);
     ia >> recoveredBlock;
 
-    // Check hash match
-    char computedHash[65];
-    sha256_string(storedBlockData, computedHash);
-    if (computedHash != inputHash) {
+    // Check Hash
+    char * serializedBlock;
+    std::stringstream toBeHashed;
+    boost::archive::text_oarchive testAr(toBeHashed);
+    testAr << recoveredBlock;
+    toBeHashed >> serializedBlock;
+    
+    char blockHash[65];
+    toBeHashed >> serializedBlock;
+    sha256_string(serializedBlock, blockHash);
+    if (blockHash != inputHash) {
         return NULL;
     }
-
-
-    
 
     // Return to user
     return recoveredBlock;
