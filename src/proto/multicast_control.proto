@@ -39,12 +39,22 @@ message ExecCodeMsg {
   optional string str = 1;
 }
 
+message RawStrMsg { // TODO temporary shim
+  optional string str = 1;
+}
+
+message RawBytesMsg { // TODO temporary shim
+  optional bytes bytestr = 1;
+}
+
 message MessageBody {
   oneof msg {
     ErrorMsg error = 1;
     JoinMsg join = 2;
     AssignIdMsg assignId = 4;
     ExecCodeMsg code = 10;
+    RawStrMsg raw_str = 11;
+    RawBytesMsg raw_bytes = 12;
   }
 }
 

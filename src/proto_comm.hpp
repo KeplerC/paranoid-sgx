@@ -29,6 +29,9 @@ public:
     void send_join(std::string addr);
     void send_assign_id(uint64_t new_id);
     void send_exec_code(std::string code);
+    void send_raw_str(std::string str); // TODO temporary shim: Should be replaced
+                                        // with situation-specific proto msgs
+    void send_raw_bytes(std::string str); // TODO temporary shim ^
 private:
     virtual MulticastMessage::ControlMessage recv_proto();
     virtual void send_proto(MulticastMessage::ControlMessage& msg);
@@ -46,9 +49,13 @@ namespace MulticastMessage {
     // hella memory leaks
     std::string* unpack_join(MulticastMessage::ControlMessage& msg);
     std::string* unpack_exec_code(MulticastMessage::ControlMessage& msg);
+    std::string* unpack_raw_str(MulticastMessage::ControlMessage& msg);
+    std::string* unpack_raw_bytes(MulticastMessage::ControlMessage& msg);
 
     std::string unpack_join(ProtoSocket& sock);
     std::string unpack_exec_code(ProtoSocket& sock);
+    std::string unpack_raw_str(ProtoSocket& sock);
+    std::string unpack_raw_bytes(ProtoSocket& sock);
     // TODO move the serialization methods here?
     //ControlMessage* pack_join(std::string addr);
 }
