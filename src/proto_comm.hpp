@@ -15,8 +15,7 @@
 class ProtoSocket {
 public:
     // Non-owning pointer, TODO use unique_ptr instead )
-    ProtoSocket(zmq::socket_t* socket, uint64_t id)
-        : socket_(socket), id_(id), log_(true) {};
+    ProtoSocket(zmq::socket_t* socket, uint64_t id);
 
     void connect(std::string endpoint);
     void bind(std::string endpoint);
@@ -36,7 +35,11 @@ private:
 
     zmq::socket_t* socket_;
     uint64_t id_;
-    bool log_;
+
+    bool log_to_file_;
+    std::ofstream log_file_;
+
+    std::string endpoint_;
 };
 
 namespace MulticastMessage {

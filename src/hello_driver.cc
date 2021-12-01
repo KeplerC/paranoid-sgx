@@ -123,10 +123,10 @@ void thread_run_zmq_router(unsigned thread_id){
     ZmqComm* zs = new ZmqServer(NET_SEED_ROUTER_IP, thread_id);
     zs->run(); // run_server
 }
+
 void thread_start_fake_client(Asylo_SGX* sgx){
     sgx->execute();
 }
-
 
 void thread_start_mpl_client(Asylo_SGX* sgx){
     sgx->execute_mpl();

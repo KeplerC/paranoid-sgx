@@ -4,12 +4,24 @@
 
 #include <chrono>
 
+ProtoSocket::ProtoSocket(zmq::socket_t* socket, uint64_t id)
+    : socket_(socket), id_(id), log_to_file_(true)
+    {
+    using std::ios;
+    if (log_to_file_) {
+        log_file_.open("proto_log.out", // TODO parameterize this somehow
+                       ios::binary | ios::out | ios::app);
+    }
+}
+
 void ProtoSocket::connect(std::string endpoint) {
-    socket_->connect(endpoint);
+    endpoint_ = endpoint;
+    socket_->connect(endpoint_);
 }
 
 void ProtoSocket::bind(std::string endpoint) {
-    socket_->bind(endpoint);
+    endpoint_ = endpoint;
+    socket_->bind(endpoint_);
 }
 
 // TODO reference semantics, or do we just rely on move optimization here?
@@ -66,20 +78,21 @@ void ProtoSocket::send_exec_code(std::string code) {
 }
 
 MulticastMessage::ControlMessage ProtoSocket::recv_proto() {
-    zmq::message_t message;
-    socket_->recv(&message);
-    std::string str (static_cast<const char*>(message.data()), message.size());
+    zmq::message_t msg;
+    socket_->recv(&msg);
+    std::string str (static_cast<const char*>(msg.data()), msg.size());
 
-    MulticastMessage::ControlMessage msg;
-    msg.ParseFromString(str);
+    MulticastMessage::ControlMessage proto;
+    proto.ParseFromString(str);
 
-    assert(msg.has_body());
-    assert(msg.has_timestamp());
-    assert(msg.has_sender_id());
+    assert(proto.has_body());
+    assert(proto.has_timestamp());
+    assert(proto.has_sender_id());
 
-    LOGI<<"Received proto: "<<msg.ShortDebugString()<<std::endl;
+    LOGI<<"[Proto] Receiving via "<<endpoint_<<": ["
+        <<proto.ShortDebugString()<<"]"<<std::endl;
 
-    return msg;
+    return proto;
 }
 
 void ProtoSocket::send_proto(MulticastMessage::ControlMessage& proto) {
@@ -101,7 +114,12 @@ void ProtoSocket::send_proto(MulticastMessage::ControlMessage& proto) {
     memcpy(msg.data(), str.c_str(), str.size());
     socket_->send(msg);
 
-    LOGI<<"Sent proto: "<<proto.ShortDebugString()<<std::endl;
+    LOGI<<"[Proto] Sending to "<<endpoint_<<": ["
+        <<proto.ShortDebugString()<<"]"<<std::endl;
+    if (log_to_file_) {
+        log_file_ << str;
+        log_file_.flush();
+    }
 }
 
 std::string MulticastMessage::unpack_join(ProtoSocket& sock) {

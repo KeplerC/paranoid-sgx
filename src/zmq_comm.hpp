@@ -44,6 +44,8 @@ public:
             , coordinator_("") {
         port_ = std::to_string(NET_CLIENT_BASE_PORT + thread_id);
         addr_ = "tcp://" + ip +":" + port_;
+        LOGI << "[ZmqComm] Constructing agent: ID "<<thread_id
+             << ", Address " << addr_;
     }
 
     [[noreturn]] void run() {
