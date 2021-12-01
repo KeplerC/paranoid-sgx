@@ -5,6 +5,8 @@
 #include <string>
 #include <vector>
 #include <tuple>
+#include <boost/archive/text_oarchive.hpp>
+#include <boost/archive/text_iarchive.hpp>
 
 class CapsuleBlock
 {
@@ -14,7 +16,18 @@ private:
     std::string endKey;
     std::vector<std::tuple<std::string, std::string, int, std::string> > kvPairs; // Key, value, timestamp, msgType
 
+    friend class boost::serialization::access;
+    template<class Archive>
+    void serialize(Archive & ar, const unsigned int version) {
+        ar & level;
+        ar & startKey;
+        ar & endKey;
+        ar & kvPairs;
+    }
+
 public:
+    CapsuleBlock(){}
+    
     CapsuleBlock(int l)
     {
         level = l;

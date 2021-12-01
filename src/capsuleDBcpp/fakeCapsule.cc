@@ -2,6 +2,8 @@
 #include "capsuleBlock.cc"
 #include <openssl/sha.h>
 #include <fstream>
+#include <boost/archive/text_oarchive.hpp>
+#include <boost/archive/text_iarchive.hpp>
 
 void sha256_string(char *string, char outputBuffer[65])
 {
@@ -26,23 +28,23 @@ std::string putCapsuleBlock(CapsuleBlock inputBlock) {
     char blockHash[65];
     sha256_string(blockToStore, blockHash);
 
-    // Send to disk
-    ofstream storedBlock;
-    storedBlock.open(blockHash);
-    storedBlock << blockToStore;
-    storedBlock.close();
+    // Serialize and store block
+    std::ofstream storedBlock(blockHash);
+    boost::archive::text_oarchive oa(storedBlock);
+    oa << inputBlock;
 
     // Return Hash
-    return blockHash
+    return blockHash;
 }
 
 CapsuleBlock getCapsuleBlock(std::string inputHash) {
-    // Get bytestream from disk
+    CapsuleBlock recoveredBlock;
+
+    // Retrieve and deserialize block
     char storedBlockData[65];
-    ifstream storedBlock;
-    storedBlock.open(inputHash);
-    storedBlock >> storedBlockData;
-    storedBlock.close();
+    std::ifstream storedBlock(inputHash);
+    boost::archive::text_iarchive ia(storedBlock);
+    ia >> recoveredBlock;
 
     // Check hash match
     char computedHash[65];
@@ -51,9 +53,8 @@ CapsuleBlock getCapsuleBlock(std::string inputHash) {
         return NULL;
     }
 
-    // Deserialize
 
-    CapsuleBlock recoveredBlock;
+    
 
     // Return to user
     return recoveredBlock;
