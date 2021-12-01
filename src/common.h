@@ -17,14 +17,12 @@
 // ---------------------------------------------
 
 //Author: Ofir Weisse, www.OfirWeisse.com, email: oweisse (at) umich (dot) edu
-//Based on ISCA 2017 "HotCalls" paper. 
+//Based on ISCA 2017 "HotCalls" paper.
 //Link to the paper can be found at http://www.ofirweisse.com/previous_work.html
-//If you make nay use of this code for academic purpose, please cite the paper. 
-
+//If you make nay use of this code for academic purpose, please cite the paper.
 
 #ifndef __COMMON_H
 #define __COMMON_H
-
 
 #define NET_CLIENT_IP "35.247.29.237"
 #define NET_SEED_SERVER_IP "34.83.138.211"
@@ -60,38 +58,41 @@
 #define NET_SERVER_MCAST_PORT 6667
 #define NET_KEY_DIST_SERVER_PORT 3001
 
-
-#define BENCHMARK_MODE false
+#define BENCHMARK_MODE true
 #define LOGI LOG_IF(INFO, !BENCHMARK_MODE)
-#define LOGD LOG_IF(INFO, BENCHMARK_MODE)<< get_current_time() << " "
+#define LOGD LOG_IF(INFO, BENCHMARK_MODE) << get_current_time() << " "
 #if BENCHMARK_MODE
-    #define M_BENCHMARK_CODE void KVSClient::benchmark(){}
-
-    // #define M_BENCHMARK_CODE M_BENCHMARK_HERE
+#include "benchmark.h"
+//#define M_BENCHMARK_CODE void KVSClient::benchmark(){}
+#define M_BENCHMARK_CODE M_BENCHMARK_HERE
 #else
-    #define M_BENCHMARK_CODE void KVSClient::benchmark(){}
+#define M_BENCHMARK_CODE \
+    void KVSClient::benchmark() {}
 #endif
 
-enum OCALL_ID {
+enum OCALL_ID
+{
     OCALL_PUT,
 };
 
-enum ECALL_ID {
+enum ECALL_ID
+{
     ECALL_PUT,
     ECALL_RUN,
 };
 
-typedef struct {
-    uint64_t* cyclesCount;
-    uint64_t  counter;
-    void*     data;
-    OCALL_ID  ocall_id;
+typedef struct
+{
+    uint64_t *cyclesCount;
+    uint64_t counter;
+    void *data;
+    OCALL_ID ocall_id;
 } OcallParams;
 
-typedef struct {
-    void*     data;
-    ECALL_ID  ecall_id;
+typedef struct
+{
+    void *data;
+    ECALL_ID ecall_id;
 } EcallParams;
-
 
 #endif

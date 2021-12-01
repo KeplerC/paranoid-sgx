@@ -4,8 +4,8 @@
 
 #include <fstream>
 #include <string>
-#include "memtable.hpp"
-#include "common.h"
+#include "memtable_new.hpp"
+#include "../common.h"
 
 using namespace asylo;
 

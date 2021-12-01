@@ -1,7 +1,7 @@
-#include "memtable.hpp"
+#include "memtable_new.hpp"
 #include "asylo/util/logging.h"
-#include "common.h"
-#include "capsuleBlock.cc"
+#include "../common.h"
+//#include "capsuleBlock.cc"
 
 kvs_payload MemTable::get(const std::string &key) {
     // First check if a lock is present. If not, key is not present and can return.

@@ -91,12 +91,12 @@ public:
          */
     std::string writeOut()
     {
-        return;
+        return "";
     }
 
     void addKVPair(std::string key, std::string value, int timestamp, std::string msgType)
     {
-        std::tuple<std::string, std::sting, int, std::string> element;
+        std::tuple<std::string, std::string, int, std::string> element;
         element = make_tuple(key, value, timestamp, msgType);
         kvPairs.push_back(element);
     }

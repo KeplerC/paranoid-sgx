@@ -2,7 +2,7 @@
 #include "kvs_eapp.hpp"
 #include "kvs_enclave.hpp"
 #include "asylo/util/status.h"
-#include <mpl/demo/lambda_common.hpp>
+//#include <mpl/demo/lambda_common.hpp>
 #include <fstream>
 
 asylo::Status start_eapp(asylo::KVSClient *KVS_client, const asylo::EnclaveInput &input){

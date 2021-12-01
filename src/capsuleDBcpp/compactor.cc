@@ -1,5 +1,5 @@
-#include "capsuleBlock.cc"
-#include "index.cc"
+//#include "src/capsuleDBcpp/capsuleBlock.cc"
+//#include "src/capsuleDBcpp/index.cc"
 /*
  * This file manages compaction and the moving of data between levels for CapsuleDB.
  */
@@ -10,6 +10,7 @@
  * Input: Two arrays of keys and their values.
  * Output: A single sorted array of keys and values.
  */
-void sort(int arr1[], int arr2[]){
+void sort(int arr1[], int arr2[])
+{
     return;
 }

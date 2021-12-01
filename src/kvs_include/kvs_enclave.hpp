@@ -16,13 +16,14 @@
 #include "asylo/identity/platform/sgx/sgx_identity_util.h"
 #include "asylo/identity/attestation/sgx/sgx_local_assertion_generator.h"
 #include "../kvs_include/capsule.h"
-#include "../memtable.hpp"
 #include "../hot_msg_pass.h"
 #include "../common.h"
+#include "../duktape/duktape.h"
+#include "../pqueue.hpp"
+#include "../capsuleDBcpp/memtable_new.hpp"
+
 #include "src/proto/hello.pb.h"
 #include "src/util/proto_util.hpp"
-#include "../duktape/duktape.h"
-
 //GRPC 
 #include "src/translator_server.grpc.pb.h"
 #include "asylo/grpc/auth/enclave_channel_credentials.h"
@@ -33,7 +34,6 @@
 #include <utility>
 #include <unordered_map>
 
-#include "../pqueue.hpp"
  
  namespace asylo {
    

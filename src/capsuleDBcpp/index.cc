@@ -5,11 +5,9 @@
 #include <string>
 #include <list>
 #include <tuple>
-#include "capsuleBlock.cc"
-#include "../bloom/bloom_filter.hpp"
-#include "capsuledb.cc"
+// TODO: Add bloom filter
+//#include "../bloom/bloom_filter.hpp"
 #include <cmath>
-#include "fakeCapsule.cc"
 
 class CapsuleIndex {
     class Level {
