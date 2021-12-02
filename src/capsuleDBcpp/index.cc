@@ -6,11 +6,10 @@
 #include <list>
 #include <tuple>
 // TODO: Add bloom filter
-// #include "../../bloom/bloom_filter.hpp"
+#include "../bloom/bloom_filter.hpp"
 #include <cmath>
 #include <vector>
-#include "src/capsuleDBcpp/capsuleBlock.cc"
-#include "fakeCapsule.cc"
+#include "capsuleBlock.hh"
 
 class CapsuleIndex {
     class Level {
@@ -196,8 +195,8 @@ class CapsuleIndex {
                     // call function to query DataCapsule for block with hash
                     CapsuleBlock curr_block = getCapsuleBlock(curr_block_hash);
 
-                    std::vector < std::tuple<std::string, unsigned char[], int> > kvPairs = curr_block.getKVPairs();
-                    for (std::tuple<std::string, unsigned char[], int> kvt : kvPairs) {
+                    std::vector < std::tuple<std::string, std::string, int, std::string> > kvPairs = curr_block.getKVPairs();
+                    for (std::tuple<std::string, std::string, int, std::string> kvt : kvPairs) {
                         std::string key = std::get<0>(kvt);
                         unsigned char* value = std::get<1>(kvt);
                         int timestamp = std::get<2>(kvt);

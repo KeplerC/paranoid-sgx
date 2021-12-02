@@ -241,6 +241,7 @@ cc_binary(
         "capsuleDBcpp/memtable_new.hpp",
         "capsuleDBcpp/memtable_new.cc",
         "capsuleDBcpp/capsuleBlock.cc",
+        "capsuleDBcpp/capsuleBlock.hh",
         "capsuleDBcpp/compactor.cc",
         "capsuleDBcpp/engine.cc",
         "capsuleDBcpp/fakeCapsule.cc",
@@ -251,7 +252,8 @@ cc_binary(
         "common.h",
         "benchmark.h",
         "sgx_spinlock.h",
-        "crypto.h"],
+        "crypto.h",
+        "bloom/bloom_filter.hpp"],
     deps=[
         ":hello_cc_proto",
         #":mpl_hdrs",
