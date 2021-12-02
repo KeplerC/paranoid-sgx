@@ -233,6 +233,7 @@ cc_library(
     name="duktape",
     srcs=["duktape/duktape.c"],
     hdrs=["duktape/duktape.h",  "duktape/duk_config.h"],
+    textual_hdrs=["capsuleDBcpp/index.cc"]
 )
 
 cc_binary(
@@ -242,12 +243,10 @@ cc_binary(
         "capsuleDBcpp/memtable_new.cc",
         "capsuleDBcpp/capsuleBlock.cc",
         "capsuleDBcpp/capsuleBlock.hh",
-        "capsuleDBcpp/compactor.cc",
         "capsuleDBcpp/engine.cc",
         "capsuleDBcpp/fakeCapsule.cc",
         "capsuleDBcpp/fakeCapsule.hh",
         "capsuleDBcpp/index.cc",
-        "capsuleDBcpp/index.hh",
         "capsuleDBcpp/test.cc",
         "capsuleDBcpp/testFileStream.cc",
         "capsuleDBcpp/capsuledb.cc",

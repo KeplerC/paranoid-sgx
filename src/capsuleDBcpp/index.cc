@@ -11,19 +11,9 @@
 #include <vector>
 #include "capsuleBlock.hh"
 #include "fakeCapsule.hh"
-#include "index.hh"
 
 class CapsuleIndex {
-    class Level {
-        private:
-            bloom_filter create_filter() {
-                bloom_parameters params;
-                params.projected_element_count = 750000;
-                params.false_positive_probability = 0.05;
-                params.compute_optimal_parameters();
-                bloom_filter filter(params);
-                return filter;
-            }
+    class Level {            
         public:
             int index;
             int numBlocks;
@@ -32,6 +22,15 @@ class CapsuleIndex {
             std::string max_key;
             std::vector <std::string> recordHashes;
             bloom_filter levelFilter;
+
+            bloom_filter create_filter() {
+                bloom_parameters params;
+                params.projected_element_count = 750000;
+                params.false_positive_probability = 0.05;
+                params.compute_optimal_parameters();
+                bloom_filter filter(params);
+                return filter;
+            }
         
             /*
             * Returns the number of blocks in this level.
@@ -137,7 +136,7 @@ class CapsuleIndex {
 
         int add_hash(int level, std::string hash, CapsuleBlock block) {
             if (level < 0 || level >= numLevels) {
-                return NULL;
+                return -1;
             }
             return levels[level].addBlock(&block, hash);
         }
@@ -201,22 +200,23 @@ class CapsuleIndex {
                         std::string key = std::get<0>(kvt);
                         std::string value = std::get<1>(kvt);
                         int timestamp = std::get<2>(kvt);
+                        std::string msgType = std::get<3>(kvt);
                         
                         // find appropriate block in next level
                         CapsuleBlock next_block = find_containing_block(key, level + 1);
-                        next_block.addKVPair(key, value, timestamp);
+                        next_block.addKVPair(key, value, timestamp, msgType);
                         std::string hash = putCapsuleBlock(next_block);
-                        recordHashes[i] = hash;
+                        curr_level.recordHashes[i] = hash;
                     }
                 }
 
                 // wipe current level - delete capsule blocks and reset bloom filter
                 // TODO: how does deletion work in DataCapsule?
                 curr_level.setNumBlocks(0);
-                curr_level.recordHashes = NULL;
+                curr_level.recordHashes.clear();
                 curr_level.min_key = "";
                 curr_level.max_key = "";
-                curr_level.levelFilter = create_filter();
+                curr_level.levelFilter = curr_level.create_filter();
 
                 // recursively check for compaction at next level
                 compact(level + 1);
