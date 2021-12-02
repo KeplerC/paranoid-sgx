@@ -4,7 +4,7 @@
 #include "capsuleBlock.hh"
 #include "../kvs_include/capsule.h"
 
-kvs_payload MemTable::get(const std::string &key)
+kvs_payload Memtable::get(const std::string &key)
 {
     // First check if a lock is present. If not, key is not present and can return.
     // If present, wait to get lock and access the data item.
@@ -27,7 +27,7 @@ kvs_payload MemTable::get(const std::string &key)
  * The lock is then acquired and modifications done to the value.
  * Main philosophy is that concurrent reads and writes on different key values should not stall on the single memtable lock.
  */
-bool MemTable::put(const kvs_payload *payload)
+bool Memtable::put(const kvs_payload *payload)
 {
     auto prev_iter_lock = locklst.find(payload->key);
     if (prev_iter_lock != locklst.end())
@@ -71,7 +71,7 @@ bool MemTable::put(const kvs_payload *payload)
 
 /* This function writes out entire memtable to level 0 of tree if the number of kv pairs exceeds capacity.
  */
-void MemTable::write_out_if_full()
+void Memtable::write_out_if_full()
 {
     // capacity check: number of kv pairs (upperbounds amount of memory when we constrain kv size)
     if (memtable.size() > max_size)
