@@ -7,7 +7,7 @@
 #include "memtable_new.hpp"
 #include "../common.h"
 
-using namespace asylo;
+// using namespace asylo;
 
 /*
  * This function creates a new CapsuleDB instance.  It takes in information about the sizes of levels and other metadata to establish compaction rules.
@@ -65,7 +65,7 @@ char *CapsuleDB::get(const std::string &key, Enclave requester, bool isMulticast
     {
         // TODO iterate if there are multiple capsule indices
         level_info = capIndex->getNumLevels();
-        for (i = 0; i <= level_info; i++)
+        for (int i = 0; i <= level_info; i++)
         {
             block_info = capIndex->getblock(i, key);
             if (block_info != NULL) // Key might be present, however verify if key exists if not check other levels

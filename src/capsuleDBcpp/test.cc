@@ -1,6 +1,7 @@
 #include <string>
 //#include "capsuledb.cc"
 //#include "engine.cc"
+#include <iostream>
 
 #include "memtable_new.hpp"
 
@@ -10,7 +11,10 @@ int main()
     // Basic test
     spawnDB();
     Memtable *m;
-    m->put("testkey", "testval");
+    kvs_payload kvsp = new kvs_payload();
+    kvsp->key = "testkey";
+    kvsp->value = "testval";
+    m->put(&kvs_payload);
     std::string requestedVal = m->get("testkey");
-    cout << requestedVal;
+    std::cout << requestedVal;
 }

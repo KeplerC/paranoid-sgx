@@ -10,6 +10,7 @@
 class CapsuleBlock {
     private:
         int level;
+        
         std::string startKey; // Defines the range of keys contained in this block
         std::string endKey;
         std::vector<std::tuple<int, int>> kvPairs; // Key, value, timestamp, msgType

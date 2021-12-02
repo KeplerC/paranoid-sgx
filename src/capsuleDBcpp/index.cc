@@ -10,18 +10,10 @@
 #include <cmath>
 #include <vector>
 #include "capsuleBlock.hh"
+#include "fakeCapsule.hh"
 
 class CapsuleIndex {
-    class Level {
-        private:
-            bloom_filter create_filter() {
-                bloom_parameters params;
-                params.projected_element_count = 750000;
-                params.false_positive_probability = 0.05;
-                params.compute_optimal_parameters();
-                bloom_filter filter(params);
-                return filter;
-            }
+    class Level {            
         public:
             int index;
             int numBlocks;
@@ -30,6 +22,15 @@ class CapsuleIndex {
             std::string max_key;
             std::vector <std::string> recordHashes;
             bloom_filter levelFilter;
+
+            bloom_filter create_filter() {
+                bloom_parameters params;
+                params.projected_element_count = 750000;
+                params.false_positive_probability = 0.05;
+                params.compute_optimal_parameters();
+                bloom_filter filter(params);
+                return filter;
+            }
         
             /*
             * Returns the number of blocks in this level.
@@ -56,18 +57,17 @@ class CapsuleIndex {
             */
             int addBlock(CapsuleBlock* newBlock, std::string hash) {
                 std::vector<CapsuleBlock>::iterator iter;
-                if (!min_key) {
+                if (min_key == "") {
                     min_key = (*newBlock).getMinKey();
                 }
-                if (!max_key) {
+                if (max_key == "") {
                     max_key = (*newBlock).getMaxKey();
                 }
-                min_key = min(std::string(min), std::string((*newBlock).getMinKey()));
-                max_key = max(std::string(max), std::string((*newBlock).getMaxKey()));
+                min_key = min(std::string(min_key), std::string((*newBlock).getMinKey()));
+                max_key = max(std::string(max_key), std::string((*newBlock).getMaxKey()));
                 for (int i = 0; i < numBlocks; i++) {
-                    CapsuleBlock curr_block = blocks[i];
+                    CapsuleBlock curr_block = getCapsuleBlock(recordHashes[i]);
                     if (curr_block.getMinKey() > (*newBlock).getMaxKey()) {
-                        blocks.insert(blocks.begin() + i, *newBlock);
                         recordHashes.insert(recordHashes.begin() + i, hash);
                         numBlocks++;
                         compact(index);
@@ -92,7 +92,7 @@ class CapsuleIndex {
                 // Otherwise search -> is Binary really needed?
                 
                 for (int i = 0; i < numBlocks; i++) {
-                    CapsuleBlock curr_block = blocks[i];
+                    CapsuleBlock curr_block = getCapsuleBlock(recordHashes[i]);
                     if (key < curr_block.getMinKey()) {
                         return recordHashes[i];
                     }
@@ -104,6 +104,7 @@ class CapsuleIndex {
 
     public:
         int numLevels;
+        int blocksize;
         std::string prevIndexHash;
         std::vector <Level> levels;
 
@@ -135,7 +136,7 @@ class CapsuleIndex {
 
         int add_hash(int level, std::string hash, CapsuleBlock block) {
             if (level < 0 || level >= numLevels) {
-                return NULL;
+                return -1;
             }
             return levels[level].addBlock(&block, hash);
         }
@@ -152,7 +153,7 @@ class CapsuleIndex {
             newLevel.maxSize = size;
             newLevel.index = numLevels;
             
-            newLevel.levelFilter = create_filter();
+            newLevel.levelFilter = newLevel.create_filter();
 
             numLevels++;
             return numLevels - 1; 
@@ -194,27 +195,28 @@ class CapsuleIndex {
                     // call function to query DataCapsule for block with hash
                     CapsuleBlock curr_block = getCapsuleBlock(curr_block_hash);
 
-                    std::vector < std::tuple<std::string, unsigned char[], int> > kvPairs = curr_block.getKVPairs();
-                    for (std::tuple<std::string, unsigned char[], int> kvt : kvPairs) {
+                    std::vector < std::tuple<std::string, std::string, int, std::string> > kvPairs = curr_block.getKVPairs();
+                    for (std::tuple<std::string, std::string, int, std::string> kvt : kvPairs) {
                         std::string key = std::get<0>(kvt);
-                        unsigned char* value = std::get<1>(kvt);
+                        std::string value = std::get<1>(kvt);
                         int timestamp = std::get<2>(kvt);
+                        std::string msgType = std::get<3>(kvt);
                         
                         // find appropriate block in next level
                         CapsuleBlock next_block = find_containing_block(key, level + 1);
-                        next_block.addKVPair(key, value, timestamp);
+                        next_block.addKVPair(key, value, timestamp, msgType);
                         std::string hash = putCapsuleBlock(next_block);
-                        recordHashes[i] = hash;
+                        curr_level.recordHashes[i] = hash;
                     }
                 }
 
                 // wipe current level - delete capsule blocks and reset bloom filter
                 // TODO: how does deletion work in DataCapsule?
                 curr_level.setNumBlocks(0);
-                curr_level.recordHashes = NULL;
-                curr_level.min_key = NULL;
-                curr_level.max_key = NULL;
-                curr_level.levelFilter = create_filter()
+                curr_level.recordHashes.clear();
+                curr_level.min_key = "";
+                curr_level.max_key = "";
+                curr_level.levelFilter = curr_level.create_filter();
 
                 // recursively check for compaction at next level
                 compact(level + 1);
@@ -226,14 +228,14 @@ class CapsuleIndex {
         // optional TODO: binary search
         // TODO: how to add new blocks if all blocks in level are full? do we have to redistribute all the kv pairs?
         CapsuleBlock find_containing_block(std::string key, int level) {
-            Level level = levels[level];
-            for (int i = 0; i < level.numBlocks; i++) {
-                std::string curr_block_hash = level.getBlock(level.recordHashes[i]);
+            Level containing_level = levels[level];
+            for (int i = 0; i < containing_level.numBlocks; i++) {
+                std::string curr_block_hash = containing_level.getBlock(containing_level.recordHashes[i]);
                 
                 // call function to query DataCapsule for block with hash
                 CapsuleBlock curr_block = getCapsuleBlock(curr_block_hash);
 
-                if (i == level.numBlocks - 1 || key.compare(curr_block.getMaxKey()) <= 0) {
+                if (i == containing_level.numBlocks - 1 || key.compare(curr_block.getMaxKey()) <= 0) {
                     return curr_block;
                 }
             }
