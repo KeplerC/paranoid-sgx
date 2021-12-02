@@ -1,6 +1,7 @@
 #include <string>
 //#include "capsuledb.cc"
 //#include "engine.cc"
+#include <iostream>
 
 #include "memtable_new.hpp"
 
@@ -12,5 +13,5 @@ int main()
     Memtable *m;
     m->put("testkey", "testval");
     std::string requestedVal = m->get("testkey");
-    cout << requestedVal;
+    std::cout << requestedVal;
 }

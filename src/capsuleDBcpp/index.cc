@@ -11,6 +11,7 @@
 #include <vector>
 #include "capsuleBlock.hh"
 #include "fakeCapsule.hh"
+#include "index.hh"
 
 class CapsuleIndex {
     class Level {
@@ -68,7 +69,6 @@ class CapsuleIndex {
                 for (int i = 0; i < numBlocks; i++) {
                     CapsuleBlock curr_block = getCapsuleBlock(recordHashes[i]);
                     if (curr_block.getMinKey() > (*newBlock).getMaxKey()) {
-                        blocks.insert(blocks.begin() + i, *newBlock);
                         recordHashes.insert(recordHashes.begin() + i, hash);
                         numBlocks++;
                         compact(index);
@@ -93,7 +93,7 @@ class CapsuleIndex {
                 // Otherwise search -> is Binary really needed?
                 
                 for (int i = 0; i < numBlocks; i++) {
-                    CapsuleBlock curr_block = blocks[i];
+                    CapsuleBlock curr_block = getCapsuleBlock(recordHashes[i]);
                     if (key < curr_block.getMinKey()) {
                         return recordHashes[i];
                     }
@@ -154,7 +154,7 @@ class CapsuleIndex {
             newLevel.maxSize = size;
             newLevel.index = numLevels;
             
-            newLevel.levelFilter = create_filter();
+            newLevel.levelFilter = newLevel.create_filter();
 
             numLevels++;
             return numLevels - 1; 
@@ -199,7 +199,7 @@ class CapsuleIndex {
                     std::vector < std::tuple<std::string, std::string, int, std::string> > kvPairs = curr_block.getKVPairs();
                     for (std::tuple<std::string, std::string, int, std::string> kvt : kvPairs) {
                         std::string key = std::get<0>(kvt);
-                        unsigned char* value = std::get<1>(kvt);
+                        std::string value = std::get<1>(kvt);
                         int timestamp = std::get<2>(kvt);
                         
                         // find appropriate block in next level

@@ -247,6 +247,7 @@ cc_binary(
         "capsuleDBcpp/fakeCapsule.cc",
         "capsuleDBcpp/fakeCapsule.hh",
         "capsuleDBcpp/index.cc",
+        "capsuleDBcpp/index.hh",
         "capsuleDBcpp/test.cc",
         "capsuleDBcpp/testFileStream.cc",
         "capsuleDBcpp/capsuledb.cc",

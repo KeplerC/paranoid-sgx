@@ -5,6 +5,7 @@
 #include <boost/archive/text_oarchive.hpp>
 #include <boost/archive/text_iarchive.hpp>
 #include <sstream>
+#include "fakeCapsule.hh"
 
 void sha256_string(char *string, char outputBuffer[65])
 {

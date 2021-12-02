@@ -2,6 +2,7 @@
 #include <vector>
 #include "absl/strings/string_view.h"
 #include "memtable_new.hpp"
+#include "index.hh"
 
 class CapsuleDB {
     public:
