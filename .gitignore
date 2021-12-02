@@ -5,6 +5,7 @@
 .settings/
 .idea/
 .DS_Store
+.vscode
 
 # make and build files
 *.lst
