@@ -241,6 +241,7 @@ cc_binary(
         "capsuleDBcpp/memtable_new.hpp",
         "capsuleDBcpp/memtable_new.cc",
         "capsuleDBcpp/capsuleBlock.cc",
+        "capsuleDBcpp/capsuleBlock.hh",
         "capsuleDBcpp/compactor.cc",
         "capsuleDBcpp/engine.cc",
         "capsuleDBcpp/fakeCapsule.cc",

@@ -1,5 +1,5 @@
 #include <string>
-#include "capsuleBlock.cc"
+#include "capsuleBlock.hh"
 #include <openssl/sha.h>
 #include <fstream>
 #include <boost/archive/text_oarchive.hpp>

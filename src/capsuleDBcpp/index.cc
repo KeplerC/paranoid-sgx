@@ -9,7 +9,7 @@
 #include "../bloom/bloom_filter.hpp"
 #include <cmath>
 #include <vector>
-#include "capsuleBlock.cc"
+#include "capsuleBlock.hh"
 
 class CapsuleIndex {
     class Level {
