@@ -1,7 +1,7 @@
 #include "memtable_new.hpp"
 #include "asylo/util/logging.h"
 #include "../common.h"
-//#include "capsuleBlock.cc"
+#include "src/capsuleDBcpp/capsuleBlock.cc"
 
 kvs_payload MemTable::get(const std::string &key)
 {
@@ -33,7 +33,7 @@ bool MemTable::put(const kvs_payload *payload)
     {
         // key already exists
         std::mutex *lock = prev_iter_lock->second;
-        lock.lock());
+        lock.lock();
         auto prev_iter = memtable.find(payload->key);
         // No need to check prev_iter with end since locklst and memtable keys are synchronized
         int64_t prev_timestamp = prev_iter->second.txn_timestamp;
@@ -42,7 +42,7 @@ bool MemTable::put(const kvs_payload *payload)
         {
             LOGI << "[EARLIER DISCARDED] Timestamp of incoming payload key: " << payload->key
                  << ", timestamp: " << payload->txn_timestamp << " ealier than " << prev_timestamp;
-           lock.unlock());
+           lock.unlock();
            return false;
         }
         else

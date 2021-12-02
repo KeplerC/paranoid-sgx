@@ -6,9 +6,11 @@
 #include <list>
 #include <tuple>
 // TODO: Add bloom filter
-#include "../../bloom/bloom_filter.hpp"
+// #include "../../bloom/bloom_filter.hpp"
 #include <cmath>
 #include <vector>
+#include "src/capsuleDBcpp/capsuleBlock.cc"
+#include "fakeCapsule.cc"
 
 class CapsuleIndex {
     class Level {
@@ -55,14 +57,14 @@ class CapsuleIndex {
             */
             int addBlock(CapsuleBlock* newBlock, std::string hash) {
                 std::vector<CapsuleBlock>::iterator iter;
-                if (!min_key) {
+                if (min_key == "") {
                     min_key = (*newBlock).getMinKey();
                 }
-                if (!max_key) {
+                if (max_key == "") {
                     max_key = (*newBlock).getMaxKey();
                 }
-                min_key = min(std::string(min), std::string((*newBlock).getMinKey()));
-                max_key = max(std::string(max), std::string((*newBlock).getMaxKey()));
+                min_key = min(std::string(min_key), std::string((*newBlock).getMinKey()));
+                max_key = max(std::string(max_key), std::string((*newBlock).getMaxKey()));
                 for (int i = 0; i < numBlocks; i++) {
                     CapsuleBlock curr_block = blocks[i];
                     if (curr_block.getMinKey() > (*newBlock).getMaxKey()) {
@@ -103,6 +105,7 @@ class CapsuleIndex {
 
     public:
         int numLevels;
+        int blocksize;
         std::string prevIndexHash;
         std::vector <Level> levels;
 
@@ -211,9 +214,9 @@ class CapsuleIndex {
                 // TODO: how does deletion work in DataCapsule?
                 curr_level.setNumBlocks(0);
                 curr_level.recordHashes = NULL;
-                curr_level.min_key = NULL;
-                curr_level.max_key = NULL;
-                curr_level.levelFilter = create_filter()
+                curr_level.min_key = "";
+                curr_level.max_key = "";
+                curr_level.levelFilter = create_filter();
 
                 // recursively check for compaction at next level
                 compact(level + 1);
@@ -225,14 +228,14 @@ class CapsuleIndex {
         // optional TODO: binary search
         // TODO: how to add new blocks if all blocks in level are full? do we have to redistribute all the kv pairs?
         CapsuleBlock find_containing_block(std::string key, int level) {
-            Level level = levels[level];
-            for (int i = 0; i < level.numBlocks; i++) {
-                std::string curr_block_hash = level.getBlock(level.recordHashes[i]);
+            Level containing_level = levels[level];
+            for (int i = 0; i < containing_level.numBlocks; i++) {
+                std::string curr_block_hash = containing_level.getBlock(containing_level.recordHashes[i]);
                 
                 // call function to query DataCapsule for block with hash
                 CapsuleBlock curr_block = getCapsuleBlock(curr_block_hash);
 
-                if (i == level.numBlocks - 1 || key.compare(curr_block.getMaxKey()) <= 0) {
+                if (i == containing_level.numBlocks - 1 || key.compare(curr_block.getMaxKey()) <= 0) {
                     return curr_block;
                 }
             }

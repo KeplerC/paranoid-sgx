@@ -14,7 +14,7 @@ public:
     kvs_payload get(const std::string &key);
     void write_out_if_full();
     Memtable() {}
-    M_BENCHMARK_CODE
+    // M_BENCHMARK_CODE
 private:
     absl::flat_hash_map<std::string, kvs_payload> memtable;
     absl::flat_hash_map<std::string, std::mutex *> locklst; // each kv has its own lock.
