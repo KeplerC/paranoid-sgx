@@ -12,7 +12,7 @@ class CapsuleBlock {
         int level;
         std::string startKey; // Defines the range of keys contained in this block
         std::string endKey;
-        std::vector<std::tuple <std::string, std::string, int, std::string> > kvPairs; // Key, value, timestamp, msgType
+        std::vector<std::tuple<int, int>> kvPairs; // Key, value, timestamp, msgType
 
         friend class boost::serialization::access;
         template<class Archive>
