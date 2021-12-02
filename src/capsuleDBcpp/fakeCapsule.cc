@@ -46,7 +46,6 @@ CapsuleBlock getCapsuleBlock(std::string inputHash) {
     CapsuleBlock recoveredBlock;
 
     // Retrieve and deserialize block
-    char storedBlockData[65];
     std::ifstream storedBlock(inputHash);
     boost::archive::text_iarchive ia(storedBlock);
     ia >> recoveredBlock;

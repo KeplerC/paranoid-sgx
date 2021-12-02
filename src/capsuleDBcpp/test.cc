@@ -11,7 +11,7 @@ int main()
     // Basic test
     spawnDB();
     Memtable *m;
-    kvs_payload kvsp = new kvs_payload();
+    kvs_payload *kvsp = new kvs_payload();
     kvsp->key = "testkey";
     kvsp->value = "testval";
     m->put(&kvs_payload);
