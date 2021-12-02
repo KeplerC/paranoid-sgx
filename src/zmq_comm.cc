@@ -115,7 +115,8 @@ ZmqRouter::ZmqRouter(std::string ip, unsigned thread_id)
                      , socket_msg_(&zsock_msg_, thread_id)
                      , socket_control_(&zsock_control_, thread_id)
                      , socket_result_(&zsock_result_, thread_id) {
-    socket_join_.bind ("tcp://*:" + std::to_string(NET_SERVER_JOIN_PORT));
+                         
+    socket_join_.bind("tcp://*:" + seed_server_join_port_);//std::to_string(NET_SERVER_JOIN_PORT));
     socket_msg_.bind ("tcp://*:" + std::to_string(NET_SERVER_MCAST_PORT));
     socket_control_.bind ("tcp://*:" + std::to_string(NET_SERVER_CONTROL_PORT));
     socket_result_.bind ("tcp://*:" + std::to_string(NET_SERVER_RESULT_PORT));
