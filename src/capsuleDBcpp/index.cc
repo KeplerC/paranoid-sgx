@@ -10,6 +10,7 @@
 #include <cmath>
 #include <vector>
 #include "capsuleBlock.hh"
+#include "fakeCapsule.hh"
 
 class CapsuleIndex {
     class Level {
@@ -65,7 +66,7 @@ class CapsuleIndex {
                 min_key = min(std::string(min_key), std::string((*newBlock).getMinKey()));
                 max_key = max(std::string(max_key), std::string((*newBlock).getMaxKey()));
                 for (int i = 0; i < numBlocks; i++) {
-                    CapsuleBlock curr_block = blocks[i];
+                    CapsuleBlock curr_block = getCapsuleBlock(recordHashes[i]);
                     if (curr_block.getMinKey() > (*newBlock).getMaxKey()) {
                         blocks.insert(blocks.begin() + i, *newBlock);
                         recordHashes.insert(recordHashes.begin() + i, hash);

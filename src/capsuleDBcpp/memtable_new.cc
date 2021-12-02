@@ -1,7 +1,8 @@
 #include "memtable_new.hpp"
 #include "asylo/util/logging.h"
 #include "../common.h"
-#include "src/capsuleDBcpp/capsuleBlock.cc"
+#include "capsuleBlock.hh"
+#include "../kvs_include/capsule.h"
 
 kvs_payload MemTable::get(const std::string &key)
 {

@@ -10,7 +10,6 @@
 #include "capsuleBlock.hh"
 
 
-
 /*
     * Returns the level of the capsule block
     *
@@ -37,7 +36,7 @@ std::string CapsuleBlock::getMinKey()
     * Output: int representing the highest key in the block
     */
 std::string CapsuleBlock::getMaxKey()
-{
+{   
     return endKey;
 }
 

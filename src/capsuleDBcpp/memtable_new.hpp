@@ -3,6 +3,8 @@
 
 #include "absl/container/flat_hash_map.h"
 #include "../common.h"
+#include "../kvs_include/capsule.h"
+#include <mutex>
 
 //#include "../sgx_spinlock.h"
 
