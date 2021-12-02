@@ -251,7 +251,8 @@ cc_binary(
         "common.h",
         "benchmark.h",
         "sgx_spinlock.h",
-        "crypto.h"],
+        "crypto.h",
+        "bloom/bloom_filter.hpp"],
     deps=[
         ":hello_cc_proto",
         #":mpl_hdrs",
