@@ -11,7 +11,7 @@
 class Memtable
 {
 public:
-    int max_size;
+    size_t max_size;
     bool put(const kvs_payload *payload);
     kvs_payload get(const std::string &key);
     void write_out_if_full();

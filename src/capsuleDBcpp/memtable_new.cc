@@ -3,6 +3,7 @@
 #include "../common.h"
 #include "capsuleBlock.hh"
 #include "../kvs_include/capsule.h"
+#include "index.cc"
 
 kvs_payload Memtable::get(const std::string &key)
 {
@@ -17,9 +18,9 @@ kvs_payload Memtable::get(const std::string &key)
     else
     {
         std::mutex *lock = locklst.at(key);
-        lock.lock();
+        lock->lock();
         got = memtable.at(key);
-        lock.unlock();
+        lock->unlock();
     }
     return got;
 }
@@ -34,7 +35,7 @@ bool Memtable::put(const kvs_payload *payload)
     {
         // key already exists
         std::mutex *lock = prev_iter_lock->second;
-        lock.lock();
+        lock->lock();
         auto prev_iter = memtable.find(payload->key);
         // No need to check prev_iter with end since locklst and memtable keys are synchronized
         int64_t prev_timestamp = prev_iter->second.txn_timestamp;
@@ -43,7 +44,7 @@ bool Memtable::put(const kvs_payload *payload)
         {
             LOGI << "[EARLIER DISCARDED] Timestamp of incoming payload key: " << payload->key
                  << ", timestamp: " << payload->txn_timestamp << " ealier than " << prev_timestamp;
-           lock.unlock();
+           lock->unlock();
            return false;
         }
         else
@@ -52,19 +53,19 @@ bool Memtable::put(const kvs_payload *payload)
             write_out_if_full();
             LOGI << "[SAME PAYLOAD UPDATED] Timestamp of incoming payload key: " << payload->key
                  << ", timestamp: " << payload->txn_timestamp << " replaces " << prev_timestamp;
-            lock.unlock();
+            lock->unlock();
             return true;
         }
     }
     else
     {
         // key does not exist, create spinlock object and add to lock list.
-        std::mutex *lock = new sgx_spinlock_t(0);
+        std::mutex *lock = new std::mutex();
         locklst[payload->key] = lock; // add new lock to locklst
-        lock.lock();
+        lock->lock();
         memtable[payload->key] = *payload;
         write_out_if_full();
-        lock.unlock();
+        lock->unlock();
         return true;
     }
 }
@@ -86,7 +87,7 @@ void Memtable::write_out_if_full()
         for (const auto &p : memtable)
         {
             kvs_payload payload = p.second;
-            capsule_block.addKVPair(payload.key, payload.value, payload.txn_timestamp)
+            capsule_block.addKVPair(payload.key, payload.value, payload.txn_timestamp, payload.txn_msgType);
                 min_key = min(std::string(min_key), std::string(p.first));
             max_key = max(std::string(max_key), std::string(p.first));
         }
