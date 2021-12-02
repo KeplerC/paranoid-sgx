@@ -238,7 +238,6 @@ cc_library(
 cc_binary(
     name="capsuleDB",
     srcs=[
-        "capsuleDBcpp/helloworld.cc",
         "capsuleDBcpp/memtable_new.hpp",
         "capsuleDBcpp/memtable_new.cc",
         "capsuleDBcpp/capsuleBlock.cc",
@@ -262,6 +261,8 @@ cc_binary(
         "@libccd//:libccd",
         # "@fcl//:fcl",
         # "@assimp//:assimp",
+	"@boost//:archive",
+	"@boost//:serialization",
         ":duktape",
         ":translator_server",
         "@com_google_absl//absl/strings",
