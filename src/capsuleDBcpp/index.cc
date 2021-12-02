@@ -6,7 +6,7 @@
 #include <list>
 #include <tuple>
 // TODO: Add bloom filter
-#include "../bloom/bloom_filter.hpp"
+#include "../../bloom/bloom_filter.hpp"
 #include <cmath>
 #include <vector>
 
