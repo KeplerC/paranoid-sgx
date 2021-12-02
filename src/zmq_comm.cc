@@ -150,14 +150,14 @@ void ZmqRouter::net_handler() {
 
     //receive new message by worker or another router to mcast
     if (pollitems_[1].revents & ZMQ_POLLIN){
-        std::string msg = this->recv_string(&zsock_msg_);
-        LOGI << "[ROUTER] Mcast Message: " + msg;
-        //TODO: mcast to children nodes (filtering)
-        for (zmq::socket_t* socket : this -> child_sockets_) {
-            this->send_string(msg, socket);
+        MulticastMessage::ControlMessage msg(socket_msg_.recv());
+        LOGI << "[SERVER] Mcast Message: " + msg.ShortDebugString();
+        //mcast to all the clients
+        for (zmq::socket_t* socket : this->child_sockets_) {
+            // TODO convert group_sockets_ to a vector of ProtoSockets
+            ProtoSocket proto_socket(socket, thread_id_);
+            proto_socket.send(msg);
         }
-        // Forward message up the tree
-        this->send_string(msg, this->parent_socket_);
     }
 
     // Handle messages from coordinator node
