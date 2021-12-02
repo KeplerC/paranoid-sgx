@@ -2,7 +2,7 @@
 //#include "capsuledb.cc"
 //#include "engine.cc"
 
-#include "kvs_include/capsule.h"
+#include "../kvs_include/capsule.h"
 #include "memtable_new.hpp"
 
 extern int spawnDB();
