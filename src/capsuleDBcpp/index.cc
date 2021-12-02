@@ -8,6 +8,7 @@
 // TODO: Add bloom filter
 #include "../bloom/bloom_filter.hpp"
 #include <cmath>
+#include <vector>
 
 class CapsuleIndex {
     class Level {
