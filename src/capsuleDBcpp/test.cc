@@ -1,6 +1,6 @@
 #include <string>
-//#include "capsuledb.cc"
-//#include "engine.cc"
+#include "capsuledb.hh"
+#include "engine.hh"
 #include <iostream>
 
 #include "memtable_new.hpp"

@@ -6,6 +6,8 @@
 #include <string>
 #include "memtable_new.hpp"
 #include "../common.h"
+#include "capsuledb.hh"
+#include "engine.hh"
 
 // using namespace asylo;
 
@@ -17,7 +19,6 @@
  */
 int spawnDB()
 {
-
     return 0;
 }
 

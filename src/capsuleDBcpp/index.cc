@@ -138,6 +138,7 @@ class CapsuleIndex {
             if (level < 0 || level >= numLevels) {
                 return -1;
             }
+            //TODO: Move compaction to here.
             return levels[level].addBlock(&block, hash);
         }
 
