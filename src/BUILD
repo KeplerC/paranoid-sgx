@@ -248,7 +248,7 @@ cc_binary(
         "capsuleDBcpp/index.cc",
         "capsuleDBcpp/index.hh",
         "capsuleDBcpp/level.cc",
-        "capsuleDBcpp/level.hh"
+        "capsuleDBcpp/level.hh",
         "capsuleDBcpp/memtable_new.hpp",
         "capsuleDBcpp/memtable_new.cc",
         "common.h",
