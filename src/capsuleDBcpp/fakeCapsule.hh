@@ -2,7 +2,6 @@
 #define FAKECAPSULE_H
 
 #include <string>
-#include "capsuleBlock.hh"
 
 void sha256_string(char *string, char outputBuffer[65]);
 

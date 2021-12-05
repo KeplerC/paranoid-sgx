@@ -239,8 +239,6 @@ cc_library(
 cc_binary(
     name="capsuleDB",
     srcs=[
-        "capsuleDBcpp/memtable_new.hpp",
-        "capsuleDBcpp/memtable_new.cc",
         "capsuleDBcpp/capsuleBlock.cc",
         "capsuleDBcpp/capsuleBlock.hh",
         "capsuleDBcpp/engine.cc",
@@ -248,9 +246,11 @@ cc_binary(
         "capsuleDBcpp/fakeCapsule.cc",
         "capsuleDBcpp/fakeCapsule.hh",
         "capsuleDBcpp/index.cc",
-        # "capsuleDBcpp/test.cc",
-        "capsuleDBcpp/testFileStream.cc",
-        "capsuleDBcpp/capsuledb.hh",
+        "capsuleDBcpp/index.hh",
+        "capsuleDBcpp/level.cc",
+        "capsuleDBcpp/level.hh"
+        "capsuleDBcpp/memtable_new.hpp",
+        "capsuleDBcpp/memtable_new.cc",
         "common.h",
         "benchmark.h",
         "sgx_spinlock.h",

@@ -2,11 +2,9 @@
  * This file manages the database as well as read/write requests.  
  */
 
-#include <fstream>
 #include <string>
 #include "memtable_new.hpp"
 #include "../common.h"
-#include "capsuledb.hh"
 #include "engine.hh"
 
 // using namespace asylo;
