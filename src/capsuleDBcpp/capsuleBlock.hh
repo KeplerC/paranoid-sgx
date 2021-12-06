@@ -1,11 +1,12 @@
+#ifndef CAPSULEBLOCK_H
+#define CAPSULEBLOCK_H
+
 #include <string>
 #include <vector>
 #include <tuple>
 #include <boost/archive/text_oarchive.hpp>
 #include <boost/archive/text_iarchive.hpp>
 
-#ifndef CAPSULEBLOCK_H
-#define CAPSULEBLOCK_H
 
 class CapsuleBlock {
     private:

@@ -1,3 +1,6 @@
+#ifndef LEVEL_H
+#define LEVEL_H
+
 #include <string>
 #include <vector>
 #include "../bloom/bloom_filter.hpp"
@@ -19,3 +22,5 @@ class Level {
         int addBlock(CapsuleBlock* newBlock, std::string hash);
         std::string getBlock(std::string key);
 };
+
+#endif

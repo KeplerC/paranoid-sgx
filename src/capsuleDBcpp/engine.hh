@@ -1,3 +1,6 @@
+#ifndef ENGINE_H
+#define ENGINE_H
+
 /*
  * This file manages the database as well as read/write requests.  
  */
@@ -24,10 +27,10 @@ class CapsuleDB {
             oG+ldQH94d6FPkRWOMwY+ppB+SQ8XnUFRA==
             -----END EC PRIVATE KEY-----)pem"
         };
-        //TODO
         Memtable *memtable;
         CapsuleIndex index;
-        char* get(const std::string &key, Enclave requester, bool isMulticast = false);
+        std::string get(const std::string &key, Enclave requester, bool isMulticast = false);
+        void put(const kvs_payload *payload);
 };
 
 /*
@@ -38,5 +41,5 @@ class CapsuleDB {
  */
 int spawnDB();
 int connectDB();
-void CapsuleDB::put(const kvs_payload *payload);
-std::string CapsuleDB::get(const std::string &key, Enclave requester, bool isMulticast = false);
+
+#endif

@@ -1,6 +1,10 @@
+#ifndef INDEX_H
+#define INDEX_H
+
 #include <string>
 #include <vector>
 #include "capsuleBlock.hh"
+#include "level.hh"
 
 class CapsuleIndex {
     public:
@@ -17,3 +21,5 @@ class CapsuleIndex {
         int compact(int level);
         CapsuleBlock find_containing_block(std::string key, int level);
 };
+
+#endif
