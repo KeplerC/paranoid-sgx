@@ -3,7 +3,8 @@
 #include "../common.h"
 #include "capsuleBlock.hh"
 #include "../kvs_include/capsule.h"
-#include "index.cc"
+#include "index.hh"
+#include "level.hh"
 
 kvs_payload Memtable::get(const std::string &key)
 {
@@ -28,7 +29,7 @@ kvs_payload Memtable::get(const std::string &key)
  * The lock is then acquired and modifications done to the value.
  * Main philosophy is that concurrent reads and writes on different key values should not stall on the single memtable lock.
  */
-bool Memtable::put(const kvs_payload *payload)
+bool Memtable::put(const kvs_payload *payload, CapsuleIndex index)
 {
     auto prev_iter_lock = locklst.find(payload->key);
     if (prev_iter_lock != locklst.end())
@@ -50,7 +51,7 @@ bool Memtable::put(const kvs_payload *payload)
         else
         {
             memtable[payload->key] = *payload;
-            write_out_if_full();
+            write_out_if_full(index);
             LOGI << "[SAME PAYLOAD UPDATED] Timestamp of incoming payload key: " << payload->key
                  << ", timestamp: " << payload->txn_timestamp << " replaces " << prev_timestamp;
             lock->unlock();
@@ -64,7 +65,7 @@ bool Memtable::put(const kvs_payload *payload)
         locklst[payload->key] = lock; // add new lock to locklst
         lock->lock();
         memtable[payload->key] = *payload;
-        write_out_if_full();
+        write_out_if_full(index);
         lock->unlock();
         return true;
     }
@@ -72,12 +73,12 @@ bool Memtable::put(const kvs_payload *payload)
 
 /* This function writes out entire memtable to level 0 of tree if the number of kv pairs exceeds capacity.
  */
-void Memtable::write_out_if_full()
+void Memtable::write_out_if_full(CapsuleIndex index)
 {
     // capacity check: number of kv pairs (upperbounds amount of memory when we constrain kv size)
     if (memtable.size() > max_size)
     {
-        Level level_zero = CapsuleIndex.levels.front();
+        Level level_zero = index.levels.front();
         CapsuleBlock capsule_block(0);
 
         // initialize min/max

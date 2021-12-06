@@ -6,6 +6,7 @@
 #include <vector>
 #include <tuple>
 #include "capsuleBlock.hh"
+#include "fakeCapsule.hh"
 
 
 /*
@@ -67,7 +68,7 @@ void CapsuleBlock::setMaxKey(std::string k)
     */
 std::string CapsuleBlock::writeOut()
 {
-    return "";
+    return putCapsuleBlock(this);
 }
 
 void CapsuleBlock::addKVPair(std::string key, std::string value, int timestamp, std::string msgType)
@@ -85,5 +86,5 @@ void CapsuleBlock::addKVPair(std::string key, std::string value, int timestamp, 
     */
 void CapsuleBlock::readIn(std::string transactionHash, CapsuleBlock *location)
 {
-    return;
+    location = getCapsuleBlock(transactionHash);
 }

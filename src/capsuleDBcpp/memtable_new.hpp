@@ -5,6 +5,7 @@
 #include "../common.h"
 #include "../kvs_include/capsule.h"
 #include <mutex>
+#include "index.hh"
 
 //#include "../sgx_spinlock.h"
 
@@ -12,9 +13,9 @@ class Memtable
 {
 public:
     size_t max_size;
-    bool put(const kvs_payload *payload);
+    bool put(const kvs_payload *payload, CapsuleIndex index);
     kvs_payload get(const std::string &key);
-    void write_out_if_full();
+    void write_out_if_full(CapsuleIndex index);
     Memtable() {}
     // M_BENCHMARK_CODE
 private:

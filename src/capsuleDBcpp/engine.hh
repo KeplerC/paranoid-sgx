@@ -26,7 +26,7 @@ class CapsuleDB {
         };
         //TODO
         Memtable *memtable;
-        std::vector<CapsuleIndex> capIndexVec;
+        CapsuleIndex index;
         char* get(const std::string &key, Enclave requester, bool isMulticast = false);
 };
 
@@ -39,4 +39,4 @@ class CapsuleDB {
 int spawnDB();
 int connectDB();
 void CapsuleDB::put(const kvs_payload *payload);
-char *CapsuleDB::get(const std::string &key, Enclave requester, bool isMulticast = false);
+std::string CapsuleDB::get(const std::string &key, Enclave requester, bool isMulticast = false);

@@ -39,7 +39,7 @@ int connectDB()
  */
 void CapsuleDB::put(const kvs_payload *payload)
 {
-    if (!memtable->put(payload))
+    if (!memtable->put(payload, this.index))
     {
         LOGI << "Failed to write key in the Database";
     }
@@ -52,7 +52,7 @@ void CapsuleDB::put(const kvs_payload *payload)
  * Inputs: The key whose value is requested, the requesting enclave, and a return mode.
  * Output: The requested value or an error if the key does not exist.
  */
-char *CapsuleDB::get(const std::string &key, Enclave requester, bool isMulticast = false)
+std::string CapsuleDB::get(const std::string &key, Enclave requester, bool isMulticast = false)
 {
     int level_info;
     kvs_payload kv = memtable->get(key);
