@@ -29,13 +29,13 @@ int CapsuleIndex::getNumLevels() {
     */
 std::string CapsuleIndex::getBlock(int level, std::string key) {
     if (level < 0 || level >= numLevels) {
-        return NULL;
+        return "";
     }
     Level curr_level = levels[level];
     if (curr_level.levelFilter.contains(key)) {
         return curr_level.getBlock(key);
     }
-    return NULL;
+    return "";
 }
 
 int CapsuleIndex::add_hash(int level, std::string hash, CapsuleBlock block) {

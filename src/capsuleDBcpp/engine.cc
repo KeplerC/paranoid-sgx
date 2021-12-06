@@ -2,6 +2,7 @@
  * This file manages the database as well as read/write requests.  
  */
 
+#include <iostream>
 #include <string>
 #include "memtable_new.hpp"
 #include "../common.h"
@@ -41,7 +42,7 @@ void CapsuleDB::put(const kvs_payload *payload)
 {
     if (!memtable->put(payload, this.index))
     {
-        LOGI << "Failed to write key in the Database";
+        std::cout << "Failed to write key in the Database";
     }
 }
 
@@ -63,28 +64,25 @@ std::string CapsuleDB::get(const std::string &key, Enclave requester, bool isMul
     if (kv.key == "") //Checks for key in memtable, if not present: checks in levels
     {
         // TODO iterate if there are multiple capsule indices
-        level_info = capIndex->getNumLevels();
+        level_info = this.capIndex->getNumLevels();
         for (int i = 0; i <= level_info; i++)
         {
-            block_info = capIndex->getblock(i, key);
-            if (block_info != NULL) // Key might be present, however verify if key exists if not check other levels
+            block_info = this.capIndex->getblock(i, key);
+            if (block_info != "") // Key might be present, however verify if key exists if not check other levels
             {
-                CapsuleIndex::Level &lvls = capIndex->levels[i];
+                CapsuleIndex::Level &lvls = this.capIndex->levels[i];
                 std::vector<CapsuleIndex::Level>::iterator it = std::find(lvls.recordHashes.begin(), lvls.recordHashes.end(), block_info, != lvls.recordHashes.end());
                 int index = std::distance(lvls.recordHashes.begin(), it);
                 CapsuleBlock &capblock = lvls->block[index];
-                std::vector<CapsuleBlock>::iterator it = std::find(capblock.kvpairs.begin(), capblock.kvpairs.end(), key, != capblock.kvpairs.end());
+                std::vector<CapsuleBlock>::iterator it = std::find(capblock.kvPairs.begin(), capblock.kvPairs.end(), key, != capblock.kvPairs.end());
                 std::tie(k, v, t) = *it;
                 if (key == k)
                     return v;
             }
         }
-        if ((i == level_info) || (block_info == NULL))
-        {
-            LOGI << "CapsuleDb: Couldn't find key: " << key;
-            return "";
-        }
+        std::cout << "CapsuleDb: Couldn't find key: " << key;
+        return "";
     }
     else
-        return &kv.value;
+        return kv.value;
 }

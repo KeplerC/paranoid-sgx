@@ -1,3 +1,4 @@
+#include <iostream>
 #include "memtable_new.hpp"
 #include "asylo/util/logging.h"
 #include "../common.h"
@@ -13,7 +14,7 @@ kvs_payload Memtable::get(const std::string &key)
     kvs_payload got;
     if (!locklst.contains(key))
     {
-        LOGI << "Couldn't find key: " << key;
+        std::cout << "Couldn't find key: " << key;
         got.key = "";
     }
     else
@@ -43,7 +44,7 @@ bool Memtable::put(const kvs_payload *payload, CapsuleIndex index)
         //the timestamp of this payload is earlier, skip the change
         if (payload->txn_timestamp <= prev_timestamp)
         {
-            LOGI << "[EARLIER DISCARDED] Timestamp of incoming payload key: " << payload->key
+            std::cout << "[EARLIER DISCARDED] Timestamp of incoming payload key: " << payload->key
                  << ", timestamp: " << payload->txn_timestamp << " ealier than " << prev_timestamp;
            lock->unlock();
            return false;
@@ -52,7 +53,7 @@ bool Memtable::put(const kvs_payload *payload, CapsuleIndex index)
         {
             memtable[payload->key] = *payload;
             write_out_if_full(index);
-            LOGI << "[SAME PAYLOAD UPDATED] Timestamp of incoming payload key: " << payload->key
+            std::cout << "[SAME PAYLOAD UPDATED] Timestamp of incoming payload key: " << payload->key
                  << ", timestamp: " << payload->txn_timestamp << " replaces " << prev_timestamp;
             lock->unlock();
             return true;
