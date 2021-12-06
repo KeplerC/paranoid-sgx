@@ -25,6 +25,7 @@
 #include <zmq.hpp>
 #include <chrono>
 
+
 #include "absl/flags/flag.h"
 #include "absl/flags/parse.h"
 #include "absl/strings/str_split.h"
@@ -56,7 +57,7 @@
 // #include "asylo/identity/enclave_assertion_authority_config.proto.h"
 #include "asylo/identity/enclave_assertion_authority_configs.h"
 
-enum mode_type { RUN_BOTH_CLIENT_AND_SERVER, RUN_CLIENT_ONLY, LISTENER_MODE, COORDINATOR_MODE, JS_MODE, USER_MODE,WORKER_MODE };
+enum mode_type { RUN_BOTH_CLIENT_AND_SERVER, RUN_CLIENT_ONLY, LISTENER_MODE, COORDINATOR_MODE, JS_MODE, USER_MODE,WORKER_MODE, ROUTER_MODE };
 
 #define PORT_NUM 1234
 
@@ -556,7 +557,14 @@ int run_local_dispatcher(){
 }
 
 int run_worker(){
-    std::unique_ptr <asylo::SigningKey> signing_key = asylo::EcdsaP256Sha256SigningKey::Create().ValueOrDie();
+//    std::unique_ptr <asylo::SigningKey> signing_key = asylo::EcdsaP256Sha256SigningKey::Create().ValueOrDie();
+//    asylo::CleansingVector<uint8_t> serialized_signing_key;
+//    ASSIGN_OR_RETURN(serialized_signing_key,
+//                     signing_key->SerializeToDer());
+    std::unique_ptr <asylo::SigningKey> signing_key(std::move(asylo::EcdsaP256Sha256SigningKey::CreateFromPem(
+            signing_key_pem)).ValueOrDie());
+
+    // std::unique_ptr <asylo::SigningKey> signing_key = asylo::EcdsaP256Sha256SigningKey::Create().ValueOrDie();
     asylo::CleansingVector<uint8_t> serialized_signing_key;
     ASSIGN_OR_RETURN(serialized_signing_key,
                      signing_key->SerializeToDer());
@@ -564,36 +572,24 @@ int run_worker(){
     std::vector <std::thread> worker_threads;
     //unsigned long int now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 
-    //start clients
-    //    int num_threads = TOTAL_THREADS + 1;
-    //    for (unsigned thread_id = START_CLIENT_ID; thread_id < num_threads; thread_id++) {
-    //        Asylo_SGX* sgx = new Asylo_SGX( std::to_string(thread_id), serialized_signing_key);
-    //        sgx->init();
-    //        sgx->setTimeStamp(now);
-    //        sleep(1);
-    //        worker_threads.push_back(std::thread(thread_run_zmq_client, thread_id, sgx));
-    //        worker_threads.push_back(std::thread(thread_start_fake_client, sgx));
-    //    }
-
-//    unsigned thread_id = 2;
-//    worker_threads.push_back(std::thread(thread_run_zmq_router, 0));
-//    Asylo_SGX* sgx = new Asylo_SGX( std::to_string(thread_id), serialized_signing_key);
-//    sgx->init();
-//    sleep(1);
-//    worker_threads.push_back(std::thread(thread_start_coordinator, sgx));
-//    worker_threads.push_back(std::thread(thread_run_zmq_js_client, thread_id, sgx));
-//    sleep(1000);
-
     int num_threads = 4; //# of worker = num_threads - 2
     worker_threads.push_back(std::thread(thread_run_zmq_router, 0));
+    Asylo_SGX* sgx = new Asylo_SGX( std::to_string(1), serialized_signing_key);
+    sgx->init();
+    sleep(2);
+    worker_threads.push_back(std::thread(thread_run_zmq_client, 1, sgx));
+    worker_threads.push_back(std::thread(thread_start_coordinator, sgx));
+    sleep(1);
 
     for (unsigned thread_id = START_CLIENT_ID; thread_id < num_threads; thread_id++) {
         //unsigned thread_id = 2;
         Asylo_SGX* sgx = new Asylo_SGX( std::to_string(thread_id), serialized_signing_key);
         sgx->init();
         sleep(2);
-        worker_threads.push_back(std::thread(thread_start_coordinator, sgx));
+
+//        worker_threads.push_back(std::thread(thread_start_coordinator, sgx));
         worker_threads.push_back(std::thread(thread_run_zmq_js_client, thread_id, sgx));
+        worker_threads.push_back(std::thread(thread_start_fake_client, sgx));
         sleep(1);
     }
     sleep(1000);
@@ -621,6 +617,23 @@ int run_js() {
     LOGI << "finished running the code";
     return 0; 
 }
+
+
+int run_router_only(){
+    std::unique_ptr <asylo::SigningKey> signing_key = asylo::EcdsaP256Sha256SigningKey::Create().ValueOrDie();
+    asylo::CleansingVector<uint8_t> serialized_signing_key;
+    ASSIGN_OR_RETURN(serialized_signing_key,
+                     signing_key->SerializeToDer());
+
+    std::vector <std::thread> worker_threads;
+
+    worker_threads.push_back(std::thread(thread_run_zmq_router, 0));
+
+    sleep(1000);
+
+    return 0;
+}
+
 
 int main(int argc, char *argv[]) {
     absl::ParseCommandLine(argc, argv);
@@ -654,6 +667,10 @@ int main(int argc, char *argv[]) {
         case WORKER_MODE:
             LOGI << "running in worker mode";
             run_worker();
+            break;
+        case ROUTER_MODE:
+            LOGI << "running in router mode";
+            run_router_only();
             break;
         default:
             printf("Mode %d is incorrect\n", mode); 

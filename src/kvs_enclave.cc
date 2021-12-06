@@ -79,7 +79,6 @@ namespace asylo {
             }
             dc->prevHash = m_prev_hash;
             m_prev_hash = dc->hash;
-            DUMP_CAPSULE(dc);
             // sign dc
             success = sign_dc(dc, enclave_key_pair, faas_idx);
             if (!success) {
@@ -87,6 +86,7 @@ namespace asylo {
                 delete dc;
                 return;
             }
+            DUMP_CAPSULE(dc);
 
             // to_memtable and/or update_hash based on msgType
             bool to_memtable = (dc->msgType == "")? true : false;
