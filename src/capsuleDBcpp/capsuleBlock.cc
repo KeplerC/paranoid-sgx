@@ -60,17 +60,6 @@ void CapsuleBlock::setMaxKey(std::string k)
     endKey = k;
 }
 
-/*
-    * This function takes a prepared block and pushes it to the DataCapusle.
-    *
-    * Input: None
-    * Output: DataCapsule record hash.
-    */
-std::string CapsuleBlock::writeOut()
-{
-    return putCapsuleBlock(this);
-}
-
 void CapsuleBlock::addKVPair(std::string key, std::string value, int timestamp, std::string msgType)
 {
     std::tuple<std::string, std::string, int, std::string> element;
@@ -79,12 +68,23 @@ void CapsuleBlock::addKVPair(std::string key, std::string value, int timestamp, 
 }
 
 /*
+    * This function takes a prepared block and pushes it to the DataCapusle.
+    *
+    * Input: None
+    * Output: DataCapsule record hash.
+    */
+std::string writeOut()
+{
+    return putCapsuleBlock(this);
+}
+
+/*
     * This function reads in a data block from the DataCapusle.
     * 
     * Input: Transaction hash of the requested block and the memory location for the record to be stored.
     * Output: Error code or 0 on success.
     */
-void CapsuleBlock::readIn(std::string transactionHash, CapsuleBlock *location)
+void readIn(std::string transactionHash, CapsuleBlock *location)
 {
     location = getCapsuleBlock(transactionHash);
 }

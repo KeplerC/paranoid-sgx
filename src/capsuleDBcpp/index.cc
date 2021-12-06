@@ -144,5 +144,5 @@ CapsuleBlock CapsuleIndex::find_containing_block(std::string key, int level) {
             return curr_block;
         }
     }
-    return NULL    
+    return;
 }

@@ -38,8 +38,9 @@ class CapsuleBlock {
         void setMinKey(std::string k);
         void setMaxKey(std::string k);
         std::string writeOut();
-        void addKVPair(std::string key, std::string value, int timestamp, std::string msgType);
-        void readIn(std::string transactionHash, CapsuleBlock *location);
 };
+
+void addKVPair(std::string key, std::string value, int timestamp, std::string msgType);
+void readIn(std::string transactionHash, CapsuleBlock *location);
 
 #endif
