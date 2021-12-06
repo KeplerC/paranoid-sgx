@@ -79,7 +79,6 @@ namespace asylo {
             }
             dc->prevHash = m_prev_hash;
             m_prev_hash = dc->hash;
-            DUMP_CAPSULE(dc);
             // sign dc
             //TODO: signing stops working for some reason!!!
             success = sign_dc(dc, signing_key);
@@ -88,6 +87,7 @@ namespace asylo {
                 delete dc;
                 return;
             }
+            DUMP_CAPSULE(dc);
 
             // to_memtable and/or update_hash based on msgType
             bool to_memtable = (dc->msgType == "")? true : false;
@@ -409,6 +409,7 @@ namespace asylo {
                         switch (arg->ecall_id) {
                             case ECALL_PUT:
                                 LOGI << "[CICBUF-ECALL] transmitted a data capsule pdu";
+                                DUMP_CAPSULE(dc);
                                 if (verify_dc(dc, verifying_key)) {
                                     LOGI << "dc verification successful.";
                                 } else {
