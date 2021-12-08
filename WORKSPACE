@@ -64,7 +64,7 @@ new_git_repository(
 git_repository(
     name = "com_google_asylo",
     remote = "https://github.com/KeplerC/asylo.git",
-    commit = "89aa34697144f5b12a9b20da59b795fa702410a1",
+    commit = "936628e",
 )
 
 load(

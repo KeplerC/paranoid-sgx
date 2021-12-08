@@ -207,7 +207,7 @@ debug_sign_enclave(
 # The enclave hosting the translation server.
 cc_unsigned_enclave(
     name = "grpc_server_enclave_unsigned.so",
-    srcs = ["grpc_server_enclave.cc"],
+    srcs = ["grpc_server_enclave.cc",  "common.h"],
     backends = sgx.backend_labels,  # Has SGX identity dependencies
     copts = ASYLO_DEFAULT_COPTS,
     deps = [
@@ -221,9 +221,13 @@ cc_unsigned_enclave(
         "@com_google_asylo//asylo/examples/grpc_server:grpc_server_config_cc_proto",
         "@com_google_asylo//asylo/grpc/auth:grpc++_security_enclave",
         "@com_google_asylo//asylo/grpc/auth:sgx_local_credentials_options",
+        "@com_google_asylo//asylo/grpc/auth:sgx_age_remote_credentials_options",
         "@com_google_asylo//asylo/identity:identity_acl_cc_proto",
+"@com_google_asylo//asylo/identity:enclave_assertion_authority_configs", # "@com_google_asylo//asylo/identity/platform/sgx:sgx_identity_util",
+"@com_google_asylo//asylo/identity/attestation/sgx:sgx_age_remote_assertion_generator",
         "@com_google_asylo//asylo/util:status",
         "@com_github_grpc_grpc//:grpc++",
+"@com_google_asylo//asylo/identity/provisioning/sgx/internal:fake_sgx_pki",
         "@com_github_grpc_grpc//:grpc++_reflection",
     ] + select(
         {
