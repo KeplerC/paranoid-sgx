@@ -56,5 +56,5 @@ RUN pip3 install zmq
 WORKDIR /
 ADD paranoid-sgx /paranoid-sgx
 WORKDIR /paranoid-sgx
-RUN bazel build //src:hello_world_sgx_sim  -- 
+RUN bazel build //src:hello_world_sgx_hw  --
 CMD ["./scripts/run-worker.sh"]
