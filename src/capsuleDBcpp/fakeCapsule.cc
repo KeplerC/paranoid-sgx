@@ -42,19 +42,19 @@ std::string putCapsuleBlock(CapsuleBlock inputBlock) {
     return blockHash;
 }
 
-CapsuleBlock getCapsuleBlock(std::string inputHash) {
-    CapsuleBlock recoveredBlock;
+CapsuleBlock* getCapsuleBlock(std::string inputHash) {
+    CapsuleBlock* recoveredBlock = new CapsuleBlock();
 
     // Retrieve and deserialize block
     std::ifstream storedBlock(inputHash);
     boost::archive::text_iarchive ia(storedBlock);
-    ia >> recoveredBlock;
+    ia >> *recoveredBlock;
 
     // Check Hash
     char * serializedBlock;
     std::stringstream toBeHashed;
     boost::archive::text_oarchive testAr(toBeHashed);
-    testAr << recoveredBlock;
+    testAr << *recoveredBlock;
     toBeHashed >> serializedBlock;
     
     char blockHash[65];

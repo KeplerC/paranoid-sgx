@@ -80,7 +80,7 @@ void CapsuleBlock::setMaxKey(std::string k)
     */
 std::string CapsuleBlock::writeOut()
 {
-    return putCapsuleBlock(this);
+    return putCapsuleBlock(*this);
 }
 
 /*
@@ -91,5 +91,5 @@ std::string CapsuleBlock::writeOut()
     */
 void readIn(std::string transactionHash, CapsuleBlock *location)
 {
-    *location = getCapsuleBlock(transactionHash);
+    location = getCapsuleBlock(transactionHash);
 }

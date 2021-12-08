@@ -7,6 +7,6 @@ void sha256_string(char *string, char outputBuffer[65]);
 
 std::string putCapsuleBlock(CapsuleBlock inputBlock);
 
-CapsuleBlock getCapsuleBlock(std::string inputHash);
+CapsuleBlock* getCapsuleBlock(std::string inputHash);
 
 #endif

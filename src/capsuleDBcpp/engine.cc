@@ -56,7 +56,7 @@ void CapsuleDB::put(const kvs_payload *payload)
  * Inputs: The key whose value is requested, the requesting enclave, and a return mode.
  * Output: The requested value or an error if the key does not exist.
  */
-std::string CapsuleDB::get(const std::string &key, bool isMulticast = false)
+std::string CapsuleDB::get(const std::string &key, bool isMulticast /* default is already false from function declaration in engine.hh */)
 {
     int level_info;
     kvs_payload kv = memtable.get(key);
@@ -75,7 +75,7 @@ std::string CapsuleDB::get(const std::string &key, bool isMulticast = false)
             {
                 CapsuleBlock block;
                 readIn(block_info, &block);
-                for (int j = 0; j < block.kvPairs.size(); j++) 
+                for (long unsigned int j = 0; j < block.kvPairs.size(); j++) 
                 {
                     std::tuple<std::string, std::string, int, std::string> kv_tuple = block.kvPairs[j];
                     if (i != 0 && std::get<0>(kv_tuple) > key) 

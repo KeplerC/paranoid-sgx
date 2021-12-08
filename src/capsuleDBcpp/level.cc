@@ -50,8 +50,8 @@ int Level::addBlock(CapsuleBlock* newBlock, std::string hash) {
     min_key = min(std::string(min_key), std::string((*newBlock).getMinKey()));
     max_key = max(std::string(max_key), std::string((*newBlock).getMaxKey()));
     for (int i = 0; i < numBlocks; i++) {
-        CapsuleBlock curr_block = getCapsuleBlock(recordHashes[i]);
-        if (curr_block.getMinKey() > (*newBlock).getMaxKey()) {
+        CapsuleBlock* curr_block = getCapsuleBlock(recordHashes[i]);
+        if (curr_block->getMinKey() > (*newBlock).getMaxKey()) {
             recordHashes.insert(recordHashes.begin() + i, hash);
             numBlocks++;
             compact(index);
@@ -76,8 +76,8 @@ std::string Level::getBlock(std::string key) {
     // Otherwise search -> is Binary really needed?
     
     for (int i = 0; i < numBlocks; i++) {
-        CapsuleBlock curr_block = getCapsuleBlock(recordHashes[i]);
-        if (key < curr_block.getMinKey()) {
+        CapsuleBlock* curr_block = getCapsuleBlock(recordHashes[i]);
+        if (key < curr_block->getMinKey()) {
             return recordHashes[i];
         }
     }
