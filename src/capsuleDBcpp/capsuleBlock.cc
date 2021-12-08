@@ -9,6 +9,10 @@
 #include "fakeCapsule.hh"
 
 
+CapsuleBlock::CapsuleBlock(int l) {
+    level = l;
+}
+
 /*
     * Returns the level of the capsule block
     *
@@ -44,6 +48,13 @@ std::vector<std::tuple<std::string, std::string, int, std::string> > CapsuleBloc
     return kvPairs;
 }
 
+void CapsuleBlock::addKVPair(std::string key, std::string value, int64_t timestamp, std::string msgType)
+{
+    std::tuple<std::string, std::string, int, std::string> element;
+    element = make_tuple(key, value, timestamp, msgType);
+    kvPairs.push_back(element);
+}
+
 /*
     * Set the lower bound of keys in this block
     */
@@ -60,12 +71,6 @@ void CapsuleBlock::setMaxKey(std::string k)
     endKey = k;
 }
 
-void CapsuleBlock::addKVPair(std::string key, std::string value, int timestamp, std::string msgType)
-{
-    std::tuple<std::string, std::string, int, std::string> element;
-    element = make_tuple(key, value, timestamp, msgType);
-    kvPairs.push_back(element);
-}
 
 /*
     * This function takes a prepared block and pushes it to the DataCapusle.
@@ -73,7 +78,7 @@ void CapsuleBlock::addKVPair(std::string key, std::string value, int timestamp, 
     * Input: None
     * Output: DataCapsule record hash.
     */
-std::string writeOut()
+std::string CapsuleBlock::writeOut()
 {
     return putCapsuleBlock(this);
 }
@@ -86,5 +91,5 @@ std::string writeOut()
     */
 void readIn(std::string transactionHash, CapsuleBlock *location)
 {
-    location = getCapsuleBlock(transactionHash);
+    *location = getCapsuleBlock(transactionHash);
 }

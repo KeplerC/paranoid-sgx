@@ -25,16 +25,13 @@ class CapsuleBlock {
         std::string endKey;
         std::vector<std::tuple<std::string, std::string, int, std::string>> kvPairs; // Key, value, timestamp, msgType
         
-
-        CapsuleBlock(){}
-        CapsuleBlock(int l)
-        {
-            level = l;
-        }
+        CapsuleBlock();
+        CapsuleBlock(int l);
         int getLevel();
         std::string getMinKey();
         std::string getMaxKey();
         std::vector<std::tuple<std::string, std::string, int, std::string> > getKVPairs();
+        void addKVPair(std::string key, std::string value, int64_t timestamp, std::string msgType);
         void setMinKey(std::string k);
         void setMaxKey(std::string k);
         std::string writeOut();

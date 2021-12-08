@@ -13,7 +13,7 @@ class CapsuleIndex {
         std::string prevIndexHash;
         std::vector <Level> levels;
 
-        
+        CapsuleIndex();
         int getNumLevels();
         std::string getBlock(int level, std::string key);
         int add_hash(int level, std::string hash, CapsuleBlock block);

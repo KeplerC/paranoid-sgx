@@ -27,10 +27,12 @@ class CapsuleDB {
             oG+ldQH94d6FPkRWOMwY+ppB+SQ8XnUFRA==
             -----END EC PRIVATE KEY-----)pem"
         };
-        Memtable *memtable;
+        Memtable memtable;
         CapsuleIndex index;
-        std::string get(const std::string &key, Enclave requester, bool isMulticast = false);
+        std::string get(const std::string &key, bool isMulticast = false);
         void put(const kvs_payload *payload);
+
+        CapsuleDB();
 };
 
 /*
@@ -39,7 +41,7 @@ class CapsuleDB {
  * Inputs: ???
  * Outputs: An error code
  */
-int spawnDB();
+CapsuleDB spawnDB();
 int connectDB();
 
 #endif
