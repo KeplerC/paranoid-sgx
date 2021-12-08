@@ -28,7 +28,7 @@ message AssignIdMsg {
 }
 
 message AssignParentMsg {
-  // TODO
+  optional string parent = 1; 
 }
 
 message AssignChildMsg {
@@ -51,6 +51,7 @@ message MessageBody {
   oneof msg {
     ErrorMsg error = 1;
     JoinMsg join = 2;
+    AssignParentMsg assign_parent = 3;
     AssignIdMsg assignId = 4;
     ExecCodeMsg code = 10;
     RawStrMsg raw_str = 11;

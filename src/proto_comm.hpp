@@ -29,6 +29,9 @@ public:
     void send_join(std::string addr);
     void send_assign_id(uint64_t new_id);
     void send_exec_code(std::string code);
+    void send_assign_parent(std::string parent_addr);
+
+
     void send_raw_str(std::string str); // TODO temporary shim: Should be replaced
                                         // with situation-specific proto msgs
     void send_raw_bytes(std::string str); // TODO temporary shim ^
@@ -50,7 +53,7 @@ namespace MulticastMessage {
     std::string unpack_join(MulticastMessage::ControlMessage&& msg);
     std::string unpack_exec_code(MulticastMessage::ControlMessage&& msg);
     std::string unpack_raw_str(MulticastMessage::ControlMessage&& msg);
-    std::string unpack_raw_bytes(MulticastMessage::ControlMessage&& msg);
+    std::string unpack_raw_bytes(MulticastMessage::ControlMessage& msg);
     // TODO move the serialization methods here?
     //ControlMessage* pack_join(std::string addr);
 }

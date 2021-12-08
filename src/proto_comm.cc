@@ -96,6 +96,16 @@ void ProtoSocket::send_raw_bytes(std::string bytes) {
     send_proto(message);
 }
 
+void ProtoSocket::send_assign_parent(std::string parent_addr) {
+    MulticastMessage::ControlMessage message;
+    MulticastMessage::MessageBody* body = message.mutable_body();
+    MulticastMessage::AssignParentMsg* raw_str = body->mutable_assign_parent();
+    raw_str->set_parent(parent_addr);
+
+    send_proto(message);
+}
+
+
 MulticastMessage::ControlMessage ProtoSocket::recv_proto() {
     zmq::message_t msg;
     socket_->recv(&msg);
@@ -108,8 +118,8 @@ MulticastMessage::ControlMessage ProtoSocket::recv_proto() {
     assert(proto.has_timestamp());
     assert(proto.has_sender_id());
 
-    LOGI<<"[Proto] Receiving via "<<endpoint_<<": ["
-        <<proto.ShortDebugString()<<"]"<<std::endl;
+    //LOGI<<"[Proto] Receiving via "<<endpoint_<<": ["
+    //    <<proto.ShortDebugString()<<"]"<<std::endl;
 
     return proto;
 }
@@ -133,8 +143,8 @@ void ProtoSocket::send_proto(MulticastMessage::ControlMessage& proto) {
     memcpy(msg.data(), str.c_str(), str.size());
     socket_->send(msg);
 
-    LOGI<<"[Proto] Sending to "<<endpoint_<<": ["
-        <<proto.ShortDebugString()<<"]"<<std::endl;
+    //LOGI<<"[Proto] Sending to "<<endpoint_<<": ["
+    //    <<proto.ShortDebugString()<<"]"<<std::endl;
     if (log_to_file_) {
         log_file_ << str;
         log_file_.flush();
@@ -162,7 +172,7 @@ std::string MulticastMessage::unpack_raw_str(MulticastMessage::ControlMessage&& 
     return *(body->mutable_raw_str()->mutable_str());
 }
 
-std::string MulticastMessage::unpack_raw_bytes(MulticastMessage::ControlMessage&& msg) {
+std::string MulticastMessage::unpack_raw_bytes(MulticastMessage::ControlMessage &msg) {
     auto body = msg.mutable_body();
     assert(body->has_raw_bytes());
 

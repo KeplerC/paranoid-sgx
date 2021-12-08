@@ -66,7 +66,10 @@ void ZmqServer::net_handler() {
 
         socket_ptr -> connect (msg);
         this->group_sockets_.push_back(socket_ptr);
-        //this->send_string("Ack Join", socket_ptr);
+
+        ProtoSocket proto_socket(socket_ptr, thread_id_);
+        proto_socket.send_assign_parent("test");
+
     }
 
     //receive new message to mcast
@@ -276,12 +279,28 @@ void ZmqJsClient::net_setup() {
 
 void ZmqJsClient::net_handler() {
     if (pollitems_[0].revents & ZMQ_POLLIN) {
-        //Get the address
-        std::string msg = MulticastMessage::unpack_raw_bytes(socket_from_server_.recv());
-        LOGI << "[Client " << addr_ << "]:  " + msg ;
+        // Multiplex to handle several types of message
 
-        // this -> send_string(port_ , zsock_send_);
-        sgx_->send_to_sgx(msg);
+        MulticastMessage::ControlMessage recv = socket_from_server_.recv(); 
+
+        auto body = recv.mutable_body();
+        if(body->has_assign_parent()) {
+
+            
+            //MulticastMessage::MessageBody* body = message.mutable_body();
+            //MulticastMessage::RawStrMsg* raw_str = body->mutable_assign_parent(); 
+            //std::string msg = MulticastMessage::unpack_assign_parent(recv); 
+
+            LOGI << "[Client " << addr_ << "] has new parent:  ";
+        } 
+        else if(body->has_raw_bytes()) {
+            std::string msg = MulticastMessage::unpack_raw_bytes(recv);
+            LOGI << "[Client " << addr_ << "] sending message to enclave:  " + msg ;
+
+            // this -> send_string(port_ , zsock_send_);
+            sgx_->send_to_sgx(msg);
+        }
+
     }
 
     if (pollitems_[1].revents & ZMQ_POLLIN) {
