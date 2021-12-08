@@ -96,16 +96,6 @@ void ProtoSocket::send_raw_bytes(std::string bytes) {
     send_proto(message);
 }
 
-void ProtoSocket::send_assign_parent(std::string parent_addr) {
-    MulticastMessage::ControlMessage message;
-    MulticastMessage::MessageBody* body = message.mutable_body();
-    MulticastMessage::AssignParentMsg* raw_str = body->mutable_assign_parent();
-    raw_str->set_parent(parent_addr);
-
-    send_proto(message);
-}
-
-
 MulticastMessage::ControlMessage ProtoSocket::recv_proto() {
     zmq::message_t msg;
     socket_->recv(&msg);
@@ -178,3 +168,21 @@ std::string MulticastMessage::unpack_raw_bytes(MulticastMessage::ControlMessage 
 
     return *(body->mutable_raw_bytes()->mutable_bytestr());
 }
+
+
+void ProtoSocket::send_assign_parent(std::string parent_addr) {
+    MulticastMessage::ControlMessage message;
+    MulticastMessage::MessageBody* body = message.mutable_body();
+    MulticastMessage::AssignParentMsg* raw_str = body->mutable_assign_parent();
+    raw_str->set_parent(parent_addr);
+
+    send_proto(message);
+}
+
+
+std::string MulticastMessage::unpack_assign_parent(MulticastMessage::ControlMessage &msg) {
+    auto body = msg.mutable_body();
+    assert(body->has_assign_parent());
+    return *(body->mutable_assign_parent()->mutable_parent());
+}
+

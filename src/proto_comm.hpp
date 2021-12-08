@@ -54,6 +54,9 @@ namespace MulticastMessage {
     std::string unpack_exec_code(MulticastMessage::ControlMessage&& msg);
     std::string unpack_raw_str(MulticastMessage::ControlMessage&& msg);
     std::string unpack_raw_bytes(MulticastMessage::ControlMessage& msg);
+
+    std::string unpack_assign_parent(MulticastMessage::ControlMessage &msg);
+
     // TODO move the serialization methods here?
     //ControlMessage* pack_join(std::string addr);
 }

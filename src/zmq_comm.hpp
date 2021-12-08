@@ -123,15 +123,16 @@ class ZmqRouter: public ZmqComm {
 public:
     ZmqRouter(std::string ip, unsigned thread_id);
 private:
-    zmq::socket_t zsock_join_; // socket for join requests
-    zmq::socket_t zsock_msg_; // socket for new mcast messages
-    zmq::socket_t zsock_control_;
-    zmq::socket_t zsock_result_;
+    zmq::socket_t zsock_join_;
+    zmq::socket_t zsock_from_server_;
+    zmq::socket_t zsock_code_;
+    zmq::socket_t zsock_send_; //a socket to server to multicast
+
 
     ProtoSocket socket_join_;
-    ProtoSocket socket_msg_; // socket for new mcast messages
-    ProtoSocket socket_control_;
-    ProtoSocket socket_result_;
+    ProtoSocket socket_from_server_;
+    ProtoSocket socket_code_;
+    ProtoSocket socket_send_;
 
     zmq::socket_t* parent_socket_;
     std::vector<zmq::socket_t*> child_sockets_;

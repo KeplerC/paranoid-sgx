@@ -53,6 +53,7 @@ message MessageBody {
     JoinMsg join = 2;
     AssignParentMsg assign_parent = 3;
     AssignIdMsg assignId = 4;
+    AssignChildMsg assign_child = 5;
     ExecCodeMsg code = 10;
     RawStrMsg raw_str = 11;
     RawBytesMsg raw_bytes = 12;

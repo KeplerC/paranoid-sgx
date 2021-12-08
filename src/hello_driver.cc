@@ -118,6 +118,14 @@ void thread_run_zmq_js_client(unsigned thread_id, Asylo_SGX* sgx){
     zs->run(); // run_js_client
 }
 
+
+void thread_run_zmq_intermediate_router(unsigned thread_id){
+    LOG(INFO) << "[thread_run_zmq_client_worker]";
+    ZmqComm* zs = new ZmqRouter(NET_WORKER_IP, thread_id);
+    zs->run(); 
+}
+
+
 void thread_run_zmq_router(unsigned thread_id){
     LOG(INFO) << "[thread_run_zmq_server]"; 
     ZmqComm* zs = new ZmqServer(NET_SEED_ROUTER_IP, thread_id);
@@ -629,12 +637,13 @@ int run_worker(){
     //        worker_threads.push_back(std::thread(thread_start_fake_client, sgx));
     //    }
 
-    unsigned thread_id = 2;
+    unsigned thread_id = 3;
     worker_threads.push_back(std::thread(thread_run_zmq_router, 0));
     Asylo_SGX* sgx = new Asylo_SGX( std::to_string(thread_id), serialized_signing_key);
     sgx->init();
     sleep(1);
     worker_threads.push_back(std::thread(thread_start_coordinator, sgx));
+    worker_threads.push_back(std::thread(thread_run_zmq_intermediate_router, 2));
     worker_threads.push_back(std::thread(thread_run_zmq_js_client, thread_id, sgx));
     sleep(1000);
 
