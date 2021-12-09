@@ -43,7 +43,7 @@ std::string putCapsuleBlock(CapsuleBlock inputBlock) {
 }
 
 CapsuleBlock* getCapsuleBlock(std::string inputHash) {
-    CapsuleBlock* recoveredBlock = new CapsuleBlock();
+    CapsuleBlock* recoveredBlock;
 
     // Retrieve and deserialize block
     std::ifstream storedBlock(inputHash);

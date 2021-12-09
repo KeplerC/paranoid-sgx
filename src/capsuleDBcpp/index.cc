@@ -11,6 +11,9 @@
 #include "index.hh"
 #include "level.hh"
 
+CapsuleIndex::CapsuleIndex() {
+
+}
 
 /*
 * Returns the number of levels in the database.
@@ -99,10 +102,10 @@ int CapsuleIndex::compact(int level) {
             std::string curr_block_hash = curr_level.getBlock(curr_level.recordHashes[i]);
             
             // call function to query DataCapsule for block with hash
-            CapsuleBlock curr_block;
-            readIn(curr_block_hash, &curr_block);
+            CapsuleBlock* curr_block;
+            readIn(curr_block_hash, curr_block);
 
-            std::vector < std::tuple<std::string, std::string, int, std::string> > kvPairs = curr_block.getKVPairs();
+            std::vector < std::tuple<std::string, std::string, int, std::string> > kvPairs = curr_block->getKVPairs();
             for (std::tuple<std::string, std::string, int, std::string> kvt : kvPairs) {
                 std::string key = std::get<0>(kvt);
                 std::string value = std::get<1>(kvt);
@@ -110,9 +113,9 @@ int CapsuleIndex::compact(int level) {
                 std::string msgType = std::get<3>(kvt);
                 
                 // find appropriate block in next level
-                CapsuleBlock next_block = find_containing_block(key, level + 1);
-                next_block.addKVPair(key, value, timestamp, msgType);
-                std::string hash = next_block.writeOut();
+                CapsuleBlock* next_block = find_containing_block(key, level + 1);
+                next_block->addKVPair(key, value, timestamp, msgType);
+                std::string hash = next_block->writeOut();
                 curr_level.recordHashes[i] = hash;
             }
         }
@@ -134,17 +137,17 @@ int CapsuleIndex::compact(int level) {
 
 // optional TODO: binary search
 // TODO: how to add new blocks if all blocks in level are full? do we have to redistribute all the kv pairs?
-CapsuleBlock CapsuleIndex::find_containing_block(std::string key, int level) {
+CapsuleBlock* CapsuleIndex::find_containing_block(std::string key, int level) {
     Level containing_level = (*this).levels[level];
     for (int i = 0; i < containing_level.numBlocks; i++) {
         std::string curr_block_hash = containing_level.getBlock(containing_level.recordHashes[i]);
         
         // call function to query DataCapsule for block with hash
 
-        CapsuleBlock curr_block;
-        readIn(curr_block_hash, &curr_block);
+        CapsuleBlock* curr_block;
+        readIn(curr_block_hash, curr_block);
 
-        if (i == containing_level.numBlocks - 1 || key.compare(curr_block.getMaxKey()) <= 0) {
+        if (i == containing_level.numBlocks - 1 || key.compare(curr_block->getMaxKey()) <= 0) {
             return curr_block;
         }
     }

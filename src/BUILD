@@ -239,6 +239,7 @@ cc_library(
 cc_binary(
     name="capsuleDB",
     srcs=[
+        "capsuleDBcpp/test.cc",
         "capsuleDBcpp/capsuleBlock.cc",
         "capsuleDBcpp/capsuleBlock.hh",
         "capsuleDBcpp/engine.cc",
