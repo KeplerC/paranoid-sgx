@@ -307,20 +307,6 @@ cc_library(
         ":capsuleLevel",
         "@com_google_asylo//asylo/util:logging",
         "@com_google_absl//absl/container:flat_hash_map",
-
-
-
-        # ":hello_cc_proto",
-        # "@eigen//:eigen3",
-        # "@nigh//:nigh",
-        # "@libccd//:libccd",
-        # ":duktape",
-        # ":translator_server",
-        # "@com_google_absl//absl/strings",
-        # "@com_google_absl//absl/base:core_headers",
-        # "@com_google_absl//absl/synchronization",
-        # "@com_github_grpc_grpc//:grpc++",
-        # "@com_google_absl//absl/time",
     ],
 )
 
@@ -329,12 +315,6 @@ cc_library(
     srcs=[
         "capsuleDBcpp/engine.cc",
         "common.h",
-        # "benchmark.h",
-        # "sgx_spinlock.h",
-        # "crypto.h",
-        # "bloom/bloom_filter.hpp",
-        # "kvs_include/capsule.h",
-        # "serialize-tuple/serialize_tuple.h",
         ],
     hdrs=["capsuleDBcpp/engine.hh"],
     deps=[
