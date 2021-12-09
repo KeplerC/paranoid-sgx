@@ -7,7 +7,7 @@
 #include "level.hh"
 
 
-bloom_filter create_filter() {
+bloom_filter Level::create_filter() {
     bloom_parameters params;
     params.projected_element_count = 750000;
     params.false_positive_probability = 0.05;

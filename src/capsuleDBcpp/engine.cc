@@ -10,6 +10,10 @@
 
 // using namespace asylo;
 
+CapsuleDB::CapsuleDB() {
+
+}
+
 /*
  * This function creates a new CapsuleDB instance.  It takes in information about the sizes of levels and other metadata to establish compaction rules.
  * 
@@ -73,11 +77,11 @@ std::string CapsuleDB::get(const std::string &key, bool isMulticast /* default i
             block_info = this->index.getBlock(i, key);
             if (block_info != "") // Key might be present, however verify if key exists if not check other levels
             {
-                CapsuleBlock block;
-                readIn(block_info, &block);
-                for (long unsigned int j = 0; j < block.kvPairs.size(); j++) 
+                CapsuleBlock* block;
+                readIn(block_info, block);
+                for (long unsigned int j = 0; j < block->kvPairs.size(); j++) 
                 {
-                    std::tuple<std::string, std::string, int, std::string> kv_tuple = block.kvPairs[j];
+                    std::tuple<std::string, std::string, int, std::string> kv_tuple = block->kvPairs[j];
                     if (i != 0 && std::get<0>(kv_tuple) > key) 
                     {
                         break;

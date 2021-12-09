@@ -240,6 +240,7 @@ cc_library(
 cc_library(
     name = "capsuleBlock",
     srcs=[
+        "capsuleDBcpp/test.cc",
         "capsuleDBcpp/capsuleBlock.cc",
         "capsuleDBcpp/fakeCapsule.hh",
         "serialize-tuple/serialize_tuple.h",
