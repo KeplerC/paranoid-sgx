@@ -240,7 +240,6 @@ cc_library(
 cc_library(
     name = "capsuleBlock",
     srcs=[
-        "capsuleDBcpp/test.cc",
         "capsuleDBcpp/capsuleBlock.cc",
         "capsuleDBcpp/fakeCapsule.hh",
         "serialize-tuple/serialize_tuple.h",
@@ -326,7 +325,7 @@ cc_library(
 )
 
 cc_library(
-    name="capsuleDB",
+    name="capsuleEngine",
     srcs=[
         "capsuleDBcpp/engine.cc",
         "common.h",
@@ -342,6 +341,16 @@ cc_library(
         ":memtable_new",
         ":capsuleIndex",
         "@com_google_absl//absl/strings",
+    ],
+)
+
+cc_binary(
+    name="capsuleDB",
+    srcs=[
+        "capsuleDBcpp/test.cc",
+    ],
+    deps=[
+        ":capsuleEngine",
     ],
 )
 
