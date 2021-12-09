@@ -54,7 +54,6 @@ int Level::addBlock(CapsuleBlock* newBlock, std::string hash) {
         if (curr_block->getMinKey() > (*newBlock).getMaxKey()) {
             recordHashes.insert(recordHashes.begin() + i, hash);
             numBlocks++;
-            compact(index);
             return 0;
         }
     }

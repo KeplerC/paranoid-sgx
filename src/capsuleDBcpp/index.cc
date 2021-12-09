@@ -42,8 +42,9 @@ int CapsuleIndex::add_hash(int level, std::string hash, CapsuleBlock block) {
     if (level < 0 || level >= numLevels) {
         return -1;
     }
-    //TODO: Move compaction to here.
-    return levels[level].addBlock(&block, hash);
+    int status = levels[level].addBlock(&block, hash);
+    compact(level);
+    return status;
 }
 
 /* 
