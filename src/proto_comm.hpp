@@ -26,7 +26,7 @@ public:
     void send(MulticastMessage::ControlMessage& msg);
 
     void send_error(uint64_t error_code);
-    void send_join(std::string addr);
+    void send_join(std::string addr, int node_type);
     void send_assign_id(uint64_t new_id);
     void send_exec_code(std::string code);
     void send_assign_parent(std::string parent_addr);
@@ -50,7 +50,7 @@ private:
 
 namespace MulticastMessage {
     // hella memory leaks
-    std::string unpack_join(MulticastMessage::ControlMessage&& msg);
+    std::string unpack_join(MulticastMessage::ControlMessage&& msg, int* node_type);
     std::string unpack_exec_code(MulticastMessage::ControlMessage&& msg);
     std::string unpack_raw_str(MulticastMessage::ControlMessage&& msg);
     std::string unpack_raw_bytes(MulticastMessage::ControlMessage& msg);

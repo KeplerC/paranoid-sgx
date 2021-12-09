@@ -32,6 +32,8 @@
 // #include "asylo/identity/enclave_assertion_authority_config.proto.h"
 #include "asylo/identity/enclave_assertion_authority_configs.h"
 
+#define MAX_CHILD_ROUTERS 2
+
 class ZmqComm {
 public:
     ZmqComm(std::string ip, unsigned thread_id);
@@ -81,6 +83,8 @@ class ZmqServer: public ZmqComm {
 public:
     ZmqServer(std::string ip, unsigned thread_id);
 private:
+    int max_child_routers;
+
     zmq::socket_t zsock_join_;
     zmq::socket_t zsock_msg_; // socket for new mcast messages
     zmq::socket_t zsock_control_;
@@ -91,14 +95,38 @@ private:
     ProtoSocket socket_control_;
     ProtoSocket socket_result_;
 
-    std::vector<std::string> group_addresses_;
-    std::vector<zmq::socket_t*> group_sockets_;
+    std::vector<std::string> router_addresses_;
+    std::vector<zmq::socket_t*> router_sockets_;
+
+    std::vector<std::string> client_addresses_;
+    std::vector<zmq::socket_t*> client_sockets_;
+
 
     void net_setup() override;
     void net_handler() override;
 
     std::string serialize_group_addresses();
     std::vector<std::string> deserialize_group_addresses(std::string);
+};
+
+class ZmqRouter: public ZmqComm {
+public:
+    ZmqRouter(std::string ip, unsigned thread_id);
+private:
+    int max_child_routers;
+
+    zmq::socket_t zsock_join_;
+    zmq::socket_t zsock_from_server_;
+
+    ProtoSocket socket_join_;
+    ProtoSocket socket_from_server_;
+
+    zmq::socket_t* parent_socket_;
+    std::vector<zmq::socket_t*> router_sockets_;
+    std::vector<zmq::socket_t*> client_sockets_;
+
+    void net_setup() override;
+    void net_handler() override;
 };
 
 class ZmqClient: public ZmqComm {
@@ -114,28 +142,6 @@ private:
     ProtoSocket socket_join_;
     ProtoSocket socket_from_server_;
     ProtoSocket socket_send_;
-
-    void net_setup() override;
-    void net_handler() override;
-};
-
-class ZmqRouter: public ZmqComm {
-public:
-    ZmqRouter(std::string ip, unsigned thread_id);
-private:
-    zmq::socket_t zsock_join_;
-    zmq::socket_t zsock_from_server_;
-    zmq::socket_t zsock_code_;
-    zmq::socket_t zsock_send_; //a socket to server to multicast
-
-
-    ProtoSocket socket_join_;
-    ProtoSocket socket_from_server_;
-    ProtoSocket socket_code_;
-    ProtoSocket socket_send_;
-
-    zmq::socket_t* parent_socket_;
-    std::vector<zmq::socket_t*> child_sockets_;
 
     void net_setup() override;
     void net_handler() override;

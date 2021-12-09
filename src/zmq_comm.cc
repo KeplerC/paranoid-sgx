@@ -41,6 +41,8 @@ ZmqServer::ZmqServer(std::string ip, unsigned thread_id)
     socket_control_.bind("tcp://*:" + std::to_string(NET_SERVER_CONTROL_PORT));
     socket_result_.bind("tcp://*:" + std::to_string(NET_SERVER_RESULT_PORT));
     LOGI << "[ZmqComm] Finished constructing ZmqServer";
+
+    max_child_routers = MAX_CHILD_ROUTERS;
 }
 
 void ZmqServer::net_setup() {
@@ -58,30 +60,51 @@ void ZmqServer::net_handler() {
     // Join Request
     if (pollitems_[0].revents & ZMQ_POLLIN){
         ///Get the address
-        std::string msg = MulticastMessage::unpack_join(socket_join_.recv());
-        LOGI << "[SERVER] JOIN FROM " + msg ;
+        int node_type;
+        std::string msg = MulticastMessage::unpack_join(socket_join_.recv(), &node_type);
 
         ////create a socket to the client and save
         zmq::socket_t* socket_ptr  = new  zmq::socket_t(context_, ZMQ_PUSH);
 
         socket_ptr -> connect (msg);
-        this->group_sockets_.push_back(socket_ptr);
+
+        if(node_type == 0) {
+            LOGI << "[SERVER] JOIN FROM CLIENT " + msg ;
+            client_sockets_.push_back(socket_ptr);
+            client_addresses_.push_back(msg);
+        }
+        else if(node_type == 1) {
+            LOGI << "[SERVER] JOIN FROM ROUTER " + msg ;
+            router_sockets_.push_back(socket_ptr);
+            router_addresses_.push_back(msg);
+        }
+        else {
+            LOGI << "[SERVER] Error, got unknown node type attempting to join." << std::endl;
+        }
 
         ProtoSocket proto_socket(socket_ptr, thread_id_);
         proto_socket.send_assign_parent("test123");
-
     }
 
     //receive new message to mcast
     if (pollitems_[1].revents & ZMQ_POLLIN){
         MulticastMessage::ControlMessage msg(socket_msg_.recv());
         LOGI << "[SERVER] Mcast Message: " + msg.ShortDebugString();
-        //mcast to all the clients
-        for (zmq::socket_t* socket : this->group_sockets_) {
+
+        //mcast to all routers
+        for (zmq::socket_t* socket : this->router_sockets_) {
             // TODO convert group_sockets_ to a vector of ProtoSockets
             ProtoSocket proto_socket(socket, thread_id_);
             proto_socket.send(msg);
         }
+
+        //mcast to all the clients
+        for (zmq::socket_t* socket : this->client_sockets_) {
+            // TODO convert group_sockets_ to a vector of ProtoSockets
+            ProtoSocket proto_socket(socket, thread_id_);
+            proto_socket.send(msg);
+        }
+
     }
 
     if (pollitems_[2].revents & ZMQ_POLLIN){
@@ -109,24 +132,24 @@ void ZmqServer::net_handler() {
 }
 
 ZmqRouter::ZmqRouter(std::string ip, unsigned thread_id)
-                     : ZmqComm(ip, thread_id) 
-                     , zsock_join_(context_, ZMQ_PUSH)
-                     , zsock_from_server_(context_, ZMQ_PULL)
-                     , zsock_send_(context_, ZMQ_PUSH)
-                     , socket_join_(&zsock_join_, thread_id)
-                     , socket_from_server_(&zsock_from_server_, thread_id)
-                     , socket_send_(&zsock_send_, thread_id) {
-                         
+                         : ZmqComm(ip, thread_id) 
+                         , zsock_join_(context_, ZMQ_PUSH)
+                         , zsock_from_server_(context_, ZMQ_PULL)
+                         , socket_join_(&zsock_join_, thread_id)
+                         , socket_from_server_(&zsock_from_server_, thread_id) {
     socket_join_.connect ("tcp://" + seed_server_ip_ + ":" + seed_server_join_port_);
     socket_from_server_.bind ("tcp://*:" + port_);
-
     LOGI << "[ZmqComm] Finished constructing ZmqRouter";
+    parent_socket_ = nullptr;
+    max_child_routers = MAX_CHILD_ROUTERS;
 }
 
 void ZmqRouter::net_setup() {
     pollitems_ = std::vector<zmq::pollitem_t>({
         { static_cast<void *>(zsock_from_server_), 0, ZMQ_POLLIN, 0 } 
     });
+
+    socket_join_.send_join(addr_, 1);
 }
 
 void ZmqRouter::net_handler() {
@@ -144,14 +167,14 @@ void ZmqRouter::net_handler() {
 
             std::string parent = unpack_assign_parent(recv);
 
-            LOGI << "[Client " << addr_ << "] has new parent:  " << parent;
+            LOGI << "[Router " << addr_ << "] has new parent:  " << parent;
         } 
         else if(body->has_raw_bytes()) {
             // TODO: This should really be multicast by sending data down the
             // tree... 
 
             std::string msg = MulticastMessage::unpack_raw_bytes(recv);
-            LOGI << "[Client " << addr_ << "] sending message to enclave:  " + msg ;
+            LOGI << "[Client " << addr_ << "] routing message:  " + msg ;
 
             // this -> send_string(port_ , zsock_send_);
         }
@@ -161,13 +184,16 @@ void ZmqRouter::net_handler() {
 
 std::string ZmqServer::serialize_group_addresses() {
     std::string ret;
-    for( const std::string& s : group_addresses_ ) {
-        ret += GROUP_ADDR_DELIMIT + s;
-    }
+    // TODO: Fix this!!!
+    
+    //for( const std::string& s : group_addresses_ ) {
+    //    ret += GROUP_ADDR_DELIMIT + s;
+    //}
     return ret;
 }
 
 std::vector<std::string> ZmqServer::deserialize_group_addresses(std::string group_addresses) {
+    // TODO: Fix this!
     std::vector<std::string> ret = absl::StrSplit(group_addresses, "@@@", absl::SkipEmpty());
     return ret;
 }
@@ -196,7 +222,7 @@ void ZmqClient::net_setup() {
     });
 
     //send join request to seed server
-    socket_join_.send_join(addr_);
+    socket_join_.send_join(addr_, 0);
 }
 
 void ZmqClient::net_handler() {
@@ -239,7 +265,7 @@ void ZmqJsClient::net_setup() {
     });
 
     //send join request to seed server
-    socket_join_.send_join(addr_);
+    socket_join_.send_join(addr_, 0);
 }
 
 void ZmqJsClient::net_handler() {

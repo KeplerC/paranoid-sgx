@@ -21,6 +21,10 @@ message LeaveMsg {
 
 message JoinMsg {
   optional string addr = 1;
+
+  // Values are 0 for a client
+  // and 1 for a router 
+  optional int32 node_type = 2;
 }
 
 message AssignIdMsg {

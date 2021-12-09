@@ -46,12 +46,13 @@ void ProtoSocket::send_error(uint64_t error_code) {
     send_proto(message);
 }
 
-void ProtoSocket::send_join(std::string addr) {
+void ProtoSocket::send_join(std::string addr, int node_type) {
     MulticastMessage::ControlMessage message;
     MulticastMessage::MessageBody* body = message.mutable_body();
     MulticastMessage::JoinMsg* join = body->mutable_join();
 
     join->set_addr(addr);
+    join->set_node_type(node_type);
 
     send_proto(message);
 }
@@ -141,10 +142,11 @@ void ProtoSocket::send_proto(MulticastMessage::ControlMessage& proto) {
     }
 }
 
-std::string MulticastMessage::unpack_join(MulticastMessage::ControlMessage&& msg) {
+std::string MulticastMessage::unpack_join(MulticastMessage::ControlMessage&& msg, int* type) {
     auto body = msg.mutable_body();
     assert(body->has_join());
 
+    *type = (body->mutable_join()->node_type());
     return *(body->mutable_join()->mutable_addr());
 }
 
