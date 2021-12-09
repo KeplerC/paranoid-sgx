@@ -1,3 +1,6 @@
 [submodule "bloom"]
 	path = bloom
 	url = git@github.com:ArashPartow/bloom.git
+[submodule "serialize-tuple"]
+	path = serialize-tuple
+	url = git@github.com:Sydius/serialize-tuple.git

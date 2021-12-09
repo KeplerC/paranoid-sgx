@@ -256,7 +256,8 @@ cc_binary(
         "sgx_spinlock.h",
         "crypto.h",
         "bloom/bloom_filter.hpp",
-        "kvs_include/capsule.h"
+        "kvs_include/capsule.h",
+        "serialize-tuple/serialize_tuple.h"
         ],
     deps=[
         ":hello_cc_proto",
@@ -267,8 +268,8 @@ cc_binary(
         "@libccd//:libccd",
         # "@fcl//:fcl",
         # "@assimp//:assimp",
-	"@boost//:archive",
-	"@boost//:serialization",
+        "@boost//:archive",
+        "@boost//:serialization",
         ":duktape",
         ":translator_server",
         "@com_google_absl//absl/strings",

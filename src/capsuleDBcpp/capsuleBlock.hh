@@ -6,6 +6,8 @@
 #include <tuple>
 #include <boost/archive/text_oarchive.hpp>
 #include <boost/archive/text_iarchive.hpp>
+#include <boost/serialization/vector.hpp>
+#include "../serialize-tuple/serialize_tuple.h"
 
 
 class CapsuleBlock {
