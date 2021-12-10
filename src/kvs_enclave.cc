@@ -87,6 +87,7 @@ namespace asylo {
                 delete dc;
                 return;
             }
+
             DUMP_CAPSULE(dc);
 
             // to_memtable and/or update_hash based on msgType

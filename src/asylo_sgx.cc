@@ -3,6 +3,7 @@
 #include <sstream>
 #include <fstream>
 #include "asylo/crypto/util/byte_container_util.h"
+#include <sched.h>
  
  ABSL_FLAG(std::string, enclave_path, "", "Path to enclave to load");
 
@@ -31,7 +32,9 @@ static void* StartEnclaveResponder( void* hotMsgAsVoidP ) {
 
 static void *StartOcallResponder( void *arg ) {
 
-    HotMsg *hotMsg = (HotMsg *) arg;
+    struct ocall_responder_args *args = (struct ocall_responder_args *) arg;
+    HotMsg *hotMsg = args->hotMsg;
+    int port = args->port;
 
     int dataID = 0;
 
@@ -44,7 +47,15 @@ static void *StartOcallResponder( void *arg ) {
     // to router
     zmq::socket_t* socket_ptr  = new  zmq::socket_t( context, ZMQ_PUSH);
     ProtoSocket socket (socket_ptr, -1);
-    socket.connect ("tcp://" + std::string(NET_SEED_ROUTER_IP) + ":6667");
+    // Assign port for kvs operations to JS client port
+    if (port > 0) {
+        LOGI  << "Sending port: " << "tcp://" + std::string(NET_SEED_ROUTER_IP) + ":" + std::to_string(port);
+        socket.connect ("tcp://" + std::string(NET_SEED_ROUTER_IP) + ":" + std::to_string(port));
+    } else {
+        LOGI  << "Sending port: " << "tcp://" + std::string(NET_SEED_ROUTER_IP) + ":6667";
+        socket.connect ("tcp://" + std::string(NET_SEED_ROUTER_IP) + ":6667");
+    }
+
     // to sync server
     zmq::socket_t* socket_ptr_to_sync  = new  zmq::socket_t( context, ZMQ_PUSH);
     ProtoSocket socket_to_sync (socket_ptr_to_sync, -1);
@@ -52,6 +63,16 @@ static void *StartOcallResponder( void *arg ) {
 
     zmq::socket_t* socket_ptr_for_result  = new  zmq::socket_t( context, ZMQ_PUSH);
     ProtoSocket socket_for_result (socket_ptr_for_result, -1);
+    // Assign port for return operations to JS client from_server_ port
+    /*
+    if (port > 0) {
+        LOGI  << "return port: " << "tcp://" + std::string(NET_SEED_ROUTER_IP) +":" + std::to_string(port);
+        socket_for_result.connect ("tcp://" + std::string(NET_SEED_ROUTER_IP) +":" + std::to_string(port));
+    } else {
+        LOGI  << "return port: " << "tcp://" + std::string(NET_SEED_ROUTER_IP) + ":6667";
+        socket_for_result.connect ("tcp://" + std::string(NET_SEED_ROUTER_IP) +":" + std::to_string(NET_SERVER_RESULT_PORT));
+    }
+    */
     socket_for_result.connect ("tcp://" + std::string(NET_SEED_ROUTER_IP) +":" + std::to_string(NET_SERVER_RESULT_PORT));
 
 
@@ -209,7 +230,10 @@ void Asylo_SGX::init(){
     pthread_create(&circ_buffer_enclave->responderThread, NULL, StartEnclaveResponder, (void*)&e_responder_args);
 
     //Start Host Responder
-    pthread_create(&circ_buffer_host->responderThread, NULL, StartOcallResponder, (void*) circ_buffer_host);
+    struct ocall_responder_args o_responder_args = {circ_buffer_host, this->ocall_port};
+    pthread_create(&circ_buffer_host->responderThread, NULL, StartOcallResponder, (void*) &o_responder_args);
+
+    LOGI << "Finished ocall_responder" << std::endl;
 
 }
 

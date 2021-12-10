@@ -166,3 +166,24 @@ private:
     void net_setup() override;
     void net_handler() override;
 };
+
+class ZmqTestJsClient: public ZmqComm {
+public:
+    ZmqTestJsClient(std::string ip, unsigned thread_id, Asylo_SGX* sgx, std::string file);
+private:
+    Asylo_SGX* sgx_;
+    std::string file_;
+
+    zmq::socket_t zsock_join_;
+    zmq::socket_t zsock_from_server_;
+    zmq::socket_t zsock_code_;
+    zmq::socket_t zsock_send_; //a socket to server to multicast
+
+    ProtoSocket socket_join_;
+    ProtoSocket socket_from_server_;
+    ProtoSocket socket_code_;
+    ProtoSocket socket_send_;
+
+    void net_setup() override;
+    void net_handler() override;
+};

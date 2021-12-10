@@ -120,7 +120,7 @@ void thread_run_zmq_js_client(unsigned thread_id, Asylo_SGX* sgx){
 
 
 void thread_run_zmq_intermediate_router(unsigned thread_id){
-    LOG(INFO) << "[thread_run_zmq_client_worker]";
+    LOG(INFO) << "[thread_run_zmq_intermediate_router]";
     ZmqComm* zs = new ZmqRouter(NET_WORKER_IP, thread_id);
     zs->run(); 
 }
@@ -130,12 +130,6 @@ void thread_run_zmq_router(unsigned thread_id){
     LOG(INFO) << "[thread_run_zmq_server]"; 
     ZmqComm* zs = new ZmqServer(NET_SEED_ROUTER_IP, thread_id);
     zs->run(); // run_server
-}
-
-void thread_run_zmq_mcast_router(unsigned thread_id){
-    LOG(INFO) << "[thread_run_zmq_server]"; 
-    ZmqComm* zs = new ZmqRouter(NET_SEED_ROUTER_IP, thread_id);
-    zs->run();
 }
 
 void thread_start_fake_client(Asylo_SGX* sgx){
@@ -159,43 +153,47 @@ void thread_crypt_actor_thread(Asylo_SGX* sgx){
 }
 
 int run_multicast_test() {
-
     std::unique_ptr <asylo::SigningKey> signing_key = asylo::EcdsaP256Sha256SigningKey::Create().ValueOrDie();
     asylo::CleansingVector<uint8_t> serialized_signing_key;
     ASSIGN_OR_RETURN(serialized_signing_key,
                      signing_key->SerializeToDer());
 
     std::vector <std::thread> worker_threads;
-    unsigned num_clients = 2;
-    unsigned num_routers = 1;
-    unsigned client_id_start = START_CLIENT_ID + 1;
+    std::vector <Asylo_SGX *> sgxs;
+    //unsigned long int now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 
-    unsigned long int now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+    //start clients
+    //    int num_threads = TOTAL_THREADS + 1;
+    //    for (unsigned thread_id = START_CLIENT_ID; thread_id < num_threads; thread_id++) {
+    //        Asylo_SGX* sgx = new Asylo_SGX( std::to_string(thread_id), serialized_signing_key);
+    //        sgx->init();
+    //        sgx->setTimeStamp(now);
+    //        sleep(1);
+    //        worker_threads.push_back(std::thread(thread_run_zmq_client, thread_id, sgx));
+    //        worker_threads.push_back(std::thread(thread_start_fake_client, sgx));
+    //    }
 
-    // Initalize multicast routers 
-    // TODO: Use non-hardcoded ports for router according to ID, talk to multicast coordinator node to construct tree.
-    for (unsigned router_id = 0; router_id < num_routers; router_id++) {
-        worker_threads.push_back(std::thread(thread_run_zmq_mcast_router, router_id));
-    }
+    unsigned num_threads = 2;
+    std::string file_name = "/opt/my-project/src/multicast_test.js";
 
-    // "Coordinator" which transmits data capsules
-    // Insert E2E benchmark thread here?
-    Asylo_SGX* sgx = new Asylo_SGX( std::to_string(START_CLIENT_ID), serialized_signing_key);
-    sgx->init();
-    sgx->setTimeStamp(now);
-    sleep(1);
-    worker_threads.push_back(std::thread(thread_start_coordinator, sgx));
+    for (unsigned thread_id = START_CLIENT_ID; thread_id < num_threads + START_CLIENT_ID; thread_id++) {
+        // Port to receive enclave messages for non-PSL_REV messages ONLY
+        // Currently JS Client's from_server port
+        int port = NET_SERVER_MCAST_PORT + thread_id;
 
-    // Add multicast coordinator.
-
-    // Clients which recieve messages from coordinator (coord -> router(s) -> client(s))
-    // TODO: Have different workers use different KVS addresses (port).
-    for (unsigned thread_id = client_id_start; thread_id < num_clients + client_id_start; thread_id++) {
-        sgx = new Asylo_SGX( std::to_string(thread_id), serialized_signing_key);
+        Asylo_SGX* sgx = new Asylo_SGX( std::to_string(thread_id), port, serialized_signing_key);
         sgx->init();
-        sgx->setTimeStamp(now);
+        sleep(1);
         worker_threads.push_back(std::thread(thread_run_zmq_js_client, thread_id, sgx));
+        sgxs.push_back(sgx);
     }
+    for (auto sgx : sgxs) {
+        // Threadify this to make concurrent
+        sgx->execute();
+        sgx->execute_js_file(file_name);
+        sleep(3); // demonstration purposes
+    }
+
     sleep(1000);
 }
 

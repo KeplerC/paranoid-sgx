@@ -27,12 +27,25 @@ struct enclave_responder_args {
      uint32_t port; 
 };
 
+struct ocall_responder_args {
+    HotMsg *hotMsg;
+    int port; 
+};
+
 class Asylo_SGX{
     public:
         Asylo_SGX(std::string enclave_name, asylo::CleansingVector<uint8_t> serialized_signing_key){
         //enclave name has to be unique
         this->m_name = enclave_name;
         this->serialized_signing_key = serialized_signing_key;
+        this->ocall_port = -1;
+    }
+
+        Asylo_SGX(std::string enclave_name, int port, asylo::CleansingVector<uint8_t> serialized_signing_key){
+        //enclave name has to be unique
+        this->m_name = enclave_name;
+        this->serialized_signing_key = serialized_signing_key;
+        this->ocall_port = port;
     }
 
         void setTimeStamp(unsigned long int timeStart);
@@ -57,6 +70,8 @@ class Asylo_SGX{
     asylo::EnclaveManager *manager;
     asylo::EnclaveClient *client;
     std::string m_name;
+    // TID of corresponding JS worker, -1 if unspecified
+    int ocall_port; 
     hello_world::MP_Lambda_Input lambda_input; 
     asylo::CleansingVector<uint8_t> serialized_signing_key;
     HotMsg *circ_buffer_enclave;

@@ -243,25 +243,26 @@ ZmqJsClient::ZmqJsClient(std::string ip, unsigned thread_id, Asylo_SGX* sgx)
                          , zsock_join_(context_, ZMQ_PUSH)
                          , zsock_from_server_(context_, ZMQ_PULL)
                          , zsock_code_(context_, ZMQ_PULL)
-                         , zsock_send_(context_, ZMQ_PUSH)
+                         , zsock_send_(context_, ZMQ_PULL)
                          , socket_join_(&zsock_join_, thread_id)
                          , socket_from_server_(&zsock_from_server_, thread_id)
                          , socket_code_(&zsock_code_, thread_id)
                          , socket_send_(&zsock_send_, thread_id) {
     socket_join_.connect ("tcp://" + seed_server_ip_ + ":" + seed_server_join_port_);
     socket_from_server_.bind ("tcp://*:" + port_);
-    socket_send_.connect ("tcp://" + seed_server_ip_ + ":" + seed_server_mcast_port_);
-    socket_code_.bind ("tcp://*:3006");
+    socket_send_.bind ("tcp://*:" + std::to_string(NET_SERVER_MCAST_PORT + thread_id));
+    socket_code_.bind ("tcp://*:" + std::to_string(3006 + thread_id));
     LOGI << "[ZmqComm] Finished constructing ZmqJsClient";
 }
 
 void ZmqJsClient::net_setup() {
-    LOGI << "tcp://" + seed_server_ip_ + ":" + seed_server_mcast_port_;
+    LOGI << "Multicast port: tcp://*:" + std::to_string(NET_SERVER_MCAST_PORT + thread_id_);
     LOGI << "tcp://" + seed_server_ip_ + ":" + seed_server_join_port_;
 
     pollitems_ = std::vector<zmq::pollitem_t>({
         { static_cast<void *>(zsock_from_server_), 0, ZMQ_POLLIN, 0 },
-        { static_cast<void *>(zsock_code_), 0, ZMQ_POLLIN, 0 }
+        { static_cast<void *>(zsock_code_), 0, ZMQ_POLLIN, 0 },
+        { static_cast<void *>(zsock_send_), 0, ZMQ_POLLIN, 0 }
     });
 
     //send join request to seed server
@@ -279,11 +280,11 @@ void ZmqJsClient::net_handler() {
 
             std::string parent = unpack_assign_parent(recv);
 
-            LOGI << "[Client " << addr_ << "] has new parent:  " << parent;
+            LOGI << "[JSClient " << addr_ << "] has new parent:  " << parent;
         } 
         else if(body->has_raw_bytes()) {
             std::string msg = MulticastMessage::unpack_raw_bytes(recv);
-            LOGI << "[Client " << addr_ << "] sending message to enclave:  " + msg ;
+            LOGI << "[JSClient " << addr_ << "] sending message to enclave:  " + msg ;
 
             // this -> send_string(port_ , zsock_send_);
             sgx_->send_to_sgx(msg);
@@ -294,9 +295,18 @@ void ZmqJsClient::net_handler() {
     if (pollitems_[1].revents & ZMQ_POLLIN) {
         //Get the address
         std::string msg = MulticastMessage::unpack_exec_code(socket_code_.recv());
-        LOG(INFO) << "[Client " << addr_ << "]:  " + msg ;
+        LOG(INFO) << "[JSClient " << addr_ << "]:  " + msg ;
 
         // this -> send_string(port_ , socket_send_);
         sgx_->execute_js_code(msg);
+    }
+
+    if (pollitems_[2].revents & ZMQ_POLLIN) {
+        //Get the address
+        MulticastMessage::ControlMessage recv = socket_send_.recv(); 
+        std::string msg = MulticastMessage::unpack_raw_bytes(recv);
+
+        LOG(INFO) << "[JSClient " << addr_ << "]: mcast message:" + msg ;
+        // TODO multicast to rest of tree here
     }
 }
