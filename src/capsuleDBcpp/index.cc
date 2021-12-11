@@ -12,7 +12,15 @@
 #include "level.hh"
 
 CapsuleIndex::CapsuleIndex() {
+    CapsuleIndex(-1);
+}
 
+CapsuleIndex::CapsuleIndex(size_t size) {
+    numLevels = 0;
+    blocksize = size;
+    // TODO: prevIndexHash???
+    Level level_zero = Level(0, 1);
+    levels = {level_zero};
 }
 
 /*

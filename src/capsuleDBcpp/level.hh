@@ -21,6 +21,8 @@ class Level {
         void setNumBlocks(int n);
         int addBlock(CapsuleBlock* newBlock, std::string hash);
         std::string getBlock(std::string key);
+        Level();
+        Level(int index, int maxSize);
 };
 
 #endif

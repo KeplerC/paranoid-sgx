@@ -6,6 +6,19 @@
 #include "fakeCapsule.hh"
 #include "level.hh"
 
+Level::Level() {
+    Level(-1, -1);
+}
+
+Level::Level(int index, int maxSize) {
+    index = index;
+    maxSize = maxSize;
+    levelFilter = create_filter();
+
+    numBlocks = 0;
+    min_key = "";
+    max_key = "";
+}
 
 bloom_filter Level::create_filter() {
     bloom_parameters params;
@@ -40,18 +53,21 @@ void Level::setNumBlocks(int n) {
 * Output: 0 on success, other int on error.
 */
 int Level::addBlock(CapsuleBlock* newBlock, std::string hash) {
-    std::vector<CapsuleBlock>::iterator iter;
+    // TODO: add kv pairs in block to bloom filter
+    std::string new_block_min_key = (*newBlock).getMinKey();
+    std::string new_block_max_key = (*newBlock).getMaxKey();
+    // TODO: edge cases for adding block
     if (min_key == "") {
-        min_key = (*newBlock).getMinKey();
+        min_key = new_block_min_key;
     }
     if (max_key == "") {
-        max_key = (*newBlock).getMaxKey();
+        max_key = new_block_max_key;
     }
-    min_key = min(std::string(min_key), std::string((*newBlock).getMinKey()));
-    max_key = max(std::string(max_key), std::string((*newBlock).getMaxKey()));
+    min_key = min(std::string(min_key), std::string(new_block_min_key);
+    max_key = max(std::string(max_key), std::string(new_block_max_key));
     for (int i = 0; i < numBlocks; i++) {
         CapsuleBlock* curr_block = getCapsuleBlock(recordHashes[i]);
-        if (curr_block->getMinKey() > (*newBlock).getMaxKey()) {
+        if (curr_block->getMinKey() > new_block_max_key) {
             recordHashes.insert(recordHashes.begin() + i, hash);
             numBlocks++;
             return 0;

@@ -20,11 +20,11 @@ CapsuleDB::CapsuleDB() {
  * Inputs: ??? (Maybe name?)
  * Outputs: An error code
  */
-CapsuleDB spawnDB()
+CapsuleDB spawnDB(size_t memtable_size)
 {
     CapsuleDB newInstance = CapsuleDB();
-    newInstance.memtable = Memtable();
-    newInstance.index = CapsuleIndex();
+    newInstance.memtable = Memtable(memtable_size);
+    newInstance.index = CapsuleIndex(memtable_size);
     return newInstance;
 }
 

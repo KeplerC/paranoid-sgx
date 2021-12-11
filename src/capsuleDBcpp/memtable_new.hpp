@@ -16,7 +16,8 @@ public:
     bool put(const kvs_payload *payload, CapsuleIndex index);
     kvs_payload get(const std::string &key);
     void write_out_if_full(CapsuleIndex index);
-    Memtable() {}
+    Memtable();
+    Memtable(size_t ms);
     // M_BENCHMARK_CODE
 private:
     absl::flat_hash_map<std::string, kvs_payload> memtable;

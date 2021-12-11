@@ -7,6 +7,14 @@
 #include "index.hh"
 #include "level.hh"
 
+Memtable::Memtable() {
+    Memtable(-1);
+}
+
+Memtable::Memtable(size_t ms) {
+    max_size = ms;
+}
+
 kvs_payload Memtable::get(const std::string &key)
 {
     // First check if a lock is present. If not, key is not present and can return.
@@ -52,32 +60,33 @@ bool Memtable::put(const kvs_payload *payload, CapsuleIndex index)
         else
         {
             memtable[payload->key] = *payload;
-            write_out_if_full(index);
-            std::cout << "[SAME PAYLOAD UPDATED] Timestamp of incoming payload key: " << payload->key
-                 << ", timestamp: " << payload->txn_timestamp << " replaces " << prev_timestamp;
+            std::cout << "[SAME PAYLOAD UPDATED] Timestamp of incoming payload {key=" << payload->key
+                 << ", timestamp=" << payload->txn_timestamp << "} replaces previous timestamp=" << prev_timestamp << "\n";
             lock->unlock();
             return true;
         }
     }
     else
     {
+        write_out_if_full(index);
         // key does not exist, create spinlock object and add to lock list.
         std::mutex *lock = new std::mutex();
         locklst[payload->key] = lock; // add new lock to locklst
         lock->lock();
         memtable[payload->key] = *payload;
-        write_out_if_full(index);
         lock->unlock();
         return true;
     }
 }
 
-/* This function writes out entire memtable to level 0 of tree if the number of kv pairs exceeds capacity.
+/* This function writes out entire memtable to level 0 of tree if the number of kv pairs is at capacity.
  */
 void Memtable::write_out_if_full(CapsuleIndex index)
 {
     // capacity check: number of kv pairs (upperbounds amount of memory when we constrain kv size)
-    if (memtable.size() > max_size)
+    std::cout << "write_out_if_full: " << "max_size=" << max_size << " memtable.size()=" << memtable.size() << "\n";
+
+    if (memtable.size() >= max_size)
     {
         Level level_zero = index.levels.front();
         CapsuleBlock capsule_block(0);
@@ -97,8 +106,21 @@ void Memtable::write_out_if_full(CapsuleIndex index)
         capsule_block.setMinKey(min_key);
         capsule_block.setMaxKey(max_key);
 
-        std::string record_hash = capsule_block.writeOut();
+        std::cout << "writing out block with min_key=" << min_key << ", max_key=" << max_key << "\n";
 
+        // std::string record_hash = capsule_block.writeOut();
+        std::string record_hash = "temp hash";
+
+        std::cout << "after writeOut()" << "\n";
+
+
+        std::cout << "level_zero.numBlocks=" << level_zero.numBlocks << "\n";
         level_zero.addBlock(&capsule_block, record_hash);
+
+        std::cout << "after addBlock()" << "\n";
+        std::cout << "level_zero.numBlocks=" << level_zero.numBlocks << "\n";
+
+        memtable = {};
+        locklst = {};
     }
 }

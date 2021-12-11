@@ -9,11 +9,12 @@
 class CapsuleIndex {
     public:
         int numLevels;
-        int blocksize;
+        size_t blocksize;
         std::string prevIndexHash;
         std::vector <Level> levels;
-
+        
         CapsuleIndex();
+        CapsuleIndex(size_t size);
         int getNumLevels();
         std::string getBlock(int level, std::string key);
         int add_hash(int level, std::string hash, CapsuleBlock block);

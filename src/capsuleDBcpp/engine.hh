@@ -41,7 +41,7 @@ class CapsuleDB {
  * Inputs: ???
  * Outputs: An error code
  */
-CapsuleDB spawnDB();
+CapsuleDB spawnDB(size_t memtable_size);
 int connectDB();
 
 #endif

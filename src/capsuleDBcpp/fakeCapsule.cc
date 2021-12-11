@@ -6,6 +6,7 @@
 #include <sstream>
 #include "capsuleBlock.hh"
 #include "fakeCapsule.hh"
+#include <iostream>
 
 void sha256_string(char *string, char outputBuffer[65])
 {
@@ -23,21 +24,25 @@ void sha256_string(char *string, char outputBuffer[65])
 }
 
 std::string putCapsuleBlock(CapsuleBlock inputBlock) {
+    std::cout << "0" << "\n";
     // Serialize Block
     char * serializedBlock;
     std::stringstream toBeHashed;
     boost::archive::text_oarchive testAr(toBeHashed);
     
+    std::cout << "1" << "\n";
     // Hash bytestream
     char blockHash[65];
     toBeHashed >> serializedBlock;
     sha256_string(serializedBlock, blockHash);
 
+    std::cout << "2" << "\n";
     // Serialize and store block
     std::ofstream storedBlock(blockHash);
     boost::archive::text_oarchive oa(storedBlock);
     oa << inputBlock;
 
+    std::cout << "3" << "\n";
     // Return Hash
     return blockHash;
 }
