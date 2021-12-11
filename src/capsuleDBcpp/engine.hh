@@ -29,10 +29,10 @@ class CapsuleDB {
         };
         Memtable memtable;
         CapsuleIndex index;
-        std::string get(const std::string &key, bool isMulticast = false);
-        void put(const kvs_payload *payload);
 
         CapsuleDB();
+        std::string get(const std::string &key, bool isMulticast = false);
+        void put(const kvs_payload *payload);
 };
 
 /*
