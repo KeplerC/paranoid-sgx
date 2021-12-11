@@ -63,7 +63,7 @@ int Level::addBlock(CapsuleBlock* newBlock, std::string hash) {
     if (max_key == "") {
         max_key = new_block_max_key;
     }
-    min_key = min(std::string(min_key), std::string(new_block_min_key);
+    min_key = min(std::string(min_key), std::string(new_block_min_key));
     max_key = max(std::string(max_key), std::string(new_block_max_key));
     for (int i = 0; i < numBlocks; i++) {
         CapsuleBlock* curr_block = getCapsuleBlock(recordHashes[i]);
