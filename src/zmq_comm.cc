@@ -84,7 +84,6 @@ void handle_join_request(std::vector<ProtoSocket> &router_sockets_,
             client_sockets_.emplace_back(socket_ptr, thread_id_);
             //client_addresses_.push_back(msg);
 
-            // TODO: fix this....
             client_sockets_[client_sockets_.size() - 1].send_assign_parent("TEST123");
         }
     }
@@ -95,14 +94,13 @@ void handle_join_request(std::vector<ProtoSocket> &router_sockets_,
         }
         // If we haven't hit the maximum router count, then append the router to this one 
         else {
-            LOGI << "[" << header << "] JOIN FROM CLIENT " + msg ;
+            LOGI << "[" << header << "] JOIN FROM ROUTER " + msg ;
 
             zmq::socket_t* socket_ptr  = new  zmq::socket_t(context_, ZMQ_PUSH);
             socket_ptr -> connect (msg);
             router_sockets_.emplace_back(socket_ptr, thread_id_);
             //router_addresses_.push_back(msg);
 
-            // TODO: fix this....
             router_sockets_[router_sockets_.size() - 1].send_assign_parent("TEST123");
         }
     }
@@ -118,7 +116,10 @@ void ZmqServer::net_handler() {
     if (pollitems_[0].revents & ZMQ_POLLIN){
         ///Get the address
         int node_type;
-        std::string msg = MulticastMessage::unpack_join(socket_join_.recv(), &node_type);
+
+        MulticastMessage::ControlMessage recv(socket_join_.recv());
+
+        std::string msg = MulticastMessage::unpack_join(recv, &node_type);
         handle_join_request(router_sockets_, client_sockets_, msg, "test123", node_type, max_child_routers, true, context_, thread_id_);
     }
 
@@ -199,18 +200,14 @@ void ZmqRouter::net_handler() {
             LOGI << "[Router " << addr_ << "] has new parent:  " << parent;
         } 
         else if(body->has_join()) {
+            LOGI << "[Router " << addr_ << "] intercepted join request:";
             int node_type;
-            std::string msg = MulticastMessage::unpack_join(socket_join_.recv(), &node_type);
+            std::string msg = MulticastMessage::unpack_join(recv, &node_type);
             handle_join_request(router_sockets_, client_sockets_, msg, "test123", node_type, max_child_routers, false, context_, thread_id_);
         }
         else if(body->has_raw_bytes()) {
-            // TODO: This should really be multicast by sending data down the
-            // tree... 
-
             std::string msg = MulticastMessage::unpack_raw_bytes(recv);
             LOGI << "[Router " << addr_ << "] routing message:  " + msg ;
-
-            // this -> send_string(port_ , zsock_send_);
         }
         else {
             LOGI << "[Router " << addr_ << "] error: got unknown message type.";

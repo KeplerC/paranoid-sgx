@@ -142,7 +142,7 @@ void ProtoSocket::send_proto(MulticastMessage::ControlMessage& proto) {
     }
 }
 
-std::string MulticastMessage::unpack_join(MulticastMessage::ControlMessage&& msg, int* type) {
+std::string MulticastMessage::unpack_join(MulticastMessage::ControlMessage& msg, int* type) {
     auto body = msg.mutable_body();
     assert(body->has_join());
 
