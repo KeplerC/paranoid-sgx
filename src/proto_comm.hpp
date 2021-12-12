@@ -31,6 +31,7 @@ public:
     void send_exec_code(std::string code);
     void send_assign_parent(std::string parent_addr);
 
+    zmq::socket_t* get_zmq_socket();
 
     void send_raw_str(std::string str); // TODO temporary shim: Should be replaced
                                         // with situation-specific proto msgs
@@ -49,14 +50,10 @@ private:
 };
 
 namespace MulticastMessage {
-    // hella memory leaks
     std::string unpack_join(MulticastMessage::ControlMessage&& msg, int* node_type);
     std::string unpack_exec_code(MulticastMessage::ControlMessage&& msg);
     std::string unpack_raw_str(MulticastMessage::ControlMessage&& msg);
     std::string unpack_raw_bytes(MulticastMessage::ControlMessage& msg);
 
     std::string unpack_assign_parent(MulticastMessage::ControlMessage &msg);
-
-    // TODO move the serialization methods here?
-    //ControlMessage* pack_join(std::string addr);
 }

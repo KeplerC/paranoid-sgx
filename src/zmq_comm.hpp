@@ -83,7 +83,7 @@ class ZmqServer: public ZmqComm {
 public:
     ZmqServer(std::string ip, unsigned thread_id);
 private:
-    int max_child_routers;
+    long unsigned int max_child_routers;
 
     zmq::socket_t zsock_join_;
     zmq::socket_t zsock_msg_; // socket for new mcast messages
@@ -96,10 +96,10 @@ private:
     ProtoSocket socket_result_;
 
     std::vector<std::string> router_addresses_;
-    std::vector<zmq::socket_t*> router_sockets_;
-
     std::vector<std::string> client_addresses_;
-    std::vector<zmq::socket_t*> client_sockets_;
+
+    std::vector<ProtoSocket> router_sockets_;
+    std::vector<ProtoSocket> client_sockets_;
 
 
     void net_setup() override;
@@ -113,17 +113,18 @@ class ZmqRouter: public ZmqComm {
 public:
     ZmqRouter(std::string ip, unsigned thread_id);
 private:
-    int max_child_routers;
+    long unsigned int max_child_routers;
 
     zmq::socket_t zsock_join_;
     zmq::socket_t zsock_from_server_;
 
     ProtoSocket socket_join_;
     ProtoSocket socket_from_server_;
+    //ProtoSocket parent_socket_;
 
-    zmq::socket_t* parent_socket_;
-    std::vector<zmq::socket_t*> router_sockets_;
-    std::vector<zmq::socket_t*> client_sockets_;
+
+    std::vector<ProtoSocket> router_sockets_;
+    std::vector<ProtoSocket> client_sockets_;
 
     void net_setup() override;
     void net_handler() override;

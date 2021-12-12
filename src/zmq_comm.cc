@@ -55,6 +55,63 @@ void ZmqServer::net_setup() {
     //this->pollitems_ = new_pollitems;
 }
 
+void handle_join_request(std::vector<ProtoSocket> &router_sockets_, 
+        std::vector<ProtoSocket> &client_sockets_, 
+        std::string msg,
+        std::string personal_address,
+        int node_type,
+        long unsigned int max_child_routers,
+        bool isServerRoot,
+        zmq::context_t &context_,
+        int thread_id_
+        ) {
+
+    std::string header = isServerRoot ? "SERVER" : "ROUTER";
+    if(node_type == 0) {
+        // If there are routers underneath this one,
+        // pass the buck to them 
+        if(router_sockets_.size() > 0) {
+            // Pass down to the first router in the list, a bad implementation.
+            router_sockets_[0].send_join(msg, 0); 
+        }
+        // Otherwise, client becomes a direct child of this one 
+        else {
+            // TODO: Need to clean up the memory leak induced by this allocation 
+            LOGI << "[" << header << "] JOIN FROM CLIENT " + msg ;
+
+            zmq::socket_t* socket_ptr  = new  zmq::socket_t(context_, ZMQ_PUSH);
+            socket_ptr -> connect (msg);
+            client_sockets_.emplace_back(socket_ptr, thread_id_);
+            //client_addresses_.push_back(msg);
+
+            // TODO: fix this....
+            client_sockets_[client_sockets_.size() - 1].send_assign_parent("TEST123");
+        }
+    }
+    else if(node_type == 1) {
+        // If the current node has the maximum # of routers, then pass down to the next level 
+        if(router_sockets_.size() >= max_child_routers) {
+            router_sockets_[0].send_join(msg, 1); 
+        }
+        // If we haven't hit the maximum router count, then append the router to this one 
+        else {
+            LOGI << "[" << header << "] JOIN FROM CLIENT " + msg ;
+
+            zmq::socket_t* socket_ptr  = new  zmq::socket_t(context_, ZMQ_PUSH);
+            socket_ptr -> connect (msg);
+            router_sockets_.emplace_back(socket_ptr, thread_id_);
+            //router_addresses_.push_back(msg);
+
+            // TODO: fix this....
+            router_sockets_[router_sockets_.size() - 1].send_assign_parent("TEST123");
+        }
+    }
+    else {
+            LOGI << "[" << header << "] ERROR, unknown node type attempting to join multicast tree.";
+    }
+}
+
+
 void ZmqServer::net_handler() {
     //std::cout << "Start polling" << std::endl;
     // Join Request
@@ -62,28 +119,7 @@ void ZmqServer::net_handler() {
         ///Get the address
         int node_type;
         std::string msg = MulticastMessage::unpack_join(socket_join_.recv(), &node_type);
-
-        ////create a socket to the client and save
-        zmq::socket_t* socket_ptr  = new  zmq::socket_t(context_, ZMQ_PUSH);
-
-        socket_ptr -> connect (msg);
-
-        if(node_type == 0) {
-            LOGI << "[SERVER] JOIN FROM CLIENT " + msg ;
-            client_sockets_.push_back(socket_ptr);
-            client_addresses_.push_back(msg);
-        }
-        else if(node_type == 1) {
-            LOGI << "[SERVER] JOIN FROM ROUTER " + msg ;
-            router_sockets_.push_back(socket_ptr);
-            router_addresses_.push_back(msg);
-        }
-        else {
-            LOGI << "[SERVER] Error, got unknown node type attempting to join." << std::endl;
-        }
-
-        ProtoSocket proto_socket(socket_ptr, thread_id_);
-        proto_socket.send_assign_parent("test123");
+        handle_join_request(router_sockets_, client_sockets_, msg, "test123", node_type, max_child_routers, true, context_, thread_id_);
     }
 
     //receive new message to mcast
@@ -92,19 +128,9 @@ void ZmqServer::net_handler() {
         LOGI << "[SERVER] Mcast Message: " + msg.ShortDebugString();
 
         //mcast to all routers
-        for (zmq::socket_t* socket : this->router_sockets_) {
-            // TODO convert group_sockets_ to a vector of ProtoSockets
-            ProtoSocket proto_socket(socket, thread_id_);
-            proto_socket.send(msg);
+        for(auto it = this->router_sockets_.begin(); it != this->router_sockets_.end(); it++) {
+            it->send(msg);
         }
-
-        //mcast to all the clients
-        for (zmq::socket_t* socket : this->client_sockets_) {
-            // TODO convert group_sockets_ to a vector of ProtoSockets
-            ProtoSocket proto_socket(socket, thread_id_);
-            proto_socket.send(msg);
-        }
-
     }
 
     if (pollitems_[2].revents & ZMQ_POLLIN){
@@ -140,7 +166,10 @@ ZmqRouter::ZmqRouter(std::string ip, unsigned thread_id)
     socket_join_.connect ("tcp://" + seed_server_ip_ + ":" + seed_server_join_port_);
     socket_from_server_.bind ("tcp://*:" + port_);
     LOGI << "[ZmqComm] Finished constructing ZmqRouter";
-    parent_socket_ = nullptr;
+
+
+    //parent_socket_ = nullptr;
+
     max_child_routers = MAX_CHILD_ROUTERS;
 }
 
@@ -169,14 +198,22 @@ void ZmqRouter::net_handler() {
 
             LOGI << "[Router " << addr_ << "] has new parent:  " << parent;
         } 
+        else if(body->has_join()) {
+            int node_type;
+            std::string msg = MulticastMessage::unpack_join(socket_join_.recv(), &node_type);
+            handle_join_request(router_sockets_, client_sockets_, msg, "test123", node_type, max_child_routers, false, context_, thread_id_);
+        }
         else if(body->has_raw_bytes()) {
             // TODO: This should really be multicast by sending data down the
             // tree... 
 
             std::string msg = MulticastMessage::unpack_raw_bytes(recv);
-            LOGI << "[Client " << addr_ << "] routing message:  " + msg ;
+            LOGI << "[Router " << addr_ << "] routing message:  " + msg ;
 
             // this -> send_string(port_ , zsock_send_);
+        }
+        else {
+            LOGI << "[Router " << addr_ << "] error: got unknown message type.";
         }
 
     }

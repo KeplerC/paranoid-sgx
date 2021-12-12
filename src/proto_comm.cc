@@ -188,3 +188,7 @@ std::string MulticastMessage::unpack_assign_parent(MulticastMessage::ControlMess
     return *(body->mutable_assign_parent()->mutable_parent());
 }
 
+
+zmq::socket_t* ProtoSocket::get_zmq_socket() {
+    return socket_;
+}
