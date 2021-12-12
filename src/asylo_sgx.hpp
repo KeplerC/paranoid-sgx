@@ -34,6 +34,9 @@ struct ocall_responder_args {
 
 class Asylo_SGX{
     public:
+        // TODO: ADD A PRIVATE data-member here that is a proto-socket,
+        // and allow an accessor method to push a new value into the socket.
+
         Asylo_SGX(std::string enclave_name, asylo::CleansingVector<uint8_t> serialized_signing_key){
         //enclave name has to be unique
         this->m_name = enclave_name;

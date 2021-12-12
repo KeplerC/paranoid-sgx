@@ -84,7 +84,7 @@ void handle_join_request(std::vector<ProtoSocket> &router_sockets_,
             client_sockets_.emplace_back(socket_ptr, thread_id_);
             //client_addresses_.push_back(msg);
 
-            client_sockets_[client_sockets_.size() - 1].send_assign_parent("TEST123");
+            client_sockets_[client_sockets_.size() - 1].send_assign_parent(personal_address);
         }
     }
     else if(node_type == 1) {
@@ -101,7 +101,7 @@ void handle_join_request(std::vector<ProtoSocket> &router_sockets_,
             router_sockets_.emplace_back(socket_ptr, thread_id_);
             //router_addresses_.push_back(msg);
 
-            router_sockets_[router_sockets_.size() - 1].send_assign_parent("TEST123");
+            router_sockets_[router_sockets_.size() - 1].send_assign_parent(personal_address);
         }
     }
     else {
@@ -120,7 +120,8 @@ void ZmqServer::net_handler() {
         MulticastMessage::ControlMessage recv(socket_join_.recv());
 
         std::string msg = MulticastMessage::unpack_join(recv, &node_type);
-        handle_join_request(router_sockets_, client_sockets_, msg, "test123", node_type, max_child_routers, true, context_, thread_id_);
+        std::string personal_address = "tcp://*:" + std::to_string(NET_SERVER_MCAST_PORT);
+        handle_join_request(router_sockets_, client_sockets_, msg, personal_address, node_type, max_child_routers, true, context_, thread_id_);
     }
 
     //receive new message to mcast
@@ -128,10 +129,14 @@ void ZmqServer::net_handler() {
         MulticastMessage::ControlMessage msg(socket_msg_.recv());
         LOGI << "[SERVER] Mcast Message: " + msg.ShortDebugString();
 
-        //mcast to all routers
+        //mcast to all child routers and clients
         for(auto it = this->router_sockets_.begin(); it != this->router_sockets_.end(); it++) {
             it->send(msg);
         }
+        for(auto it = this->client_sockets_.begin(); it != this->client_sockets_.end(); it++) {
+            it->send(msg);
+        }
+
     }
 
     if (pollitems_[2].revents & ZMQ_POLLIN){
@@ -200,14 +205,23 @@ void ZmqRouter::net_handler() {
             LOGI << "[Router " << addr_ << "] has new parent:  " << parent;
         } 
         else if(body->has_join()) {
-            LOGI << "[Router " << addr_ << "] intercepted join request:";
             int node_type;
             std::string msg = MulticastMessage::unpack_join(recv, &node_type);
-            handle_join_request(router_sockets_, client_sockets_, msg, "test123", node_type, max_child_routers, false, context_, thread_id_);
+            std::string personal_address = "tcp://*:" + port_;
+            handle_join_request(router_sockets_, client_sockets_, msg, personal_address, node_type, max_child_routers, false, context_, thread_id_);
         }
         else if(body->has_raw_bytes()) {
             std::string msg = MulticastMessage::unpack_raw_bytes(recv);
             LOGI << "[Router " << addr_ << "] routing message:  " + msg ;
+
+            //mcast to all child routers and clients
+            for(auto it = this->router_sockets_.begin(); it != this->router_sockets_.end(); it++) {
+                it->send(recv);
+            }
+            for(auto it = this->client_sockets_.begin(); it != this->client_sockets_.end(); it++) {
+                it->send(recv);
+            }
+
         }
         else {
             LOGI << "[Router " << addr_ << "] error: got unknown message type.";
