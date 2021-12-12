@@ -5,6 +5,7 @@
 #include "capsuleBlock.hh"
 #include "fakeCapsule.hh"
 #include "level.hh"
+#include <iostream>
 
 Level::Level() {
     Level(-1, -1);
@@ -53,23 +54,41 @@ void Level::setNumBlocks(int n) {
 * Output: 0 on success, other int on error.
 */
 int Level::addBlock(CapsuleBlock* newBlock, std::string hash) {
-    // TODO: add kv pairs in block to bloom filter
+    // Add kv pairs in block to bloom filter
+    std::vector < std::tuple<std::string, std::string, int, std::string> > kvPairs = newBlock->getKVPairs();
+    for (std::tuple<std::string, std::string, int, std::string> kvt : kvPairs) {
+        std::string key = std::get<0>(kvt);
+        std::cout << "levelFilter.insert " << key << "\n";
+        levelFilter.insert(key);
+    }
+
     std::string new_block_min_key = (*newBlock).getMinKey();
     std::string new_block_max_key = (*newBlock).getMaxKey();
-    // TODO: edge cases for adding block
-    if (min_key == "") {
+    // If level is empty, directly add and return.
+    if (min_key == "" || max_key == "") {
+        recordHashes.insert(recordHashes.begin(), hash);
+        numBlocks++;
         min_key = new_block_min_key;
-    }
-    if (max_key == "") {
         max_key = new_block_max_key;
+        return 0;
     }
-    min_key = min(std::string(min_key), std::string(new_block_min_key);
-    max_key = max(std::string(max_key), std::string(new_block_max_key));
+
+    /*
+    TODO: combine and reorganize blocks
+    Algorithm: 
+    Assume blocks in level are monotonically increasing. We want to insert block with min and max.
+    Find block i and j where i < j and i_min < min < i_max and j_min < max < j_max
+        Pull in all blocks between i and j, inclusive, dump into giant vector, and insert all kv pairs in block?
+    
+    */
+
     for (int i = 0; i < numBlocks; i++) {
         CapsuleBlock* curr_block = getCapsuleBlock(recordHashes[i]);
         if (curr_block->getMinKey() > new_block_max_key) {
             recordHashes.insert(recordHashes.begin() + i, hash);
             numBlocks++;
+            min_key = min(std::string(min_key), std::string(new_block_min_key));
+            max_key = max(std::string(max_key), std::string(new_block_max_key));
             return 0;
         }
     }
@@ -85,17 +104,21 @@ int Level::addBlock(CapsuleBlock* newBlock, std::string hash) {
 * Output: The hash which potentially contains the requested key, error code if not present
 */
 std::string Level::getBlock(std::string key) {
+    std::cout << "getBlock for key=" << key << "\n";
+    std::cout << "min_key=" << min_key << "\n";
+    std::cout << "max_key=" << max_key << "\n";
     if (key < min_key || key > max_key) {
-        return NULL;
+        return "";
     }
     // Otherwise search -> is Binary really needed?
     
     for (int i = 0; i < numBlocks; i++) {
+        
         CapsuleBlock* curr_block = getCapsuleBlock(recordHashes[i]);
-        if (key < curr_block->getMinKey()) {
+        // TODO: should this be >= 
+        if (key < curr_block->getMinKey()) { 
             return recordHashes[i];
         }
     }
-
-    return NULL;
+    return "";
 }

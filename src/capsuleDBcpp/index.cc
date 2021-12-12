@@ -10,13 +10,14 @@
 #include "capsuleBlock.hh"
 #include "index.hh"
 #include "level.hh"
+#include <iostream>
 
 CapsuleIndex::CapsuleIndex() {
     CapsuleIndex(-1);
 }
 
 CapsuleIndex::CapsuleIndex(size_t size) {
-    numLevels = 0;
+    numLevels = 1;
     blocksize = size;
     // TODO: prevIndexHash???
     Level level_zero = Level(0, 1);
@@ -39,6 +40,7 @@ int CapsuleIndex::getNumLevels() {
     * Output: block hash or error code
     */
 std::string CapsuleIndex::getBlock(int level, std::string key) {
+    std::cout << "getBlock on level=" << level << " for key=" << key << "\n";
     if (level < 0 || level >= numLevels) {
         return "";
     }

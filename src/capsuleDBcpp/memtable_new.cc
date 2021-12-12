@@ -22,7 +22,7 @@ kvs_payload Memtable::get(const std::string &key)
     kvs_payload got;
     if (!locklst.contains(key))
     {
-        std::cout << "Couldn't find key: " << key;
+        std::cout << "Memtable: Couldn't find key: " << key << "\n";
         got.key = "";
     }
     else
@@ -38,7 +38,7 @@ kvs_payload Memtable::get(const std::string &key)
  * The lock is then acquired and modifications done to the value.
  * Main philosophy is that concurrent reads and writes on different key values should not stall on the single memtable lock.
  */
-bool Memtable::put(const kvs_payload *payload, CapsuleIndex index)
+bool Memtable::put(const kvs_payload *payload, CapsuleIndex* index)
 {
     auto prev_iter_lock = locklst.find(payload->key);
     if (prev_iter_lock != locklst.end())
@@ -81,14 +81,15 @@ bool Memtable::put(const kvs_payload *payload, CapsuleIndex index)
 
 /* This function writes out entire memtable to level 0 of tree if the number of kv pairs is at capacity.
  */
-void Memtable::write_out_if_full(CapsuleIndex index)
+void Memtable::write_out_if_full(CapsuleIndex* index)
 {
     // capacity check: number of kv pairs (upperbounds amount of memory when we constrain kv size)
     std::cout << "write_out_if_full: " << "max_size=" << max_size << " memtable.size()=" << memtable.size() << "\n";
 
     if (memtable.size() >= max_size)
     {
-        Level level_zero = index.levels.front();
+        Level* level_zero = &index->levels.front();
+        
         CapsuleBlock capsule_block(0);
 
         // initialize min/max
@@ -111,14 +112,7 @@ void Memtable::write_out_if_full(CapsuleIndex index)
         // std::string record_hash = capsule_block.writeOut();
         std::string record_hash = "temp hash";
 
-        std::cout << "after writeOut()" << "\n";
-
-
-        std::cout << "level_zero.numBlocks=" << level_zero.numBlocks << "\n";
-        level_zero.addBlock(&capsule_block, record_hash);
-
-        std::cout << "after addBlock()" << "\n";
-        std::cout << "level_zero.numBlocks=" << level_zero.numBlocks << "\n";
+        level_zero->addBlock(&capsule_block, record_hash);
 
         memtable = {};
         locklst = {};

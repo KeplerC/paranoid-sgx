@@ -47,7 +47,7 @@ int connectDB()
  */
 void CapsuleDB::put(const kvs_payload *payload)
 {
-    if (!memtable.put(payload, this->index))
+    if (!memtable.put(payload, &this->index))
     {
         std::cout << "Failed to write key in the Database";
     }
@@ -67,12 +67,11 @@ std::string CapsuleDB::get(const std::string &key, bool isMulticast /* default i
     std::string block_info, k;
     // unsigned char v[];
     // int t;
-
     if (kv.key == "") //Checks for key in memtable, if not present: checks in levels
     {
         // TODO iterate if there are multiple capsule indices
         level_info = this->index.getNumLevels();
-        for (int i = 0; i <= level_info; i++)
+        for (int i = 0; i < level_info; i++)
         {
             block_info = this->index.getBlock(i, key);
             if (block_info != "") // Key might be present, however verify if key exists if not check other levels
@@ -103,7 +102,7 @@ std::string CapsuleDB::get(const std::string &key, bool isMulticast /* default i
                 //     return v;
             }
         }
-        std::cout << "CapsuleDb: Couldn't find key: " << key;
+        std::cout << "CapsuleDb: Couldn't find key: " << key << "\n";
         return "";
     }
     else

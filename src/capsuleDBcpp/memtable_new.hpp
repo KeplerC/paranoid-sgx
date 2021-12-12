@@ -13,9 +13,9 @@ class Memtable
 {
 public:
     size_t max_size;
-    bool put(const kvs_payload *payload, CapsuleIndex index);
+    bool put(const kvs_payload *payload, CapsuleIndex* index);
     kvs_payload get(const std::string &key);
-    void write_out_if_full(CapsuleIndex index);
+    void write_out_if_full(CapsuleIndex* index);
     Memtable();
     Memtable(size_t ms);
     // M_BENCHMARK_CODE
