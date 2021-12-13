@@ -9,6 +9,11 @@
 #include <boost/serialization/vector.hpp>
 #include "../serialize-tuple/serialize_tuple.h"
 
+typedef struct {
+    std::string hash;
+    std::string minKey;
+    std::string maxKey;
+} blockHeader;
 
 class CapsuleBlock {
     private:

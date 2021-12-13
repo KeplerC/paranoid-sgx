@@ -13,7 +13,7 @@ class Level {
         int maxSize;
         std::string min_key;
         std::string max_key;
-        std::vector <std::string> recordHashes;
+        std::vector <blockHeader> recordHashes;
         bloom_filter levelFilter;
 
         bloom_filter create_filter();
