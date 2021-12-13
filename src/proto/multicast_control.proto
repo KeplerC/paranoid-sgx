@@ -51,7 +51,7 @@ message RawBytesMsg { // TODO temporary shim
   optional bytes bytestr = 1;
   optional bool route_up = 2;
   optional string interest_key = 3;
-  optional string immediate_sender_addr = 4;
+  optional string last_sender_addr = 4;
 }
 
 message AdvertiseKeyInterest {

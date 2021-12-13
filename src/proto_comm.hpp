@@ -31,12 +31,12 @@ public:
     void send_exec_code(std::string code);
     void send_assign_parent(std::string parent_addr);
 
-    zmq::socket_t* get_zmq_socket();
-
     void send_raw_str(std::string str); // TODO temporary shim: Should be replaced
                                         // with situation-specific proto msgs
     void send_raw_bytes(std::string str); // TODO temporary shim ^
     void send_raw_bytes(std::string bytes, bool route_up);
+
+    std::string get_endpoint();
 
 private:
     virtual MulticastMessage::ControlMessage recv_proto();

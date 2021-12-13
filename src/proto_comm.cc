@@ -201,6 +201,6 @@ std::string MulticastMessage::unpack_assign_parent(MulticastMessage::ControlMess
 }
 
 
-zmq::socket_t* ProtoSocket::get_zmq_socket() {
-    return socket_;
+std::string ProtoSocket::get_endpoint() {
+    return endpoint_;
 }

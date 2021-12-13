@@ -79,11 +79,11 @@ void handle_join_request(std::vector<ProtoSocket> &router_sockets_,
             // TODO: Need to clean up the memory leak induced by this allocation 
             LOGI << "[" << header << "] JOIN FROM CLIENT " + msg ;
 
-            zmq::socket_t* socket_ptr  = new  zmq::socket_t(context_, ZMQ_PUSH);
-            socket_ptr -> connect (msg);
+            zmq::socket_t* socket_ptr  = new  zmq::socket_t(context_, ZMQ_PUSH); 
             client_sockets_.emplace_back(socket_ptr, thread_id_);
             //client_addresses_.push_back(msg);
 
+            client_sockets_[client_sockets_.size() - 1].connect(msg);
             client_sockets_[client_sockets_.size() - 1].send_assign_parent(personal_address);
         }
     }
@@ -97,10 +97,10 @@ void handle_join_request(std::vector<ProtoSocket> &router_sockets_,
             LOGI << "[" << header << "] JOIN FROM ROUTER " + msg ;
 
             zmq::socket_t* socket_ptr  = new  zmq::socket_t(context_, ZMQ_PUSH);
-            socket_ptr -> connect (msg);
             router_sockets_.emplace_back(socket_ptr, thread_id_);
             //router_addresses_.push_back(msg);
 
+            router_sockets_[router_sockets_.size() - 1].connect(msg);
             router_sockets_[router_sockets_.size() - 1].send_assign_parent(personal_address);
         }
     }
@@ -130,19 +130,32 @@ void ZmqServer::net_handler() {
     if (pollitems_[1].revents & ZMQ_POLLIN){
         MulticastMessage::ControlMessage msg(socket_msg_.recv());
 
+        LOGI << "[SERVER] Mcast Message: " + msg.ShortDebugString();
+
         assert(msg.has_body());
 
         // TODO: Assert that message is of the form "raw bytes"
         msg.mutable_body()->mutable_raw_bytes()->set_route_up(false); // Server must route all messages down. 
 
-        LOGI << "[SERVER] Mcast Message: " + msg.ShortDebugString();
+        auto body = msg.mutable_body();
 
+        std::string last_sender = "";
+        if(body->mutable_raw_bytes()->has_last_sender_addr()) {
+            last_sender = body->mutable_raw_bytes()->last_sender_addr();
+        } 
+
+        body->mutable_raw_bytes()->set_last_sender_addr("tcp://localhost:" + std::to_string(NET_SERVER_MCAST_PORT));  
+        
         //mcast to all child routers and clients
         for(auto it = this->router_sockets_.begin(); it != this->router_sockets_.end(); it++) {
-            it->send(msg);
+            if(it->get_endpoint() != last_sender) {
+                it->send(msg);
+            } 
         }
         for(auto it = this->client_sockets_.begin(); it != this->client_sockets_.end(); it++) {
-            it->send(msg);
+            if(it->get_endpoint() != last_sender) {
+                it->send(msg);
+            } 
         }
 
     }
@@ -179,10 +192,8 @@ ZmqRouter::ZmqRouter(std::string ip, unsigned thread_id)
                          , socket_from_server_(&zsock_from_server_, thread_id) {
     socket_join_.connect ("tcp://" + seed_server_ip_ + ":" + seed_server_join_port_);
     socket_from_server_.bind ("tcp://*:" + port_);
+
     LOGI << "[ZmqComm] Finished constructing ZmqRouter";
-
-
-    //parent_socket_ = nullptr;
 
     max_child_routers = MAX_CHILD_ROUTERS;
 }
@@ -225,14 +236,34 @@ void ZmqRouter::net_handler() {
             std::string msg = MulticastMessage::unpack_raw_bytes(recv);
             LOGI << "[Router " << addr_ << "] routing message:  " + msg ;
 
-            //mcast to all child routers and clients
-            for(auto it = this->router_sockets_.begin(); it != this->router_sockets_.end(); it++) {
-                it->send(recv);
-            }
-            for(auto it = this->client_sockets_.begin(); it != this->client_sockets_.end(); it++) {
-                it->send(recv);
+            std::string last_sender = "";
+            if(body->mutable_raw_bytes()->has_last_sender_addr()) {
+                last_sender = body->mutable_raw_bytes()->last_sender_addr();
+            } 
+            
+            body->mutable_raw_bytes()->set_last_sender_addr(addr_);
+
+            // Send to everybody except the last sender 
+
+            body->mutable_raw_bytes()->set_route_up(true);
+            if(parent_socket_) {
+                if(parent_socket_->get_endpoint() != last_sender) {
+                    parent_socket_->send(recv);
+                }
             }
 
+            body->mutable_raw_bytes()->set_route_up(false);
+            //mcast to all child routers and clients
+            for(auto it = this->router_sockets_.begin(); it != this->router_sockets_.end(); it++) {
+                if(it->get_endpoint() != last_sender) {
+                    it->send(recv);
+                } 
+            }
+            for(auto it = this->client_sockets_.begin(); it != this->client_sockets_.end(); it++) {
+                if(it->get_endpoint() != last_sender) {
+                    it->send(recv);
+                } 
+            }
         }
         else {
             LOGI << "[Router " << addr_ << "] error: got unknown message type.";
@@ -347,8 +378,14 @@ void ZmqJsClient::net_handler() {
             assert(body->mutable_raw_bytes()->has_route_up());
 
             if(body->mutable_raw_bytes()->route_up()) {
-                LOGI << "[JSClient " << addr_ << "] routing message up tree:  " + msg ;
-
+                body->mutable_raw_bytes()->set_last_sender_addr(addr_);
+                if(parent_socket_) {
+                    parent_socket_->send(recv);
+                    LOGI << "[JSClient " << addr_ << "] routed message up tree:  " + msg ;
+                }
+                else {
+                    LOGI << "[JSClient " << addr_ << "] ERROR: Could not route message up tree, no parent! ";
+                }
             }
             else {
                 LOGI << "[JSClient " << addr_ << "] sending message to enclave:  " + msg ;
