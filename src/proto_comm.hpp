@@ -36,6 +36,8 @@ public:
     void send_raw_str(std::string str); // TODO temporary shim: Should be replaced
                                         // with situation-specific proto msgs
     void send_raw_bytes(std::string str); // TODO temporary shim ^
+    void send_raw_bytes(std::string bytes, bool route_up);
+
 private:
     virtual MulticastMessage::ControlMessage recv_proto();
     virtual void send_proto(MulticastMessage::ControlMessage& msg);
@@ -48,6 +50,8 @@ private:
 
     std::string endpoint_;
 };
+
+
 
 namespace MulticastMessage {
     std::string unpack_join(MulticastMessage::ControlMessage& msg, int* node_type);

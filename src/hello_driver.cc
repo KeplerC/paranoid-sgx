@@ -637,9 +637,9 @@ int run_worker(){
 
     unsigned thread_id = 3;
     worker_threads.push_back(std::thread(thread_run_zmq_router, 0));
-    Asylo_SGX* sgx = new Asylo_SGX( std::to_string(thread_id), serialized_signing_key);
-    sgx->init();
     sleep(1);
+    Asylo_SGX* sgx = new Asylo_SGX( std::to_string(thread_id), thread_id, serialized_signing_key);
+    sgx->init();
     worker_threads.push_back(std::thread(thread_start_coordinator, sgx));
     worker_threads.push_back(std::thread(thread_run_zmq_intermediate_router, 2));
     sleep(1);

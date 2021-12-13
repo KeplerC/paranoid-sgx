@@ -49,8 +49,8 @@ static void *StartOcallResponder( void *arg ) {
     ProtoSocket socket (socket_ptr, -1);
     // Assign port for kvs operations to JS client port
     if (port > 0) {
-        LOGI  << "Sending port: " << "tcp://" + std::string(NET_SEED_ROUTER_IP) + ":" + std::to_string(port);
-        socket.connect ("tcp://" + std::string(NET_SEED_ROUTER_IP) + ":" + std::to_string(port));
+        LOGI  << "Sending port: " << "tcp://" + std::string(NET_SEED_ROUTER_IP) + ":" + std::to_string(NET_CLIENT_BASE_PORT + port);
+        socket.connect ("tcp://" + std::string(NET_SEED_ROUTER_IP) + ":" + std::to_string(NET_CLIENT_BASE_PORT + port));
     } else {
         LOGI  << "Sending port: " << "tcp://" + std::string(NET_SEED_ROUTER_IP) + ":6667";
         socket.connect ("tcp://" + std::string(NET_SEED_ROUTER_IP) + ":6667");
@@ -115,7 +115,12 @@ static void *StartOcallResponder( void *arg ) {
                     socket_for_result.send_raw_bytes(out_s);
                 }
                 else {
-                    socket.send_raw_bytes(out_s);
+                    if(port > 0) {
+                        socket.send_raw_bytes(out_s, true);
+                    }
+                    else {
+                        socket.send_raw_bytes(out_s, false);
+                    }
                 }
                 break;
             }

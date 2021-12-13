@@ -87,12 +87,24 @@ void ProtoSocket::send_raw_str(std::string code) {
     send_proto(message);
 }
 
+
 void ProtoSocket::send_raw_bytes(std::string bytes) {
     MulticastMessage::ControlMessage message;
     MulticastMessage::MessageBody* body = message.mutable_body();
     MulticastMessage::RawBytesMsg* raw_bytes = body->mutable_raw_bytes();
 
     raw_bytes->set_bytestr(bytes);
+
+    send_proto(message);
+}
+
+void ProtoSocket::send_raw_bytes(std::string bytes, bool route_up) {
+    MulticastMessage::ControlMessage message;
+    MulticastMessage::MessageBody* body = message.mutable_body();
+    MulticastMessage::RawBytesMsg* raw_bytes = body->mutable_raw_bytes();
+
+    raw_bytes->set_bytestr(bytes);
+    raw_bytes->set_route_up(route_up);
 
     send_proto(message);
 }

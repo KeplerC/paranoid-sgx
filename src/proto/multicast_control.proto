@@ -49,6 +49,13 @@ message RawStrMsg { // TODO temporary shim
 
 message RawBytesMsg { // TODO temporary shim
   optional bytes bytestr = 1;
+  optional bool route_up = 2;
+  optional string interest_key = 3;
+  optional string immediate_sender_addr = 4;
+}
+
+message AdvertiseKeyInterest {
+  optional string interest_key = 1;
 }
 
 message MessageBody {

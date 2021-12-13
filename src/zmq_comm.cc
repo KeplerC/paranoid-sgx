@@ -120,13 +120,21 @@ void ZmqServer::net_handler() {
         MulticastMessage::ControlMessage recv(socket_join_.recv());
 
         std::string msg = MulticastMessage::unpack_join(recv, &node_type);
-        std::string personal_address = "tcp://*:" + std::to_string(NET_SERVER_MCAST_PORT);
+
+        // TODO: Should change from localhost...
+        std::string personal_address = "tcp://localhost:" + std::to_string(NET_SERVER_MCAST_PORT);
         handle_join_request(router_sockets_, client_sockets_, msg, personal_address, node_type, max_child_routers, true, context_, thread_id_);
     }
 
     //receive new message to mcast
     if (pollitems_[1].revents & ZMQ_POLLIN){
         MulticastMessage::ControlMessage msg(socket_msg_.recv());
+
+        assert(msg.has_body());
+
+        // TODO: Assert that message is of the form "raw bytes"
+        msg.mutable_body()->mutable_raw_bytes()->set_route_up(false); // Server must route all messages down. 
+
         LOGI << "[SERVER] Mcast Message: " + msg.ShortDebugString();
 
         //mcast to all child routers and clients
@@ -202,12 +210,15 @@ void ZmqRouter::net_handler() {
 
             std::string parent = unpack_assign_parent(recv);
 
+            zsock_parent_.reset(new zmq::socket_t(context_, ZMQ_PUSH));
+            parent_socket_.reset(new ProtoSocket(zsock_parent_.get(), thread_id_));
+            parent_socket_->connect (parent);
             LOGI << "[Router " << addr_ << "] has new parent:  " << parent;
         } 
         else if(body->has_join()) {
             int node_type;
             std::string msg = MulticastMessage::unpack_join(recv, &node_type);
-            std::string personal_address = "tcp://*:" + port_;
+            std::string personal_address = "tcp://localhost:" + port_;
             handle_join_request(router_sockets_, client_sockets_, msg, personal_address, node_type, max_child_routers, false, context_, thread_id_);
         }
         else if(body->has_raw_bytes()) {
@@ -304,9 +315,6 @@ ZmqJsClient::ZmqJsClient(std::string ip, unsigned thread_id, Asylo_SGX* sgx)
 }
 
 void ZmqJsClient::net_setup() {
-    LOGI << "Multicast port: tcp://*:" + std::to_string(NET_SERVER_MCAST_PORT + thread_id_);
-    LOGI << "tcp://" + seed_server_ip_ + ":" + seed_server_join_port_;
-
     pollitems_ = std::vector<zmq::pollitem_t>({
         { static_cast<void *>(zsock_from_server_), 0, ZMQ_POLLIN, 0 },
         { static_cast<void *>(zsock_code_), 0, ZMQ_POLLIN, 0 },
@@ -328,14 +336,25 @@ void ZmqJsClient::net_handler() {
 
             std::string parent = unpack_assign_parent(recv);
 
+            zsock_parent_.reset(new zmq::socket_t(context_, ZMQ_PUSH));
+            parent_socket_.reset(new ProtoSocket(zsock_parent_.get(), thread_id_));
+            parent_socket_->connect (parent);
+
             LOGI << "[JSClient " << addr_ << "] has new parent:  " << parent;
         } 
         else if(body->has_raw_bytes()) {
             std::string msg = MulticastMessage::unpack_raw_bytes(recv);
-            LOGI << "[JSClient " << addr_ << "] sending message to enclave:  " + msg ;
+            assert(body->mutable_raw_bytes()->has_route_up());
 
-            // this -> send_string(port_ , zsock_send_);
-            sgx_->send_to_sgx(msg);
+            if(body->mutable_raw_bytes()->route_up()) {
+                LOGI << "[JSClient " << addr_ << "] routing message up tree:  " + msg ;
+
+            }
+            else {
+                LOGI << "[JSClient " << addr_ << "] sending message to enclave:  " + msg ;
+
+                sgx_->send_to_sgx(msg);
+            }
         }
 
     }

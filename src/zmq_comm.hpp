@@ -5,6 +5,7 @@
 #include <string>
 #include <thread>
 #include <vector>
+#include <memory>
 #include <zmq.hpp>
 #include <chrono>
 
@@ -120,7 +121,9 @@ private:
 
     ProtoSocket socket_join_;
     ProtoSocket socket_from_server_;
-    //ProtoSocket parent_socket_;
+
+    std::unique_ptr<zmq::socket_t> zsock_parent_;
+    std::unique_ptr<ProtoSocket> parent_socket_;
 
 
     std::vector<ProtoSocket> router_sockets_;
@@ -163,6 +166,10 @@ private:
     ProtoSocket socket_from_server_;
     ProtoSocket socket_code_;
     ProtoSocket socket_send_;
+
+
+    std::unique_ptr<zmq::socket_t> zsock_parent_;
+    std::unique_ptr<ProtoSocket> parent_socket_;
 
     void net_setup() override;
     void net_handler() override;
