@@ -114,7 +114,7 @@ int Level::addBlock(CapsuleBlock* newBlock, std::string hash) {
 * Output: The hash which potentially contains the requested key, error code if not present
 */
 std::string Level::getBlock(std::string key) {
-    std::cout << "getBlock for key=" << key << "\n";
+    std::cout << "getBlock on level=" << index << " for key=" << key << "\n";
     std::cout << "min_key=" << min_key << "\n";
     std::cout << "max_key=" << max_key << "\n";
     if (key < min_key || key > max_key) {
@@ -123,10 +123,10 @@ std::string Level::getBlock(std::string key) {
     // Otherwise search -> is Binary really needed?
     
     for (int i = 0; i < numBlocks; i++) {
-        std::cout << "recordHashes[i]=" << recordHashes[i] << "\n";
+        std::cout << "recordHashes[" << i << "]=" << recordHashes[i] << "\n";
         CapsuleBlock curr_block = getCapsuleBlock(recordHashes[i]);
         // TODO: should this be >= 
-        if (key < curr_block.getMinKey()) { 
+        if (key <= curr_block.getMaxKey()) {
             return recordHashes[i];
         }
     }

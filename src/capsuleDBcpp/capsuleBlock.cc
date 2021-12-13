@@ -7,6 +7,7 @@
 #include <tuple>
 #include "capsuleBlock.hh"
 #include "fakeCapsule.hh"
+#include <iostream>
 
 CapsuleBlock::CapsuleBlock() {
     CapsuleBlock(-1);

@@ -3,7 +3,7 @@
 
 #include <string>
 
-void sha256_string(char *string, char outputBuffer[65]);
+void sha256_string(const char *string, char outputBuffer[65]);
 
 std::string putCapsuleBlock(CapsuleBlock inputBlock);
 

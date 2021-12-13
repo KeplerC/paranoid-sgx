@@ -84,7 +84,7 @@ bool Memtable::put(const kvs_payload *payload, CapsuleIndex* index)
 void Memtable::write_out_if_full(CapsuleIndex* index)
 {
     // capacity check: number of kv pairs (upperbounds amount of memory when we constrain kv size)
-    std::cout << "write_out_if_full: " << "max_size=" << max_size << " memtable.size()=" << memtable.size() << "\n";
+    // std::cout << "write_out_if_full: " << "max_size=" << max_size << " memtable.size()=" << memtable.size() << "\n";
 
     if (memtable.size() >= max_size)
     {

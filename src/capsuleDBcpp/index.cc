@@ -40,7 +40,7 @@ int CapsuleIndex::getNumLevels() {
     * Output: block hash or error code
     */
 std::string CapsuleIndex::getBlock(int level, std::string key) {
-    std::cout << "getBlock on level=" << level << " for key=" << key << "\n";
+    // std::cout << "getBlock on level=" << level << " for key=" << key << "\n";
     if (level < 0 || level >= numLevels) {
         return "";
     }

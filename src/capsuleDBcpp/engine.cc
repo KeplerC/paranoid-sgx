@@ -46,7 +46,8 @@ int connectDB()
  * Output: Nothing
  */
 void CapsuleDB::put(const kvs_payload *payload)
-{
+{   
+    std::cout << "PUT key=" << payload->key << ", value=" << payload->value << "\n";
     if (!memtable.put(payload, &this->index))
     {
         std::cout << "Failed to write key in the Database";
@@ -62,6 +63,7 @@ void CapsuleDB::put(const kvs_payload *payload)
  */
 std::string CapsuleDB::get(const std::string &key, bool isMulticast /* default is already false from function declaration in engine.hh */)
 {
+    std::cout << "GET key=" << key << "\n";
     int level_info;
     kvs_payload kv = memtable.get(key);
     std::string block_info, k;
@@ -69,18 +71,20 @@ std::string CapsuleDB::get(const std::string &key, bool isMulticast /* default i
     // int t;
     if (kv.key == "") //Checks for key in memtable, if not present: checks in levels
     {
+        std::cout << "Couldn't find key in Memtable, checking Index...\n";
         // TODO iterate if there are multiple capsule indices
         level_info = this->index.getNumLevels();
         for (int i = 0; i < level_info; i++)
         {
             block_info = this->index.getBlock(i, key);
             if (block_info != "") // Key might be present, however verify if key exists if not check other levels
-            {
-                CapsuleBlock* block;
-                readIn(block_info, block);
-                for (long unsigned int j = 0; j < block->kvPairs.size(); j++) 
+            {   
+                CapsuleBlock block;
+                readIn(block_info, &block);
+                std::cout << "block->kvPairs.size()=" <<  block.kvPairs.size() << "\n";
+                for (long unsigned int j = 0; j < block.kvPairs.size(); j++) 
                 {
-                    std::tuple<std::string, std::string, int, std::string> kv_tuple = block->kvPairs[j];
+                    std::tuple<std::string, std::string, int, std::string> kv_tuple = block.kvPairs[j];
                     if (i != 0 && std::get<0>(kv_tuple) > key) 
                     {
                         break;
