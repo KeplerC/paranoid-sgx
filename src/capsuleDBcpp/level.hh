@@ -22,7 +22,7 @@ class Level {
         int addBlock(CapsuleBlock* newBlock, std::string hash);
         std::string getBlock(std::string key);
         Level();
-        Level(int index, int maxSize);
+        Level(int i, int ms);
 };
 
 #endif

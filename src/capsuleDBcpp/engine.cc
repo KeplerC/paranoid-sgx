@@ -81,7 +81,7 @@ std::string CapsuleDB::get(const std::string &key, bool isMulticast /* default i
             {   
                 CapsuleBlock block;
                 readIn(block_info, &block);
-                std::cout << "block->kvPairs.size()=" <<  block.kvPairs.size() << "\n";
+                // std::cout << "block->kvPairs.size()=" <<  block.kvPairs.size() << "\n";
                 for (long unsigned int j = 0; j < block.kvPairs.size(); j++) 
                 {
                     std::tuple<std::string, std::string, int, std::string> kv_tuple = block.kvPairs[j];

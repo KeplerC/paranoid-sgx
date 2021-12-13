@@ -20,8 +20,9 @@ CapsuleIndex::CapsuleIndex(size_t size) {
     numLevels = 1;
     blocksize = size;
     // TODO: prevIndexHash???
-    Level level_zero = Level(0, 1);
-    levels = {level_zero};
+    Level level_zero = Level(0, 2);
+    levels.push_back(level_zero);
+
 }
 
 /*

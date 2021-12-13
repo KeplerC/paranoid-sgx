@@ -11,9 +11,9 @@ Level::Level() {
     Level(-1, -1);
 }
 
-Level::Level(int index, int maxSize) {
-    index = index;
-    maxSize = maxSize;
+Level::Level(int i, int ms) {
+    index = i;
+    maxSize = ms;
     levelFilter = create_filter();
 
     numBlocks = 0;
@@ -54,6 +54,7 @@ void Level::setNumBlocks(int n) {
 * Output: 0 on success, other int on error.
 */
 int Level::addBlock(CapsuleBlock* newBlock, std::string hash) {
+    std::cout << "addBlock on level=" << index << "\n";
     // Add kv pairs in block to bloom filter
     std::vector < std::tuple<std::string, std::string, int, std::string> > kvPairs = newBlock->getKVPairs();
     for (std::tuple<std::string, std::string, int, std::string> kvt : kvPairs) {
@@ -73,7 +74,7 @@ int Level::addBlock(CapsuleBlock* newBlock, std::string hash) {
         max_key = new_block_max_key;
         return 0;
     }
-
+    
     // If this is L0, just append (L0 is unsorted)
     if (index == 0) {
         recordHashes.push_back(hash);
@@ -115,8 +116,8 @@ int Level::addBlock(CapsuleBlock* newBlock, std::string hash) {
 */
 std::string Level::getBlock(std::string key) {
     std::cout << "getBlock on level=" << index << " for key=" << key << "\n";
-    std::cout << "min_key=" << min_key << "\n";
-    std::cout << "max_key=" << max_key << "\n";
+    std::cout << "Level min_key=" << min_key << "\n";
+    std::cout << "Level max_key=" << max_key << "\n";
     if (key < min_key || key > max_key) {
         return "";
     }
@@ -125,8 +126,7 @@ std::string Level::getBlock(std::string key) {
     for (int i = 0; i < numBlocks; i++) {
         std::cout << "recordHashes[" << i << "]=" << recordHashes[i] << "\n";
         CapsuleBlock curr_block = getCapsuleBlock(recordHashes[i]);
-        // TODO: should this be >= 
-        if (key <= curr_block.getMaxKey()) {
+        if (curr_block.getMinKey() <= key  && key <= curr_block.getMaxKey()) {
             return recordHashes[i];
         }
     }
