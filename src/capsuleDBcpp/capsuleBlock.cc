@@ -8,6 +8,9 @@
 #include "capsuleBlock.hh"
 #include "fakeCapsule.hh"
 
+CapsuleBlock::CapsuleBlock() {
+    CapsuleBlock(-1);
+}
 
 CapsuleBlock::CapsuleBlock(int l) {
     level = l;
@@ -91,5 +94,5 @@ std::string CapsuleBlock::writeOut()
     */
 void readIn(std::string transactionHash, CapsuleBlock *location)
 {
-    location = getCapsuleBlock(transactionHash);
+    *location = getCapsuleBlock(transactionHash);
 }

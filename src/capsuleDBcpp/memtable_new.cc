@@ -109,8 +109,8 @@ void Memtable::write_out_if_full(CapsuleIndex* index)
 
         std::cout << "writing out block with min_key=" << min_key << ", max_key=" << max_key << "\n";
 
-        // std::string record_hash = capsule_block.writeOut();
-        std::string record_hash = "temp hash";
+        std::string record_hash = capsule_block.writeOut();
+        // std::string record_hash = "temp hash";
 
         level_zero->addBlock(&capsule_block, record_hash);
 

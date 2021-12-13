@@ -29,11 +29,13 @@ std::string putCapsuleBlock(CapsuleBlock inputBlock) {
     char * serializedBlock;
     std::stringstream toBeHashed;
     boost::archive::text_oarchive testAr(toBeHashed);
-    
     std::cout << "1" << "\n";
+
     // Hash bytestream
     char blockHash[65];
+    std::cout << "1.1" << "\n";
     toBeHashed >> serializedBlock;
+    std::cout << "1.2" << "\n";
     sha256_string(serializedBlock, blockHash);
 
     std::cout << "2" << "\n";
@@ -47,26 +49,25 @@ std::string putCapsuleBlock(CapsuleBlock inputBlock) {
     return blockHash;
 }
 
-CapsuleBlock* getCapsuleBlock(std::string inputHash) {
-    CapsuleBlock* recoveredBlock;
-
+CapsuleBlock getCapsuleBlock(std::string inputHash) {
+    CapsuleBlock recoveredBlock;
     // Retrieve and deserialize block
     std::ifstream storedBlock(inputHash);
     boost::archive::text_iarchive ia(storedBlock);
-    ia >> *recoveredBlock;
+    ia >> recoveredBlock;
 
     // Check Hash
     char * serializedBlock;
     std::stringstream toBeHashed;
     boost::archive::text_oarchive testAr(toBeHashed);
-    testAr << *recoveredBlock;
+    testAr << recoveredBlock;
     toBeHashed >> serializedBlock;
     
     char blockHash[65];
     toBeHashed >> serializedBlock;
     sha256_string(serializedBlock, blockHash);
     if (blockHash != inputHash) {
-        return NULL;
+        throw std::invalid_argument("inputHash not found");
     }
 
     // Return to user
