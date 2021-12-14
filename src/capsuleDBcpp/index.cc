@@ -305,7 +305,10 @@ int CapsuleIndex::compactHelper(std::vector<blockHeader> sourceVec, Level destLe
     }
     
     std::vector<blockHeader> newDestLevelVec = merge(sourceVec, destLevel.recordHashes, destLevel.index);
-    // TODO: besides updating recordHashes, need to update other attributes as well (min/max key, bloom filter, etc.)
+    // TODO: Need to update bloom filter
     destLevel.recordHashes = newDestLevelVec;
+    destLevel.numBlocks = newDestLevelVec.size();
+    destLevel.min_key = newDestLevelVec[0].minKey;
+    destLevel.max_key = newDestLevelVec[newDestLevelVec.size() - 1].maxKey;
     return 0;
 }
