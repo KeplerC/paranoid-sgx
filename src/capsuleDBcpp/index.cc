@@ -22,11 +22,8 @@ CapsuleIndex::CapsuleIndex(size_t size) {
     // TODO: prevIndexHash???
     Level level_zero = Level(0, 1);
     Level level_one = Level(1, 10);
-    levels = {
-        level_zero,
-        level_one
-    };
-
+    levels.push_back(level_zero);
+    levels.push_back(level_one);
 }
 
 /*
@@ -61,7 +58,7 @@ int CapsuleIndex::add_hash(int level, std::string hash, CapsuleBlock block) {
         return -1;
     }
     int status = levels[level].addBlock(&block, hash);
-    compact(level);
+    compact();
     return status;
 }
 
@@ -215,12 +212,13 @@ int CapsuleIndex::compact() {
         return 0;
     }
 
+    // Sort L0
     std::vector<blockHeader> sortedLv0;
     sortedLv0.push_back(lv0.recordHashes[0]);
     for (int i = 1; i < lv0.recordHashes.size(); i++) {
         std::vector<blockHeader> currBlock;
         currBlock.push_back(lv0.recordHashes[i]);
-        sortedLv0 = merge();
+        sortedLv0 = merge(sortedLv0, currBlock, 0);
     }
 
     if (numLevels == 1) {
@@ -245,12 +243,29 @@ int CapsuleIndex::compact() {
 
 int CapsuleIndex::compactHelper(std::vector<blockHeader> sourceVec, Level destLevel) {
     if (sourceVec.size() + destLevel.recordHashes.size() >= destLevel.maxSize) {
+        // Identify Affected blocks
         std::vector<blockHeader> newSourceVec;
         std::vector<blockHeader> remainingBlocks;
         blockHeader currBlock;
-        for (int i  = 0; i < sourceVec.size(); i++) {
+        int destInd = 0;
+        blockHeader lastAdded;
+        for (int i = 0; i < sourceVec.size(); i++) {
             currBlock = sourceVec[i];
-            // TODO: Identify affected blocks
+            while (destInd < destLevel.recordHashes.size()) {
+                blockHeader currExamining = destLevel.recordHashes[destInd];
+                if (currBlock.minKey >= currExamining.minKey && currBlock.minKey <= currExamining.maxKey && currExamining.hash != lastAdded.hash) {
+                    newSourceVec.push_back(currExamining);
+                    lastAdded = currExamining;
+                } else if (currBlock.maxKey >= currExamining.minKey && currBlock.maxKey <= currExamining.maxKey && currExamining.hash != lastAdded.hash) {
+                    newSourceVec.push_back(currExamining);
+                    lastAdded = currExamining;
+                    break;
+                } else if (currExamining.hash != lastAdded.hash) {
+                    remainingBlocks.push_back(currExamining);
+                    break;
+                }
+                destInd++;
+            }
         }
         if (destLevel.index + 1 >= numLevels) {
             addLevel(destLevel.maxSize * 10);
@@ -258,7 +273,7 @@ int CapsuleIndex::compactHelper(std::vector<blockHeader> sourceVec, Level destLe
         compactHelper(newSourceVec, levels[destLevel.index]);
         destLevel.recordHashes = remainingBlocks;
     }
-    std::vector<blockHeader> newDestLevelVec = merge();
+    std::vector<blockHeader> newDestLevelVec = merge(sourceVec, destLevel.recordHashes, destLevel.index);
     destLevel.recordHashes = newDestLevelVec;
     return 0;
 }
