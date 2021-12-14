@@ -21,6 +21,7 @@ class CapsuleIndex {
         int addLevel(int size);
         int compact(int level);
         CapsuleBlock* find_containing_block(std::string key, int level);
+        std::vector<blockHeader> merge(std::vector<blockHeader> a, std::vector<blockHeader> b, int next_level);
 };
 
 #endif

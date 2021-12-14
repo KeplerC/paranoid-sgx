@@ -44,7 +44,6 @@ class CapsuleBlock {
         std::string writeOut();
 };
 
-void addKVPair(std::string key, std::string value, int timestamp, std::string msgType);
 void readIn(std::string transactionHash, CapsuleBlock *location);
 
 #endif

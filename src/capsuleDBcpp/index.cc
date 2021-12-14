@@ -20,8 +20,12 @@ CapsuleIndex::CapsuleIndex(size_t size) {
     numLevels = 1;
     blocksize = size;
     // TODO: prevIndexHash???
-    Level level_zero = Level(0, 2);
-    levels.push_back(level_zero);
+    Level level_zero = Level(0, 1);
+    Level level_one = Level(1, 10);
+    levels = {
+        level_zero,
+        level_one
+    };
 
 }
 
@@ -80,15 +84,123 @@ int CapsuleIndex::addLevel(int size) {
 }
 
 /*
-* This function manages the compaction process.  It assumes that compaction is needed and does not check the size of the level.
-* It wil recursively handle further compactions if necessary.
+    This function takes in two lists of blockHeaders representing two levels of sorted CapsuleBlocks
+    Merges them into a new list of blockHeaders representing a level of sorted CapsuleBlocks.
+*/
+std::vector<blockHeader> CapsuleIndex::merge(std::vector<blockHeader> a, std::vector<blockHeader> b, int next_level) {
+    std::vector<blockHeader> output;
+    
+    size_t aa = 0;
+    size_t bb = 0;
+    size_t aaa = 0;
+    size_t bbb = 0;
+
+    bool advanceA = false;
+    bool advanceB = false;
+    blockHeader blockHeaderA = a[aa];
+    blockHeader blockHeaderB = b[bb];
+    CapsuleBlock capsuleBlockA;
+    readIn(blockHeaderA.hash, &capsuleBlockA);
+    CapsuleBlock capsuleBlockB;
+    readIn(blockHeaderB.hash, &capsuleBlockB);
+    
+    CapsuleBlock next_cb = CapsuleBlock(next_level);
+
+    while (aa != a.size() || bb != b.size()) {
+
+        // Find smallest KV pair by comparing the next KV pair of each level.
+        std::tuple<std::string, std::string, int, std::string> nextKVPair;
+
+        // If we've reached the end of either level, use other level.
+        if (aa == a.size()) {
+            nextKVPair = capsuleBlockB.getKVPairs()[bbb];
+            advanceB = true;
+        }
+        else if (bb == b.size()) {
+            nextKVPair = capsuleBlockA.getKVPairs()[aaa];
+            advanceA = true;
+        } else {
+            // If both levels have remaining KV pairs to add, push out the smallest one.
+            std::tuple<std::string, std::string, int, std::string> KVPairA = capsuleBlockA.getKVPairs()[aaa];
+            std::tuple<std::string, std::string, int, std::string> KVPairB = capsuleBlockB.getKVPairs()[bbb];
+            std::string keyA = std::get<0>(KVPairA);
+            std::string keyB = std::get<0>(KVPairB);
+            if (keyB < keyA) {
+                nextKVPair = KVPairB;
+                advanceB = true;
+            } else if (keyA < keyB) {
+                nextKVPair = KVPairA;
+                advanceA = true;
+            } else {
+                // If both KV pairs have the same key, push out the most recent one and disregard the older one.
+                int64_t timestampA = std::get<2>(KVPairA);
+                int64_t timestampB = std::get<2>(KVPairB);
+                if (timestampB >= timestampA) {
+                    nextKVPair = KVPairB;
+                } else {
+                    nextKVPair = KVPairA;
+                }
+                advanceA = true;
+                advanceB = true;
+            }
+        }
+        
+        // Advance pointers for either A or B or both, pulling in next CapsuleBlock if reached end of current one.
+        if (advanceA) {
+            aaa++;
+            if (aaa == capsuleBlockA.getKVPairs().size()) {
+                aaa = 0;
+                aa++;
+                if (aa < a.size()) {
+                    blockHeaderA = a[aa];
+                    readIn(blockHeaderA.hash, &capsuleBlockA);
+                }
+            }
+        }
+        if (advanceB) {
+            bbb++;
+            if (bbb == capsuleBlockB.getKVPairs().size()) {
+                bbb = 0;
+                bb++;
+                if (bb < b.size()) {
+                    blockHeaderB = b[bb];
+                    readIn(blockHeaderB.hash, &capsuleBlockB);
+                }
+            }
+        }
+        advanceA = false;
+        advanceB = false;
+
+        // Add next KV pair to a CapsuleBlock, and write out if full.
+        next_cb.addKVPair(
+            std::get<0>(nextKVPair), 
+            std::get<1>(nextKVPair), 
+            std::get<2>(nextKVPair), 
+            std::get<3>(nextKVPair));
+        if (next_cb.getKVPairs().size() == blocksize) {
+            std::string hash = next_cb.writeOut();
+            blockHeader bh = {};
+            bh.hash = hash;
+            bh.minKey = next_cb.getMinKey();
+            bh.maxKey = next_cb.getMaxKey();
+            output.push_back(bh);
+            next_cb = CapsuleBlock(next_level);
+        }
+    }
+    return output;
+}
+
+/*
+* This function manages the compaction process. 
+* It will recursively handle further compactions if necessary.
 * 
 * Input: Level to compact.
 * Output: Error code or 0 on success.
 */
 int CapsuleIndex::compact(int level) {
-    
+
     /*
+    Old Algorithm (this doesn't work because CapsuleBlocks will all already be at capacity)
     pseudocode:
     For every Capsule Block at current level (iterate in order of oldest to newest):
         For every key in Capsule Block:
@@ -107,29 +219,37 @@ int CapsuleIndex::compact(int level) {
 
     Level curr_level = levels[level];
 
-    // compaction trigger condition
-    if (curr_level.numBlocks * blocksize > curr_level.maxSize) {
-        for (int i = 0; i < curr_level.numBlocks; i++) {
-            std::string curr_block_hash = curr_level.getBlock(curr_level.recordHashes[i]);
-            
-            // call function to query DataCapsule for block with hash
-            CapsuleBlock* curr_block;
-            readIn(curr_block_hash, curr_block);
+    std::cout << "curr_level.numBlocks=" << curr_level.numBlocks << "\n";
+    std::cout << "blocksize=" << blocksize << "\n";
+    std::cout << "curr_level.maxSize=" << curr_level.maxSize << "\n";
 
-            std::vector < std::tuple<std::string, std::string, int, std::string> > kvPairs = curr_block->getKVPairs();
-            for (std::tuple<std::string, std::string, int, std::string> kvt : kvPairs) {
-                std::string key = std::get<0>(kvt);
-                std::string value = std::get<1>(kvt);
-                int timestamp = std::get<2>(kvt);
-                std::string msgType = std::get<3>(kvt);
-                
-                // find appropriate block in next level
-                CapsuleBlock* next_block = find_containing_block(key, level + 1);
-                next_block->addKVPair(key, value, timestamp, msgType);
-                std::string hash = next_block->writeOut();
-                curr_level.recordHashes[i] = hash;
-            }
-        }
+    // compaction trigger condition
+    if (curr_level.numBlocks  > curr_level.maxSize) {
+
+        
+
+        // for (int i = 0; i < curr_level.numBlocks; i++) {
+        //     std::string curr_block_hash = curr_level.recordHashes[i];
+            
+        //     // call function to query DataCapsule for block with hash
+        //     CapsuleBlock curr_block;
+        //     readIn(curr_block_hash, &curr_block);
+
+        //     std::vector < std::tuple<std::string, std::string, int, std::string> > kvPairs = curr_block.getKVPairs();
+        //     for (std::tuple<std::string, std::string, int, std::string> kvt : kvPairs) {
+        //         std::string key = std::get<0>(kvt);
+        //         std::string value = std::get<1>(kvt);
+        //         int timestamp = std::get<2>(kvt);
+        //         std::string msgType = std::get<3>(kvt);
+        //         std::cout << "key=" << key << "\n";
+        //         // find appropriate block in next level
+        //         CapsuleBlock* next_block = find_containing_block(key, level + 1);
+
+        //         next_block->addKVPair(key, value, timestamp, msgType);
+        //         std::string hash = next_block->writeOut();
+        //         curr_level.recordHashes[i] = hash;
+        //     }
+        // }
 
         // wipe current level - delete capsule blocks and reset bloom filter
         // TODO: how does deletion work in DataCapsule?
@@ -146,21 +266,21 @@ int CapsuleIndex::compact(int level) {
     return 0;
 }
 
-// optional TODO: binary search
-// TODO: how to add new blocks if all blocks in level are full? do we have to redistribute all the kv pairs?
-CapsuleBlock* CapsuleIndex::find_containing_block(std::string key, int level) {
-    Level containing_level = (*this).levels[level];
-    for (int i = 0; i < containing_level.numBlocks; i++) {
-        std::string curr_block_hash = containing_level.getBlock(containing_level.recordHashes[i]);
+// // optional TODO: binary search
+// // TODO: how to add new blocks if all blocks in level are full? do we have to redistribute all the kv pairs?
+// CapsuleBlock* CapsuleIndex::find_containing_block(std::string key, int level) {
+//     Level containing_level = (*this).levels[level];
+//     for (int i = 0; i < containing_level.numBlocks; i++) {
+//         std::string curr_block_hash = containing_level.getBlock(containing_level.recordHashes[i]);
         
-        // call function to query DataCapsule for block with hash
+//         // call function to query DataCapsule for block with hash
 
-        CapsuleBlock* curr_block;
-        readIn(curr_block_hash, curr_block);
+//         CapsuleBlock* curr_block;
+//         readIn(curr_block_hash, curr_block);
 
-        if (i == containing_level.numBlocks - 1 || key.compare(curr_block->getMaxKey()) <= 0) {
-            return curr_block;
-        }
-    }
-    return NULL;
-}
+//         if (i == containing_level.numBlocks - 1 || key.compare(curr_block->getMaxKey()) <= 0) {
+//             return curr_block;
+//         }
+//     }
+//     return NULL;
+// }
