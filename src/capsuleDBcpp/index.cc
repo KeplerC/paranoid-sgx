@@ -82,6 +82,114 @@ int CapsuleIndex::addLevel(int size) {
 }
 
 /*
+* This function manages the compaction process by performing initial comapction determinations at L0
+* Further compactions and the actual compaction logic is handled in compactHelper.  
+* 
+* Input: Level to compact.
+* Output: Error code or 0 on success.
+*/
+int CapsuleIndex::compact() {
+    Level* lv0 = &levels.front();
+
+    std::cout << "ENTERING compact()\n";
+
+    if (blocksize * lv0->numBlocks < lv0->maxSize) {
+        return 0;
+    }
+
+    std::cout << "recordHashes.size()=" << lv0->recordHashes.size() << "\n";
+    std::cout << "recordHashes[0].minKey=" << lv0->recordHashes[0].minKey << "\n";
+    std::cout << "recordHashes[0].maxKey=" << lv0->recordHashes[0].maxKey << "\n";
+    std::cout << "recordHashes[1].minKey=" << lv0->recordHashes[1].minKey << "\n";
+    std::cout << "recordHashes[1].maxKey=" << lv0->recordHashes[1].maxKey << "\n";
+
+    // Sort vectors in each block of L0
+    sortL0();
+    
+    // Sort L0
+    std::vector<blockHeader> sortedLv0;
+    sortedLv0.push_back(lv0->recordHashes[0]);
+    for (int i = 1; i < lv0->recordHashes.size(); i++) {
+        std::vector<blockHeader> currBlock;
+        currBlock.push_back(lv0->recordHashes[i]);
+        sortedLv0 = merge(sortedLv0, currBlock, 0);
+    }
+
+    std::cout << "sortedLv0.size()=" << sortedLv0.size() << "\n";
+    std::cout << "sortedLv0[0].minKey=" << sortedLv0[0].minKey << "\n";
+    std::cout << "sortedLv0[0].maxKey=" << sortedLv0[0].maxKey << "\n";
+    std::cout << "sortedLv0[1].minKey=" << sortedLv0[1].minKey << "\n";
+    std::cout << "sortedLv0[1].maxKey=" << sortedLv0[1].maxKey << "\n";
+
+    if (numLevels == 1) {
+        addLevel(10 * lv0->maxSize);
+    }
+
+    compactHelper(sortedLv0, levels[1]);    
+
+    // lv0->recordHashes.clear();
+    levels[0] = Level(lv0->index, lv0->maxSize);
+
+    return 0;
+}
+
+/* 
+ * This function merges blocks into exisiting levels.  It also determines whether doing so would cause an overflow.
+ * If so, it recursively compacts by identifying which blocks are modified in destLevel and pushing them into the level
+ * below.
+ * 
+ * Input: A sorted vector of blockHeaders sourceVec, the level the vector is being compacted into destLevel.
+ * Output: 0 if no error, other number otherwise
+ */
+
+int CapsuleIndex::compactHelper(std::vector<blockHeader> sourceVec, Level destLevel) {
+    
+    std::cout << "ENTERING compactHelper()\n";
+    std::cout << "sourceVec.size()=" << sourceVec.size() << "\n";
+    std::cout << "destLevel.recordHashes.size()=" << destLevel.recordHashes.size() << "\n";
+    std::cout << "destLevel.maxSize=" << destLevel.maxSize << "\n";
+ 
+    if (blocksize * sourceVec.size() + blocksize * destLevel.recordHashes.size() >= destLevel.maxSize) {
+        // Identify Affected blocks
+        std::vector<blockHeader> newSourceVec;
+        std::vector<blockHeader> remainingBlocks;
+        blockHeader currBlock;
+        int destInd = 0;
+        blockHeader lastAdded;
+        for (int i = 0; i < sourceVec.size(); i++) {
+            currBlock = sourceVec[i];
+            while (destInd < destLevel.recordHashes.size()) {
+                blockHeader currExamining = destLevel.recordHashes[destInd];
+                if (currBlock.minKey >= currExamining.minKey && currBlock.minKey <= currExamining.maxKey && currExamining.hash != lastAdded.hash) {
+                    newSourceVec.push_back(currExamining);
+                    lastAdded = currExamining;
+                } else if (currBlock.maxKey >= currExamining.minKey && currBlock.maxKey <= currExamining.maxKey && currExamining.hash != lastAdded.hash) {
+                    newSourceVec.push_back(currExamining);
+                    lastAdded = currExamining;
+                    break;
+                } else if (currExamining.hash != lastAdded.hash) {
+                    remainingBlocks.push_back(currExamining);
+                    break;
+                }
+                destInd++;
+            }
+        }
+        if (destLevel.index + 1 >= numLevels) {
+            addLevel(destLevel.maxSize * 10);
+        }
+        compactHelper(newSourceVec, levels[destLevel.index]);
+        destLevel.recordHashes = remainingBlocks;
+    }
+    
+    std::vector<blockHeader> newDestLevelVec = merge(sourceVec, destLevel.recordHashes, destLevel.index);
+    destLevel.recordHashes = newDestLevelVec;
+    destLevel.numBlocks = newDestLevelVec.size();
+    destLevel.min_key = newDestLevelVec[0].minKey;
+    destLevel.max_key = newDestLevelVec[newDestLevelVec.size() - 1].maxKey;
+    return 0;
+}
+
+/*
     This function takes in two lists of blockHeaders representing two levels of sorted CapsuleBlocks
     Merges them into a new list of blockHeaders representing a level of sorted CapsuleBlocks.
 */
@@ -208,107 +316,16 @@ std::vector<blockHeader> CapsuleIndex::merge(std::vector<blockHeader> a, std::ve
 }
 
 /*
-* This function manages the compaction process by performing initial comapction determinations at L0
-* Further compactions and the actual compaction logic is handled in compactHelper.  
-* 
-* Input: Level to compact.
-* Output: Error code or 0 on success.
-*/
-int CapsuleIndex::compact() {
-    Level* lv0 = &levels.front();
-
-    std::cout << "ENTERING compact()\n";
-
-    if (blocksize * lv0->numBlocks < lv0->maxSize) {
-        return 0;
-    }
-
-    std::cout << "recordHashes.size()=" << lv0->recordHashes.size() << "\n";
-    std::cout << "recordHashes[0].minKey=" << lv0->recordHashes[0].minKey << "\n";
-    std::cout << "recordHashes[0].maxKey=" << lv0->recordHashes[0].maxKey << "\n";
-    std::cout << "recordHashes[1].minKey=" << lv0->recordHashes[1].minKey << "\n";
-    std::cout << "recordHashes[1].maxKey=" << lv0->recordHashes[1].maxKey << "\n";
-
-    // TODO: need to sort the keys within each CapsuleBlock before calling merge for this to work
-    // Sort L0
-    std::vector<blockHeader> sortedLv0;
-    sortedLv0.push_back(lv0->recordHashes[0]);
-    for (int i = 1; i < lv0->recordHashes.size(); i++) {
-        std::vector<blockHeader> currBlock;
-        currBlock.push_back(lv0->recordHashes[i]);
-        sortedLv0 = merge(sortedLv0, currBlock, 0);
-    }
-
-    std::cout << "sortedLv0.size()=" << sortedLv0.size() << "\n";
-    std::cout << "sortedLv0[0].minKey=" << sortedLv0[0].minKey << "\n";
-    std::cout << "sortedLv0[0].maxKey=" << sortedLv0[0].maxKey << "\n";
-    std::cout << "sortedLv0[1].minKey=" << sortedLv0[1].minKey << "\n";
-    std::cout << "sortedLv0[1].maxKey=" << sortedLv0[1].maxKey << "\n";
-
-    if (numLevels == 1) {
-        addLevel(10 * lv0->maxSize);
-    }
-
-    compactHelper(sortedLv0, levels[1]);    
-
-    // lv0->recordHashes.clear();
-    levels[0] = Level(lv0->index, lv0->maxSize);
-
-    return 0;
-}
-
-/* 
- * This function merges blocks into exisiting levels.  It also determines whether doing so would cause an overflow.
- * If so, it recursively compacts by identifying which blocks are modified in destLevel and pushing them into the level
- * below.
- * 
- * Input: A sorted vector of blockHeaders sourceVec, the level the vector is being compacted into destLevel.
- * Output: 0 if no error, other number otherwise
+ * This function sorts the keys in each individual L0 block.
+ *
+ * Input: None
+ * Output: None
  */
-
-int CapsuleIndex::compactHelper(std::vector<blockHeader> sourceVec, Level destLevel) {
-    
-    std::cout << "ENTERING compactHelper()\n";
-    std::cout << "sourceVec.size()=" << sourceVec.size() << "\n";
-    std::cout << "destLevel.recordHashes.size()=" << destLevel.recordHashes.size() << "\n";
-    std::cout << "destLevel.maxSize=" << destLevel.maxSize << "\n";
- 
-    if (blocksize * sourceVec.size() + blocksize * destLevel.recordHashes.size() >= destLevel.maxSize) {
-        // Identify Affected blocks
-        std::vector<blockHeader> newSourceVec;
-        std::vector<blockHeader> remainingBlocks;
-        blockHeader currBlock;
-        int destInd = 0;
-        blockHeader lastAdded;
-        for (int i = 0; i < sourceVec.size(); i++) {
-            currBlock = sourceVec[i];
-            while (destInd < destLevel.recordHashes.size()) {
-                blockHeader currExamining = destLevel.recordHashes[destInd];
-                if (currBlock.minKey >= currExamining.minKey && currBlock.minKey <= currExamining.maxKey && currExamining.hash != lastAdded.hash) {
-                    newSourceVec.push_back(currExamining);
-                    lastAdded = currExamining;
-                } else if (currBlock.maxKey >= currExamining.minKey && currBlock.maxKey <= currExamining.maxKey && currExamining.hash != lastAdded.hash) {
-                    newSourceVec.push_back(currExamining);
-                    lastAdded = currExamining;
-                    break;
-                } else if (currExamining.hash != lastAdded.hash) {
-                    remainingBlocks.push_back(currExamining);
-                    break;
-                }
-                destInd++;
-            }
-        }
-        if (destLevel.index + 1 >= numLevels) {
-            addLevel(destLevel.maxSize * 10);
-        }
-        compactHelper(newSourceVec, levels[destLevel.index]);
-        destLevel.recordHashes = remainingBlocks;
+void CapsuleIndex::sortL0() {
+    Level lv0 = levels[0];
+    CapsuleBlock * currBlock;
+    for (int i = 0; i < lv0.recordHashes.size(); i++) {
+        readIn(lv0.recordHashes[i].hash, currBlock);
+        std::sort(currBlock->kvPairs.begin(), currBlock->kvPairs.end());
     }
-    
-    std::vector<blockHeader> newDestLevelVec = merge(sourceVec, destLevel.recordHashes, destLevel.index);
-    destLevel.recordHashes = newDestLevelVec;
-    destLevel.numBlocks = newDestLevelVec.size();
-    destLevel.min_key = newDestLevelVec[0].minKey;
-    destLevel.max_key = newDestLevelVec[newDestLevelVec.size() - 1].maxKey;
-    return 0;
 }
