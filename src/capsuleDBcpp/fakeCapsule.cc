@@ -23,32 +23,6 @@ void sha256_string(const char *string, char outputBuffer[65])
     outputBuffer[64] = 0;
 }
 
-// std::string putCapsuleBlock(CapsuleBlock inputBlock) {
-//     std::cout << "0" << "\n";
-//     // Serialize Block
-//     char * serializedBlock;
-//     std::stringstream toBeHashed;
-//     boost::archive::text_oarchive testAr(toBeHashed);
-//     std::cout << "1" << "\n";
-
-//     // Hash bytestream
-//     char blockHash[65];
-//     std::cout << "1.1" << "\n";
-//     toBeHashed >> serializedBlock;
-//     std::cout << "1.2" << "\n";
-//     sha256_string(serializedBlock, blockHash);
-
-//     std::cout << "2" << "\n";
-//     // Serialize and store block
-//     std::ofstream storedBlock(blockHash);
-//     boost::archive::text_oarchive oa(storedBlock);
-//     oa << inputBlock;
-
-//     std::cout << "3" << "\n";
-//     // Return Hash
-//     return blockHash;
-// }
-
 /*
     Input = CapsuleBlock
     Value = serialize(CapsuleBlock)

@@ -19,9 +19,9 @@ class CapsuleIndex {
         std::string getBlock(int level, std::string key);
         int add_hash(int level, std::string hash, CapsuleBlock block);
         int addLevel(int size);
-        int compact(int level);
-        int capsuleHelper(int sourceLevel, int destLevel);
-        CapsuleBlock* find_containing_block(std::string key, int level);
+        int compact();
+        int compactHelper(std::vector<blockHeader> sourceVec, Level destLevel);
+        std::vector<blockHeader> merge(std::vector<blockHeader> a, std::vector<blockHeader> b, int next_level);
 };
 
 #endif

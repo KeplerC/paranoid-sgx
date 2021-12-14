@@ -105,7 +105,7 @@ void Memtable::write_out_if_full(CapsuleIndex* index)
         {
             kvs_payload payload = p.second;
             capsule_block.addKVPair(payload.key, payload.value, payload.txn_timestamp, payload.txn_msgType);
-                min_key = min(std::string(min_key), std::string(p.first));
+            min_key = min(std::string(min_key), std::string(p.first));
             max_key = max(std::string(max_key), std::string(p.first));
         }
 
@@ -117,7 +117,8 @@ void Memtable::write_out_if_full(CapsuleIndex* index)
         std::string record_hash = capsule_block.writeOut();
         // std::string record_hash = "temp hash";
 
-        level_zero->addBlock(&capsule_block, record_hash);
+        index->add_hash(0, record_hash, capsule_block);
+        // level_zero->addBlock(&capsule_block, record_hash);
 
         memtable = {};
         locklst = {};
