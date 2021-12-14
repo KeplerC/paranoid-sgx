@@ -107,7 +107,7 @@ int Level::addBlock(CapsuleBlock* newBlock, std::string hash) {
 }
 
 /*
-* Pulls the corresponding for the provided key.  First checks keyRanges to find 
+* Pulls the corresponding CapsuleBlock hash for the provided key.  First checks keyRanges to find 
 * the index of the corresponding block.  Then checks the block's quotient filter
 * to estimate membership.  Finally, pulls the relevant block hash.
 * 

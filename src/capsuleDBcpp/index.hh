@@ -20,6 +20,7 @@ class CapsuleIndex {
         int add_hash(int level, std::string hash, CapsuleBlock block);
         int addLevel(int size);
         int compact(int level);
+        int capsuleHelper(int sourceLevel, int destLevel);
         CapsuleBlock* find_containing_block(std::string key, int level);
 };
 

@@ -96,6 +96,7 @@ int CapsuleIndex::compact(int level) {
     Delete all Capsule Blocks from current level
     */
 
+
     if (level < 0 || level >= numLevels) {
         return -1;
     }
@@ -143,6 +144,10 @@ int CapsuleIndex::compact(int level) {
         compact(level + 1);
     }
 
+    return 0;
+}
+
+int CapsuleIndex::capsuleHelper(int sourceLevel, int destLevel) {
     return 0;
 }
 
