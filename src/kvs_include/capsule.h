@@ -21,6 +21,7 @@ typedef struct {
     
     std::string prevHash; //Hash ptr to the previous record, not needed for the minimal prototype
     std::string hash;
+    std::string encKey; // Encrypted key of KVS operation
 
     int64_t timestamp;
     std::string msgType;
@@ -31,6 +32,6 @@ typedef struct {
 
 #define DUMP_PAYLOAD_LIST(payload_l) for (int i = 0; i < payload_l->size(); i++) { LOGI << "payload_l - Payload Key: " << ((*payload_l))[i].key << ", Value: " << ((*payload_l))[i].value << ", Timestamp: " << (int64_t) ((*payload_l))[i].txn_timestamp << ", MsgType: " << ((*payload_l))[i].txn_msgType;}
 
-#define DUMP_CAPSULE(dc) {LOGI << "DC Sender: "<< dc->sender << ", Timestamp: " << (int64_t) dc->timestamp << ", hash: " << dc->hash  << ", prevHash: " << dc->prevHash << ", signature: " << dc->signature << " payload_in_transit: " << dc->payload_in_transit << " message type: " << dc->msgType; DUMP_PAYLOAD_LIST((&(dc->payload_l)));}
+#define DUMP_CAPSULE(dc) {LOGI << "DC Sender: "<< dc->sender << ", Timestamp: " << (int64_t) dc->timestamp << ", hash: " << dc->hash  << ", prevHash: " << dc->prevHash << ", signature: " << dc->signature << " payload_in_transit: " << dc->payload_in_transit << " message type: " << dc->msgType << " encrypted key: " << dc->encKey; DUMP_PAYLOAD_LIST((&(dc->payload_l)));}
 
 #endif 

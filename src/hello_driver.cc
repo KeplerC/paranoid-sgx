@@ -642,6 +642,9 @@ int run_worker(){
     sgx->init();
     worker_threads.push_back(std::thread(thread_start_coordinator, sgx));
     worker_threads.push_back(std::thread(thread_run_zmq_intermediate_router, 2));
+    worker_threads.push_back(std::thread(thread_run_zmq_intermediate_router, 4));
+    worker_threads.push_back(std::thread(thread_run_zmq_intermediate_router, 5));
+    worker_threads.push_back(std::thread(thread_run_zmq_intermediate_router, 6));
     sleep(1);
     worker_threads.push_back(std::thread(thread_run_zmq_js_client, thread_id, sgx));
     sleep(1000);

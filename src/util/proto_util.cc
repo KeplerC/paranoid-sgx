@@ -119,6 +119,14 @@ namespace asylo {
         return true;
     }
 
+    bool encrypt_key(capsule_pdu *dc, bool encryption_needed) {
+        if (!encryption_needed){
+            return true;
+        }
+        ASSIGN_OR_RETURN_FALSE(dc->encKey, EncryptMessage(dc->encKey));
+        return true;
+    }
+
     bool encrypt_payload_l(capsule_pdu *dc, bool encryption_needed) {
         std::string aggregated = serialize_payload_l(dc->payload_l);
         if (!encryption_needed){
@@ -153,6 +161,7 @@ namespace asylo {
         dc->payload_l = *payload_l;
         dc->timestamp = payload_l->back().txn_timestamp;
         dc->msgType = payload_l->back().txn_msgType;
+        dc->encKey = payload_l->back().key;
         dc->sender = enclave_id;
     }
 
@@ -168,6 +177,7 @@ namespace asylo {
         dcProto->set_timestamp(dc->timestamp);
         dcProto->set_msgtype(dc->msgType);
 
+        dcProto->set_enckey(dc->encKey);
     }
 
     void CapsuleFromProto(capsule_pdu *dc, const hello_world::CapsulePDU *dcProto) {
@@ -181,6 +191,8 @@ namespace asylo {
 
         dc->timestamp = dcProto->timestamp();
         dc->msgType = dcProto->msgtype();
+
+        dc->encKey = dcProto->enckey();
     }
 
     void CapsuleToCapsule(capsule_pdu *dc_new, const capsule_pdu *dc) {

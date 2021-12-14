@@ -12,6 +12,11 @@ ZmqComm::ZmqComm(std::string ip, unsigned thread_id)
     addr_ = "tcp://" + ip +":" + port_;
     LOGI << "[ZmqComm] Constructing agent: ID "<<thread_id
          << ", Address " << addr_;
+
+    // Bloom filter setup for self
+    bloom_parameters parameters;
+    parameters.compute_optimal_parameters();
+    self_filter = bloom_filter(parameters);
 }
 
 [[noreturn]] void ZmqComm::run() {
@@ -55,8 +60,8 @@ void ZmqServer::net_setup() {
     //this->pollitems_ = new_pollitems;
 }
 
-void handle_join_request(std::vector<ProtoSocket> &router_sockets_, 
-        std::vector<ProtoSocket> &client_sockets_, 
+void handle_join_request(std::vector<socket_info> &router_sockets_, 
+        std::vector<socket_info> &client_sockets_, 
         std::string msg,
         std::string personal_address,
         int node_type,
@@ -72,36 +77,47 @@ void handle_join_request(std::vector<ProtoSocket> &router_sockets_,
         // pass the buck to them 
         if(router_sockets_.size() > 0) {
             // Pass down to the first router in the list, a bad implementation.
-            router_sockets_[0].send_join(msg, 0); 
+            router_sockets_[0].socket->send_join(msg, 0); 
         }
         // Otherwise, client becomes a direct child of this one 
         else {
             // TODO: Need to clean up the memory leak induced by this allocation 
             LOGI << "[" << header << "] JOIN FROM CLIENT " + msg ;
 
-            zmq::socket_t* socket_ptr  = new  zmq::socket_t(context_, ZMQ_PUSH); 
-            client_sockets_.emplace_back(socket_ptr, thread_id_);
-            //client_addresses_.push_back(msg);
+            zmq::socket_t* socket_ptr = new zmq::socket_t(context_, ZMQ_PUSH);
+            // Memory leaks yay
+            ProtoSocket* socket = new ProtoSocket(socket_ptr, thread_id_);
+            socket->connect(msg);
+            socket->send_assign_parent(personal_address);
 
-            client_sockets_[client_sockets_.size() - 1].connect(msg);
-            client_sockets_[client_sockets_.size() - 1].send_assign_parent(personal_address);
+            // Set up bloom filter
+            bloom_parameters parameters;
+            parameters.compute_optimal_parameters();
+
+            socket_info info = {socket, bloom_filter(parameters)};
+            client_sockets_.push_back(info);
         }
     }
     else if(node_type == 1) {
         // If the current node has the maximum # of routers, then pass down to the next level 
         if(router_sockets_.size() >= max_child_routers) {
-            router_sockets_[0].send_join(msg, 1); 
+            router_sockets_[0].socket->send_join(msg, 1); 
         }
         // If we haven't hit the maximum router count, then append the router to this one 
         else {
             LOGI << "[" << header << "] JOIN FROM ROUTER " + msg ;
 
-            zmq::socket_t* socket_ptr  = new  zmq::socket_t(context_, ZMQ_PUSH);
-            router_sockets_.emplace_back(socket_ptr, thread_id_);
-            //router_addresses_.push_back(msg);
+            zmq::socket_t* socket_ptr = new zmq::socket_t(context_, ZMQ_PUSH);
+            ProtoSocket* socket = new ProtoSocket(socket_ptr, thread_id_);
+            socket->connect(msg);
+            socket->send_assign_parent(personal_address);
 
-            router_sockets_[router_sockets_.size() - 1].connect(msg);
-            router_sockets_[router_sockets_.size() - 1].send_assign_parent(personal_address);
+            // Set up bloom filter
+            bloom_parameters parameters;
+            parameters.compute_optimal_parameters();
+
+            socket_info info = {socket, bloom_filter(parameters)};
+            router_sockets_.push_back(info);
         }
     }
     else {
@@ -109,6 +125,24 @@ void handle_join_request(std::vector<ProtoSocket> &router_sockets_,
     }
 }
 
+std::string get_key_from_msg(std::string msg) {
+    hello_world::CapsulePDU in_dc;
+    in_dc.ParseFromString(msg);
+    capsule_pdu *dc = new capsule_pdu();
+    asylo::CapsuleFromProto(dc, &in_dc);
+    return dc->encKey;
+}
+
+void update_filter(bloom_filter &filter, std::string encKey) {
+    // Proto parsing
+
+    if (!filter.contains(encKey)) {
+        LOGI << "Insert new key: " << encKey;
+        filter.insert(encKey);
+    } else {
+        LOGI << "Already contains key: " << encKey;
+    }
+}
 
 void ZmqServer::net_handler() {
     //std::cout << "Start polling" << std::endl;
@@ -146,18 +180,42 @@ void ZmqServer::net_handler() {
 
         body->mutable_raw_bytes()->set_last_sender_addr("tcp://localhost:" + std::to_string(NET_SERVER_MCAST_PORT));  
         
+        /*
         //mcast to all child routers and clients
         for(auto it = this->router_sockets_.begin(); it != this->router_sockets_.end(); it++) {
-            if(it->get_endpoint() != last_sender) {
-                it->send(msg);
+            ProtoSocket* router_socket = it->socket;
+            if(router_socket->get_endpoint() != last_sender) {
+                router_socket->send(msg);
             } 
         }
         for(auto it = this->client_sockets_.begin(); it != this->client_sockets_.end(); it++) {
-            if(it->get_endpoint() != last_sender) {
-                it->send(msg);
+            ProtoSocket* client_socket = it->socket;
+            if(client_socket->get_endpoint() != last_sender) {
+                client_socket->send(msg);
             } 
         }
+        */
 
+        //mcast to delegated routers and clients via downward filtering
+        std::string key = get_key_from_msg(MulticastMessage::unpack_raw_bytes(msg));
+        for(auto it = this->router_sockets_.begin(); it != this->router_sockets_.end(); it++) {
+            ProtoSocket* router_socket = it->socket;
+            if(router_socket->get_endpoint() == last_sender) {
+                LOGI << "Update filter for router " + last_sender;
+                update_filter(it->filter, key);
+            } else if (it->filter.contains(key)) {
+                router_socket->send(msg);
+            }
+        }
+        for(auto it = this->client_sockets_.begin(); it != this->client_sockets_.end(); it++) {
+            ProtoSocket* client_socket = it->socket;
+            if(client_socket->get_endpoint() == last_sender) {
+                LOGI << "Update filter for client " + last_sender;
+                update_filter(it->filter, key);
+            } else if (it->filter.contains(key)) {
+                client_socket->send(msg);
+            }
+        }
     }
 
     if (pollitems_[2].revents & ZMQ_POLLIN){
@@ -235,6 +293,8 @@ void ZmqRouter::net_handler() {
         else if(body->has_raw_bytes()) {
             std::string msg = MulticastMessage::unpack_raw_bytes(recv);
             LOGI << "[Router " << addr_ << "] routing message:  " + msg ;
+            // self_filter used only for joining network
+            // update_filter(self_filter, msg);
 
             std::string last_sender = "";
             if(body->mutable_raw_bytes()->has_last_sender_addr()) {
@@ -253,16 +313,42 @@ void ZmqRouter::net_handler() {
             }
 
             body->mutable_raw_bytes()->set_route_up(false);
+
+            /*
             //mcast to all child routers and clients
             for(auto it = this->router_sockets_.begin(); it != this->router_sockets_.end(); it++) {
-                if(it->get_endpoint() != last_sender) {
-                    it->send(recv);
-                } 
+                ProtoSocket* router_socket = it->socket;
+                if(router_socket->get_endpoint() != last_sender) {
+                    router_socket->send(recv);
+                }
             }
             for(auto it = this->client_sockets_.begin(); it != this->client_sockets_.end(); it++) {
-                if(it->get_endpoint() != last_sender) {
-                    it->send(recv);
-                } 
+                ProtoSocket* client_socket = it->socket;
+                if(client_socket->get_endpoint() != last_sender) {
+                    client_socket->send(recv);
+                }
+            }
+            */
+            
+            //mcast to delegated routers and clients via downward filtering
+            std::string key = get_key_from_msg(msg);
+            for(auto it = this->router_sockets_.begin(); it != this->router_sockets_.end(); it++) {
+                ProtoSocket* router_socket = it->socket;
+                if(router_socket->get_endpoint() == last_sender) {
+                    LOGI << "Update filter for router " + last_sender;
+                    update_filter(it->filter, key);
+                } else if (it->filter.contains(key)) {
+                    router_socket->send(recv);
+                }
+            }
+            for(auto it = this->client_sockets_.begin(); it != this->client_sockets_.end(); it++) {
+                ProtoSocket* client_socket = it->socket;
+                if(client_socket->get_endpoint() == last_sender) {
+                    LOGI << "Update filter for client " + last_sender;
+                    update_filter(it->filter, key);
+                } else if (it->filter.contains(key)) {
+                    client_socket->send(recv);
+                }
             }
         }
         else {

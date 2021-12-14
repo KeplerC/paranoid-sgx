@@ -36,6 +36,8 @@ bool encrypt_payload_l(capsule_pdu *dc, bool encryption_need);
 
 bool decrypt_payload_l(capsule_pdu *dc);
 
+bool encrypt_key(capsule_pdu *dc, bool encryption_need);
+
 void KvToPayload(kvs_payload *payload, const std::string &key, const std::string &value, const int64_t timer,
                     const std::string &msgType);
 

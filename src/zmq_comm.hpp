@@ -30,10 +30,17 @@
 #include "proto_comm.hpp"
 #include "asylo_sgx.hpp"
 
+#include "filters/bloom_filter.hpp"
+
 // #include "asylo/identity/enclave_assertion_authority_config.proto.h"
 #include "asylo/identity/enclave_assertion_authority_configs.h"
 
 #define MAX_CHILD_ROUTERS 2
+
+struct socket_info {
+    ProtoSocket* socket;
+    bloom_filter filter; 
+};
 
 class ZmqComm {
 public:
@@ -53,6 +60,9 @@ protected:
     std::string coordinator_;
 
     std::vector<zmq::pollitem_t> pollitems_;
+
+    bloom_filter self_filter;
+    // map<int, bloom_filter> child_filters;
 
     virtual void net_setup() = 0;
     virtual void net_handler() = 0;
@@ -99,8 +109,8 @@ private:
     std::vector<std::string> router_addresses_;
     std::vector<std::string> client_addresses_;
 
-    std::vector<ProtoSocket> router_sockets_;
-    std::vector<ProtoSocket> client_sockets_;
+    std::vector<socket_info> router_sockets_;
+    std::vector<socket_info> client_sockets_;
 
 
     void net_setup() override;
@@ -126,8 +136,8 @@ private:
     std::unique_ptr<ProtoSocket> parent_socket_;
 
 
-    std::vector<ProtoSocket> router_sockets_;
-    std::vector<ProtoSocket> client_sockets_;
+    std::vector<socket_info> router_sockets_;
+    std::vector<socket_info> client_sockets_;
 
     void net_setup() override;
     void net_handler() override;

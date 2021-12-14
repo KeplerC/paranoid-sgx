@@ -69,6 +69,9 @@ namespace asylo {
                 return;
             }
 
+            // Add encrypted key for multicast filterin
+            // encrypt_key(dc, encryption_needed);
+            encrypt_key(dc, false);
 
             // generate hash and update prev_hash
             success = generate_hash(dc);
