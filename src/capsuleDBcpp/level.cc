@@ -71,18 +71,18 @@ int Level::addBlock(CapsuleBlock* newBlock, std::string hash) {
         numBlocks++;
         min_key = new_block_min_key;
         max_key = new_block_max_key;
-        blockHeader bh = {hash, min_key, max_key};
+        blockHeader bh = {hash, new_block_min_key, new_block_max_key};
         recordHashes.push_back(bh);
         return 0;
     }
     
     // If this is L0, just append (L0 is unsorted)
     if (index == 0) {
+        blockHeader bh = {hash, new_block_min_key, new_block_max_key};
+        recordHashes.push_back(bh);
         numBlocks++;
         min_key = min(std::string(min_key), std::string(new_block_min_key));
         max_key = max(std::string(max_key), std::string(new_block_max_key));
-        blockHeader bh = {hash, min_key, max_key};
-        recordHashes.push_back(bh);
         return 0;
     } else {
         /*

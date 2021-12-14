@@ -20,8 +20,8 @@ CapsuleIndex::CapsuleIndex(size_t size) {
     numLevels = 1;
     blocksize = size;
     // TODO: prevIndexHash???
-    Level level_zero = Level(0, 1);
-    Level level_one = Level(1, 10);
+    Level level_zero = Level(0, 4);
+    Level level_one = Level(1, 40);
     levels.push_back(level_zero);
     levels.push_back(level_one);
 }
@@ -85,6 +85,8 @@ int CapsuleIndex::addLevel(int size) {
     Merges them into a new list of blockHeaders representing a level of sorted CapsuleBlocks.
 */
 std::vector<blockHeader> CapsuleIndex::merge(std::vector<blockHeader> a, std::vector<blockHeader> b, int next_level) {
+    std::cout << "ENTERING merge()\n";
+    
     std::vector<blockHeader> output;
     
     size_t aa = 0;
@@ -94,12 +96,17 @@ std::vector<blockHeader> CapsuleIndex::merge(std::vector<blockHeader> a, std::ve
 
     bool advanceA = false;
     bool advanceB = false;
+
     blockHeader blockHeaderA = a[aa];
-    blockHeader blockHeaderB = b[bb];
     CapsuleBlock capsuleBlockA;
     readIn(blockHeaderA.hash, &capsuleBlockA);
+
+    blockHeader blockHeaderB;
     CapsuleBlock capsuleBlockB;
-    readIn(blockHeaderB.hash, &capsuleBlockB);
+    if (b.size() > 0) {
+        blockHeaderB = b[bb];
+        readIn(blockHeaderB.hash, &capsuleBlockB);
+    }
     
     CapsuleBlock next_cb = CapsuleBlock(next_level);
 
@@ -169,6 +176,7 @@ std::vector<blockHeader> CapsuleIndex::merge(std::vector<blockHeader> a, std::ve
         advanceB = false;
 
         // Add next KV pair to a CapsuleBlock, and write out if full.
+        std::cout << "next key=" << std::get<0>(nextKVPair) << "\n";
         next_cb.addKVPair(
             std::get<0>(nextKVPair), 
             std::get<1>(nextKVPair), 
@@ -206,28 +214,44 @@ std::vector<blockHeader> CapsuleIndex::merge(std::vector<blockHeader> a, std::ve
 * Output: Error code or 0 on success.
 */
 int CapsuleIndex::compact() {
-    Level lv0 = levels[0];
+    Level* lv0 = &levels.front();
 
-    if (blocksize * lv0.numBlocks < lv0.maxSize) {
+    std::cout << "ENTERING compact()\n";
+
+    if (blocksize * lv0->numBlocks < lv0->maxSize) {
         return 0;
     }
 
+    std::cout << "recordHashes.size()=" << lv0->recordHashes.size() << "\n";
+    std::cout << "recordHashes[0].minKey=" << lv0->recordHashes[0].minKey << "\n";
+    std::cout << "recordHashes[0].maxKey=" << lv0->recordHashes[0].maxKey << "\n";
+    std::cout << "recordHashes[1].minKey=" << lv0->recordHashes[1].minKey << "\n";
+    std::cout << "recordHashes[1].maxKey=" << lv0->recordHashes[1].maxKey << "\n";
+
+    // TODO: need to sort the keys within each CapsuleBlock before calling merge for this to work
     // Sort L0
     std::vector<blockHeader> sortedLv0;
-    sortedLv0.push_back(lv0.recordHashes[0]);
-    for (int i = 1; i < lv0.recordHashes.size(); i++) {
+    sortedLv0.push_back(lv0->recordHashes[0]);
+    for (int i = 1; i < lv0->recordHashes.size(); i++) {
         std::vector<blockHeader> currBlock;
-        currBlock.push_back(lv0.recordHashes[i]);
+        currBlock.push_back(lv0->recordHashes[i]);
         sortedLv0 = merge(sortedLv0, currBlock, 0);
     }
 
+    std::cout << "sortedLv0.size()=" << sortedLv0.size() << "\n";
+    std::cout << "sortedLv0[0].minKey=" << sortedLv0[0].minKey << "\n";
+    std::cout << "sortedLv0[0].maxKey=" << sortedLv0[0].maxKey << "\n";
+    std::cout << "sortedLv0[1].minKey=" << sortedLv0[1].minKey << "\n";
+    std::cout << "sortedLv0[1].maxKey=" << sortedLv0[1].maxKey << "\n";
+
     if (numLevels == 1) {
-        addLevel(10 * lv0.maxSize);
+        addLevel(10 * lv0->maxSize);
     }
 
     compactHelper(sortedLv0, levels[1]);    
 
-    lv0.recordHashes.clear();
+    // lv0->recordHashes.clear();
+    levels[0] = Level(lv0->index, lv0->maxSize);
 
     return 0;
 }
@@ -242,7 +266,13 @@ int CapsuleIndex::compact() {
  */
 
 int CapsuleIndex::compactHelper(std::vector<blockHeader> sourceVec, Level destLevel) {
-    if (sourceVec.size() + destLevel.recordHashes.size() >= destLevel.maxSize) {
+    
+    std::cout << "ENTERING compactHelper()\n";
+    std::cout << "sourceVec.size()=" << sourceVec.size() << "\n";
+    std::cout << "destLevel.recordHashes.size()=" << destLevel.recordHashes.size() << "\n";
+    std::cout << "destLevel.maxSize=" << destLevel.maxSize << "\n";
+ 
+    if (blocksize * sourceVec.size() + blocksize * destLevel.recordHashes.size() >= destLevel.maxSize) {
         // Identify Affected blocks
         std::vector<blockHeader> newSourceVec;
         std::vector<blockHeader> remainingBlocks;
@@ -273,7 +303,11 @@ int CapsuleIndex::compactHelper(std::vector<blockHeader> sourceVec, Level destLe
         compactHelper(newSourceVec, levels[destLevel.index]);
         destLevel.recordHashes = remainingBlocks;
     }
+    
+    std::cout << "Skip to direct merge at end.\n";
     std::vector<blockHeader> newDestLevelVec = merge(sourceVec, destLevel.recordHashes, destLevel.index);
+    std::cout << "End.\n";
+    // TODO: besides updating recordHashes, need to update other attributes as well (min/max key, bloom filter, etc.)
     destLevel.recordHashes = newDestLevelVec;
     return 0;
 }
