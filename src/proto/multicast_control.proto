@@ -65,6 +65,11 @@ enum InterruptT {
   REBALANCE_TREE = 2;
 }
 
+message Heartbeat {
+  optional string sender = 1;
+  optional int32 subtree_size = 2;
+}
+
 message MessageBody {
   oneof msg {
     ErrorMsg error = 1;
@@ -72,6 +77,7 @@ message MessageBody {
     AssignParentMsg assign_parent = 3;
     AssignIdMsg assignId = 4;
     InterruptT interrupt = 5;
+    Heartbeat heartbeat = 6;
     ExecCodeMsg code = 10;
     RawStrMsg raw_str = 11;
     RawBytesMsg raw_bytes = 12;

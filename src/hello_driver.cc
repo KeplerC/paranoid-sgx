@@ -619,6 +619,64 @@ int run_coordinator(){
     return 0;
 }
 
+class ThreadGroup {
+public:
+    std::vector<std::thread> threads;
+    Asylo_SGX* sgx;
+
+    void kill() {
+        if(sgx) {
+            delete sgx;
+        }
+        else {
+            for(auto it = threads.begin(); it != threads.end(); it++) {
+                // TODO: Send kill signals 
+            }
+        }
+    }
+};
+
+ThreadGroup* run_server_threads(int id) {
+    ThreadGroup* group = new ThreadGroup();
+    group->threads.push_back(std::thread(thread_run_zmq_router, 0));
+    //group->threads.push_back(std::thread(thread_start_heartbeat, NET_SERVER_MCAST_PORT, true));
+    return group;     
+}
+
+
+ThreadGroup* run_router_threads(int id) {
+    ThreadGroup* group = new ThreadGroup();
+    group->threads.push_back(std::thread(thread_run_zmq_intermediate_router, id));
+    group->threads.push_back(std::thread(thread_start_heartbeat, NET_CLIENT_BASE_PORT + id, false));
+    return group;     
+}
+
+int get_signing_key(asylo::CleansingVector<uint8_t> 
+        &serialized_signing_key) {
+    std::unique_ptr <asylo::SigningKey> signing_key = asylo::EcdsaP256Sha256SigningKey::Create().ValueOrDie();
+    ASSIGN_OR_RETURN(serialized_signing_key,
+                     signing_key->SerializeToDer());
+}
+
+
+ThreadGroup* run_js_client(int id, bool with_coordinator) {
+    asylo::CleansingVector<uint8_t> serialized_signing_key;
+    get_signing_key(serialized_signing_key);
+
+    ThreadGroup* group = new ThreadGroup();
+    group->sgx = new Asylo_SGX( std::to_string(id), id, serialized_signing_key);
+
+    if(with_coordinator) {
+        group->threads.push_back(std::thread(thread_start_coordinator, group->sgx)); 
+    }
+
+    group->threads.push_back(std::thread(thread_run_zmq_js_client, id, group->sgx));
+    group->threads.push_back(std::thread(thread_start_heartbeat, NET_CLIENT_BASE_PORT + id, false));
+
+    return group; 
+}
+
+
 int run_worker(){
     std::unique_ptr <asylo::SigningKey> signing_key = asylo::EcdsaP256Sha256SigningKey::Create().ValueOrDie();
     asylo::CleansingVector<uint8_t> serialized_signing_key;
@@ -628,28 +686,16 @@ int run_worker(){
     std::vector <std::thread> worker_threads;
     //unsigned long int now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 
-    //start clients
-    //    int num_threads = TOTAL_THREADS + 1;
-    //    for (unsigned thread_id = START_CLIENT_ID; thread_id < num_threads; thread_id++) {
-    //        Asylo_SGX* sgx = new Asylo_SGX( std::to_string(thread_id), serialized_signing_key);
-    //        sgx->init();
-    //        sgx->setTimeStamp(now);
-    //        sleep(1);
-    //        worker_threads.push_back(std::thread(thread_run_zmq_client, thread_id, sgx));
-    //        worker_threads.push_back(std::thread(thread_start_fake_client, sgx));
-    //    }
-
     unsigned thread_id = 3;
     worker_threads.push_back(std::thread(thread_run_zmq_router, 0));
     sleep(1);
     Asylo_SGX* sgx = new Asylo_SGX( std::to_string(thread_id), thread_id, serialized_signing_key);
     sgx->init();
 
-    worker_threads.push_back(std::thread(thread_start_coordinator, sgx));
     worker_threads.push_back(std::thread(thread_run_zmq_intermediate_router, 2));
     sleep(1);
     worker_threads.push_back(std::thread(thread_run_zmq_js_client, thread_id, sgx));
-    worker_threads.push_back(std::thread(thread_start_heartbeat, thread_id, false));
+    worker_threads.push_back(std::thread(thread_start_heartbeat, NET_CLIENT_BASE_PORT + thread_id, false));
     sleep(1000);
 
 //    int num_threads = 3;

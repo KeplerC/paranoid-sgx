@@ -129,9 +129,7 @@ MulticastMessage::ControlMessage ProtoSocket::recv_proto() {
 
 void ProtoSocket::send_proto(MulticastMessage::ControlMessage& proto) {
     // TODO shouldn't this be a lamport clock or something
-    using namespace std::chrono;
-    int64_t timestamp = duration_cast<milliseconds>(
-                            system_clock::now().time_since_epoch()).count();
+    int64_t timestamp = get_timestamp(); 
 
     // Set message header
     proto.set_timestamp(timestamp);
@@ -220,6 +218,14 @@ void ProtoSocket::send_interrupt(int type) {
 }
 
 
+void ProtoSocket::send_heartbeat(std::string addr_, int subtree_count) {
+    MulticastMessage::ControlMessage message;
+    MulticastMessage::MessageBody* body = message.mutable_body();
+    auto heartbeat = body->mutable_heartbeat();
+    heartbeat->set_subtree_size(subtree_count);
+    heartbeat->set_sender(addr_);
+    send_proto(message);
+}
 
 std::string MulticastMessage::unpack_assign_parent(MulticastMessage::ControlMessage &msg) {
     auto body = msg.mutable_body();
@@ -227,7 +233,13 @@ std::string MulticastMessage::unpack_assign_parent(MulticastMessage::ControlMess
     return *(body->mutable_assign_parent()->mutable_parent());
 }
 
-
 std::string ProtoSocket::get_endpoint() {
     return endpoint_;
+}
+
+int64_t get_timestamp() {
+    using namespace std::chrono;
+    int64_t timestamp = duration_cast<milliseconds>(
+                            system_clock::now().time_since_epoch()).count();
+    return timestamp;
 }

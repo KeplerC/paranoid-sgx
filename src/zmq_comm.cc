@@ -81,7 +81,8 @@ void handle_join_request(std::vector<ProtoSocket> &router_sockets_,
 
             zmq::socket_t* socket_ptr  = new  zmq::socket_t(context_, ZMQ_PUSH); 
             client_sockets_.emplace_back(socket_ptr, thread_id_);
-            //client_addresses_.push_back(msg);
+            client_sockets_[client_sockets_.size() - 1].last_heartbeat = get_timestamp();
+            client_sockets_[client_sockets_.size() - 1].subtree_size = 1; 
 
             client_sockets_[client_sockets_.size() - 1].connect(msg);
             client_sockets_[client_sockets_.size() - 1].send_assign_parent(personal_address);
@@ -102,6 +103,9 @@ void handle_join_request(std::vector<ProtoSocket> &router_sockets_,
 
             router_sockets_[router_sockets_.size() - 1].connect(msg);
             router_sockets_[router_sockets_.size() - 1].send_assign_parent(personal_address);
+
+            router_sockets_[router_sockets_.size() - 1].last_heartbeat = get_timestamp();
+            router_sockets_[router_sockets_.size() - 1].subtree_size = 1;
         }
     }
     else {
@@ -109,14 +113,67 @@ void handle_join_request(std::vector<ProtoSocket> &router_sockets_,
     }
 }
 
+void handle_heartbeats(std::vector<ProtoSocket> *router_sockets_, 
+        std::vector<ProtoSocket> *client_sockets_,
+        std::unique_ptr<ProtoSocket> &parent_socket,
+        MulticastMessage::Heartbeat* msg 
+        ) {
+    int64_t heartbeat_timestamp = get_timestamp();
+    std::string sender = msg->sender();
+    int subtree_size = msg->subtree_size();
+
+    bool found = false;
+
+    if(parent_socket) {
+        if(parent_socket->get_endpoint() == sender) {
+            found = true;
+            parent_socket->last_heartbeat = heartbeat_timestamp;
+            parent_socket->subtree_size = subtree_size;
+        }
+    }
+    if(client_sockets_) {
+        for(auto it = client_sockets_->begin(); it != client_sockets_->end(); it++) {
+            if(it->get_endpoint() == sender) {
+                found = true;
+                it->last_heartbeat = heartbeat_timestamp;
+                it->subtree_size = subtree_size;
+            }
+        }
+    }
+
+    if(router_sockets_) {
+        for(auto it = router_sockets_->begin(); it != router_sockets_->end(); it++) {
+            if(it->get_endpoint() == sender) {
+                found = true;
+                it->last_heartbeat = heartbeat_timestamp;
+                it->subtree_size = subtree_size;
+            }
+        }
+    }
+    if (! found) {
+        LOGI << "GOT HEARTBEAT FROM UNKNOWN SOURCE";
+    }
+    else {
+        LOGI << "LOGGED HEARTBEAT";
+    }
+}
+
+
+void sweep_stale(std::vector<ProtoSocket> *router_sockets_, 
+        std::vector<ProtoSocket> *client_sockets_,
+        std::unique_ptr<ProtoSocket> parent_socket) {
+    
+}
+
+
 void interrupt_timer_thread(int port, bool is_server) {
     std::unique_ptr<zmq::socket_t> zsock_heartbeat;
     zmq::context_t context_;
     zsock_heartbeat.reset(new zmq::socket_t(context_, ZMQ_PUSH));
     ProtoSocket heartbeat_socket(zsock_heartbeat.get(), port);
-    heartbeat_socket.connect ("tcp://localhost:" + std::to_string(NET_CLIENT_BASE_PORT + port));
+    heartbeat_socket.connect ("tcp://localhost:" + std::to_string(port));
 
-    LOGI << "Heartbeat sending to " << ("tcp://localhost:" + std::to_string(NET_CLIENT_BASE_PORT + port));
+    LOGI << "Heartbeat sending to " << ("tcp://localhost:" + std::to_string(port));
 
     int counter = 1;
 
@@ -158,12 +215,11 @@ void ZmqServer::net_handler() {
     //receive new message to mcast
     if (pollitems_[1].revents & ZMQ_POLLIN){
         MulticastMessage::ControlMessage msg(socket_msg_.recv());
-
-        LOGI << "[SERVER] Mcast Message: " + msg.ShortDebugString();
-
         assert(msg.has_body());
 
         // TODO: Assert that message is of the form "raw bytes"
+        LOGI << "[SERVER] Mcast Message: " + msg.ShortDebugString();
+
         msg.mutable_body()->mutable_raw_bytes()->set_route_up(false); // Server must route all messages down. 
 
         auto body = msg.mutable_body();
@@ -293,6 +349,18 @@ void ZmqRouter::net_handler() {
                     it->send(recv);
                 } 
             }
+        }
+        else if(body->has_heartbeat()) {
+            LOGI << "[Router " << addr_ << "] got heartbeat";
+
+            MulticastMessage::Heartbeat* msg = body->mutable_heartbeat();
+
+            handle_heartbeats(&router_sockets_, 
+                &client_sockets_,
+                parent_socket_,
+                msg 
+                );
+
         }
         else {
             LOGI << "[Router " << addr_ << "] error: got unknown message type.";
@@ -427,10 +495,15 @@ void ZmqJsClient::net_handler() {
             }
         }
         else if(body->has_interrupt()) {
-
             MulticastMessage::InterruptT interrupt = body->interrupt();
+            std::string name = MulticastMessage::InterruptT_Name(interrupt);
 
-            LOGI << "GOT INTERRUPT TYPE" << MulticastMessage::InterruptT_Name(interrupt);
+            if(name == "SEND_HEARTBEAT") {
+                if(parent_socket_) {
+                    parent_socket_->send_heartbeat(addr_, 1);
+                    LOGI << "[JSClient " << addr_ << "] sent heartbeat up.";
+                }
+            }
         }
 
     }

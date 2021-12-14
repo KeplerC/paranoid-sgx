@@ -38,7 +38,17 @@ public:
 
     void send_interrupt(int type);
 
+    void send_heartbeat(std::string addr_, int subtree_count);
+
     std::string get_endpoint();
+
+
+    // TODO: THIS IS TEMPORARY AND SHOULD PROBABLY
+    // GO IN A SEPARATE CLASS. Also, we should make these
+    // data members private.
+    uint64_t last_heartbeat;
+    int subtree_size;
+
 
 private:
     virtual MulticastMessage::ControlMessage recv_proto();
@@ -61,3 +71,5 @@ namespace MulticastMessage {
 
     std::string unpack_assign_parent(MulticastMessage::ControlMessage &msg);
 }
+
+int64_t get_timestamp();
