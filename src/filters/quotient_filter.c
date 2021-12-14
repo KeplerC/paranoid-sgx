@@ -9,7 +9,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "qf.h"
+#include "quotient_filter.h"
 
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 #define LOW_MASK(n) ((1ULL << (n)) - 1ULL)

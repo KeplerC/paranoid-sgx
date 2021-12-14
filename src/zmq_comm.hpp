@@ -34,6 +34,9 @@
 #include "asylo/identity/enclave_assertion_authority_configs.h"
 
 #define MAX_CHILD_ROUTERS 2
+#define HEARTBEAT_SEND_INTERVAL 1
+#define HEARTBEAT_MONITOR_INTERVAL 5
+#define REBALANCE_TREE_INTERVAL 10
 
 class ZmqComm {
 public:
@@ -195,3 +198,6 @@ private:
     void net_setup() override;
     void net_handler() override;
 };
+
+
+void interrupt_timer_thread(int port, bool is_server);

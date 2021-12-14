@@ -148,6 +148,10 @@ void thread_start_coordinator(Asylo_SGX* sgx){
     sgx->execute_coordinator();
 }
 
+void thread_start_heartbeat(int thread_id, bool is_server){
+    interrupt_timer_thread(thread_id, is_server);
+}
+
 void thread_crypt_actor_thread(Asylo_SGX* sgx){
     sgx->start_crypt_actor_thread();
 }
@@ -640,10 +644,12 @@ int run_worker(){
     sleep(1);
     Asylo_SGX* sgx = new Asylo_SGX( std::to_string(thread_id), thread_id, serialized_signing_key);
     sgx->init();
+
     worker_threads.push_back(std::thread(thread_start_coordinator, sgx));
     worker_threads.push_back(std::thread(thread_run_zmq_intermediate_router, 2));
     sleep(1);
     worker_threads.push_back(std::thread(thread_run_zmq_js_client, thread_id, sgx));
+    worker_threads.push_back(std::thread(thread_start_heartbeat, thread_id, false));
     sleep(1000);
 
 //    int num_threads = 3;

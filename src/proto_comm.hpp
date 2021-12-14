@@ -36,6 +36,8 @@ public:
     void send_raw_bytes(std::string str); // TODO temporary shim ^
     void send_raw_bytes(std::string bytes, bool route_up);
 
+    void send_interrupt(int type);
+
     std::string get_endpoint();
 
 private:
@@ -50,8 +52,6 @@ private:
 
     std::string endpoint_;
 };
-
-
 
 namespace MulticastMessage {
     std::string unpack_join(MulticastMessage::ControlMessage& msg, int* node_type);

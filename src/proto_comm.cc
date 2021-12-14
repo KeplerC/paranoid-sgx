@@ -193,6 +193,33 @@ void ProtoSocket::send_assign_parent(std::string parent_addr) {
     send_proto(message);
 }
 
+// 0 for heartbeat send
+// 1 for heartbeat listen
+// 2 for tree rebalance 
+void ProtoSocket::send_interrupt(int type) {
+    MulticastMessage::ControlMessage message;
+    MulticastMessage::MessageBody* body = message.mutable_body();
+
+    MulticastMessage::InterruptT etype;
+
+    if(type == 0) {
+        MulticastMessage::InterruptT_Parse("SEND_HEARTBEAT", &etype);
+    }
+    else if(type == 1) {
+        MulticastMessage::InterruptT_Parse("LISTEN_HEARTBEAT", &etype);
+    }
+    else if(type == 2) {
+        MulticastMessage::InterruptT_Parse("REBALANCE_TREE", &etype);
+    }
+
+    body->set_interrupt(etype);
+
+    //MulticastMessage::InterruptT * etype = body->interrupt();
+
+    send_proto(message);
+}
+
+
 
 std::string MulticastMessage::unpack_assign_parent(MulticastMessage::ControlMessage &msg) {
     auto body = msg.mutable_body();

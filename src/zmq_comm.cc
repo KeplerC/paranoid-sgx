@@ -109,6 +109,35 @@ void handle_join_request(std::vector<ProtoSocket> &router_sockets_,
     }
 }
 
+void interrupt_timer_thread(int port, bool is_server) {
+    std::unique_ptr<zmq::socket_t> zsock_heartbeat;
+    zmq::context_t context_;
+    zsock_heartbeat.reset(new zmq::socket_t(context_, ZMQ_PUSH));
+    ProtoSocket heartbeat_socket(zsock_heartbeat.get(), port);
+    heartbeat_socket.connect ("tcp://localhost:" + std::to_string(NET_CLIENT_BASE_PORT + port));
+
+    LOGI << "Heartbeat sending to " << ("tcp://localhost:" + std::to_string(NET_CLIENT_BASE_PORT + port));
+
+    int counter = 1;
+
+    while(true) {
+        sleep(1);
+        counter++;
+
+        if(counter % HEARTBEAT_SEND_INTERVAL == 0) {
+            heartbeat_socket.send_interrupt(0);
+        }
+
+        if(counter % HEARTBEAT_MONITOR_INTERVAL == 0) {
+            heartbeat_socket.send_interrupt(1);
+        }
+
+        if(is_server && counter % REBALANCE_TREE_INTERVAL == 0) {
+            heartbeat_socket.send_interrupt(2);
+        }
+    }
+}
+
 
 void ZmqServer::net_handler() {
     //std::cout << "Start polling" << std::endl;
@@ -354,8 +383,12 @@ void ZmqJsClient::net_setup() {
 
     //send join request to seed server
     socket_join_.send_join(addr_, 0);
+    LOGI << "CLIENT ADDRESS: " << addr_;
 }
 
+/*
+ * This is the state machine transition function. 
+ */
 void ZmqJsClient::net_handler() {
     if (pollitems_[0].revents & ZMQ_POLLIN) {
         // Multiplex to handle several types of message
@@ -392,6 +425,12 @@ void ZmqJsClient::net_handler() {
 
                 sgx_->send_to_sgx(msg);
             }
+        }
+        else if(body->has_interrupt()) {
+
+            MulticastMessage::InterruptT interrupt = body->interrupt();
+
+            LOGI << "GOT INTERRUPT TYPE" << MulticastMessage::InterruptT_Name(interrupt);
         }
 
     }
