@@ -187,6 +187,17 @@ std::vector<blockHeader> CapsuleIndex::merge(std::vector<blockHeader> a, std::ve
             next_cb = CapsuleBlock(next_level);
         }
     }
+
+    // Write out the final CapsuleBlock, even if it's not full.
+    if (next_cb.getKVPairs().size() > 0) {
+        std::string hash = next_cb.writeOut();
+        blockHeader bh = {};
+        bh.hash = hash;
+        bh.minKey = next_cb.getMinKey();
+        bh.maxKey = next_cb.getMaxKey();
+        output.push_back(bh);
+    }
+
     return output;
 }
 
