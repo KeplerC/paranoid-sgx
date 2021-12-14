@@ -88,25 +88,25 @@ int main()
     // L0 = {}  
     // L1 = {[[1, 8] [2, 2]], [[4, 4] [5, 5]], [[6, 6] [7, 7]]}
 
-    // Get value of testkey1 (should be testval8), shouldn't be in memtable, should have to check Level 0
+    // Get value of testkey1 (should be testval8), shouldn't be in memtable, should have to check Level 1
     requestedVal = instance.get("testkey1");
     std::cout << "OUTPUT value=" << requestedVal << "\n\n";
-    // Get value of testkey2 (should be testval2), shouldn't be in memtable, should have to check Level 0
+    // Get value of testkey2 (should be testval2), shouldn't be in memtable, should have to check Level 1
     requestedVal = instance.get("testkey2");
     std::cout << "OUTPUT value=" << requestedVal << "\n\n";
-    // Get value of testkey4 (should be testval4), shouldn't be in memtable, should have to check Level 0
+    // Get value of testkey4 (should be testval4), shouldn't be in memtable, should have to check Level 1
     requestedVal = instance.get("testkey4");
     std::cout << "OUTPUT value=" << requestedVal << "\n\n";
-    // Get value of testkey5 (should be testval5), shouldn't be in memtable, should have to check Level 0
+    // Get value of testkey5 (should be testval5), shouldn't be in memtable, should have to check Level 1
     requestedVal = instance.get("testkey5");
     std::cout << "OUTPUT value=" << requestedVal << "\n\n";
-    // Get value of testkey6 (should be testval6), shouldn't be in memtable, should have to check Level 0
+    // Get value of testkey6 (should be testval6), shouldn't be in memtable, should have to check Level 1
     requestedVal = instance.get("testkey6");
     std::cout << "OUTPUT value=" << requestedVal << "\n\n";
-    // Get value of testkey7 (should be testval7), shouldn't be in memtable, should have to check Level 0
+    // Get value of testkey7 (should be testval7), shouldn't be in memtable, should have to check Level 1
     requestedVal = instance.get("testkey7");
     std::cout << "OUTPUT value=" << requestedVal << "\n\n";
-    // Get value of testkey9 (should be testval9), shouldn't be in memtable, should have to check Level 0
+    // Get value of testkey9 (should be testval9), should be in memtable
     requestedVal = instance.get("testkey9");
     std::cout << "OUTPUT value=" << requestedVal << "\n\n";
 

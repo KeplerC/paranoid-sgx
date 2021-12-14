@@ -304,9 +304,7 @@ int CapsuleIndex::compactHelper(std::vector<blockHeader> sourceVec, Level destLe
         destLevel.recordHashes = remainingBlocks;
     }
     
-    std::cout << "Skip to direct merge at end.\n";
     std::vector<blockHeader> newDestLevelVec = merge(sourceVec, destLevel.recordHashes, destLevel.index);
-    std::cout << "End.\n";
     // TODO: besides updating recordHashes, need to update other attributes as well (min/max key, bloom filter, etc.)
     destLevel.recordHashes = newDestLevelVec;
     return 0;
