@@ -42,6 +42,7 @@ class CapsuleBlock {
         void setMinKey(std::string k);
         void setMaxKey(std::string k);
         std::string writeOut();
+        void readIn(std::string transactionHash, CapsuleBlock *location);
 };
 
 void readIn(std::string transactionHash, CapsuleBlock *location);

@@ -68,19 +68,21 @@ int Level::addBlock(CapsuleBlock* newBlock, std::string hash) {
 
     // If level is empty, directly add and return.
     if (min_key == "" || max_key == "") {
-        recordHashes.insert(recordHashes.begin(), hash);
         numBlocks++;
         min_key = new_block_min_key;
         max_key = new_block_max_key;
+        blockHeader bh = {hash, min_key, max_key};
+        recordHashes.push_back(bh);
         return 0;
     }
     
     // If this is L0, just append (L0 is unsorted)
     if (index == 0) {
-        recordHashes.push_back(hash);
         numBlocks++;
         min_key = min(std::string(min_key), std::string(new_block_min_key));
         max_key = max(std::string(max_key), std::string(new_block_max_key));
+        blockHeader bh = {hash, min_key, max_key};
+        recordHashes.push_back(bh);
         return 0;
     } else {
         /*
@@ -90,17 +92,17 @@ int Level::addBlock(CapsuleBlock* newBlock, std::string hash) {
         Find block i and j where i < j and i_min < min < i_max and j_min < max < j_max
             Pull in all blocks between i and j, inclusive, dump into giant vector, and insert all kv pairs in block?
         */
-
-        for (int i = 0; i < numBlocks; i++) {
-            CapsuleBlock curr_block = getCapsuleBlock(recordHashes[i]);
-            if (curr_block.getMinKey() > new_block_max_key) {
-                recordHashes.insert(recordHashes.begin() + i, hash);
-                numBlocks++;
-                min_key = min(std::string(min_key), std::string(new_block_min_key));
-                max_key = max(std::string(max_key), std::string(new_block_max_key));
-                return 0;
-            }
-        }
+        return -1;
+        // for (int i = 0; i < numBlocks; i++) {
+        //     CapsuleBlock curr_block = getCapsuleBlock(recordHashes[i]);
+        //     if (curr_block.getMinKey() > new_block_max_key) {
+        //         recordHashes.insert(recordHashes.begin() + i, hash);
+        //         numBlocks++;
+        //         min_key = min(std::string(min_key), std::string(new_block_min_key));
+        //         max_key = max(std::string(max_key), std::string(new_block_max_key));
+        //         return 0;
+        //     }
+        // }
     }
 
     return -1;
@@ -124,10 +126,9 @@ std::string Level::getBlock(std::string key) {
     // Otherwise search -> is Binary really needed?
     
     for (int i = 0; i < numBlocks; i++) {
-        std::cout << "recordHashes[" << i << "]=" << recordHashes[i] << "\n";
-        CapsuleBlock curr_block = getCapsuleBlock(recordHashes[i]);
-        if (curr_block.getMinKey() <= key  && key <= curr_block.getMaxKey()) {
-            return recordHashes[i];
+        std::cout << "recordHashes[" << i << "].hash=" << recordHashes[i].hash << "\n";
+        if (recordHashes[i].minKey <= key && key <= recordHashes[i].maxKey) {
+            return recordHashes[i].hash;
         }
     }
     return "";
