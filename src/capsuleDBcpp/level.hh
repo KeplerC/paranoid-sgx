@@ -14,7 +14,7 @@ class Level {
         std::string min_key;
         std::string max_key;
         std::vector <blockHeader> recordHashes;
-        bloom_filter levelFilter;
+        // bloom_filter levelFilter;
 
         bloom_filter create_filter();
         int getNumBlocks();

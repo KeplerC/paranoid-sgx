@@ -47,10 +47,11 @@ std::string CapsuleIndex::getBlock(int level, std::string key) {
         return "";
     }
     Level curr_level = levels[level];
-    if (curr_level.levelFilter.contains(key)) {
-        return curr_level.getBlock(key);
-    }
-    return "";
+    // if (curr_level.levelFilter.contains(key)) {
+    //     return curr_level.getBlock(key);
+    // }
+    // return "";
+    return curr_level.getBlock(key);
 }
 
 int CapsuleIndex::add_hash(int level, std::string hash, CapsuleBlock block) {
@@ -74,7 +75,7 @@ int CapsuleIndex::addLevel(int size) {
     newLevel.maxSize = size;
     newLevel.index = numLevels;
     
-    newLevel.levelFilter = newLevel.create_filter();
+    // newLevel.levelFilter = newLevel.create_filter();
 
     numLevels++;
     return numLevels - 1; 
@@ -305,7 +306,6 @@ int CapsuleIndex::compactHelper(std::vector<blockHeader> sourceVec, Level destLe
     }
     
     std::vector<blockHeader> newDestLevelVec = merge(sourceVec, destLevel.recordHashes, destLevel.index);
-    // TODO: Need to update bloom filter
     destLevel.recordHashes = newDestLevelVec;
     destLevel.numBlocks = newDestLevelVec.size();
     destLevel.min_key = newDestLevelVec[0].minKey;

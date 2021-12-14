@@ -14,7 +14,7 @@ Level::Level() {
 Level::Level(int i, int ms) {
     index = i;
     maxSize = ms;
-    levelFilter = create_filter();
+    // levelFilter = create_filter();
 
     numBlocks = 0;
     min_key = "";
@@ -60,7 +60,7 @@ int Level::addBlock(CapsuleBlock* newBlock, std::string hash) {
     for (std::tuple<std::string, std::string, int, std::string> kvt : kvPairs) {
         std::string key = std::get<0>(kvt);
         std::cout << "levelFilter.insert " << key << "\n";
-        levelFilter.insert(key);
+        // levelFilter.insert(key);
     }
 
     std::string new_block_min_key = (*newBlock).getMinKey();
