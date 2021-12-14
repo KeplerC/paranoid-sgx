@@ -240,14 +240,15 @@ cc_library(
 cc_library(
     name = "capsuleBlock",
     srcs=[
-        "capsuleDBcpp/capsuleBlock.cc",
         "capsuleDBcpp/fakeCapsule.hh",
         "serialize-tuple/serialize_tuple.h",
+        "capsuleDBcpp/capsuleBlock.cc",
 ],
     hdrs=["capsuleDBcpp/capsuleBlock.hh"],
     deps=[
         "@boost//:archive",
         "@boost//:serialization",
+        ":fakeCapsule"
     ],
 )
 
