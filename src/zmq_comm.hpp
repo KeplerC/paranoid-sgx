@@ -204,4 +204,4 @@ private:
 };
 
 
-void interrupt_timer_thread(int port, bool is_server);
+void interrupt_timer_thread(int port, bool is_server, bool* kill);

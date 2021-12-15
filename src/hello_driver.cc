@@ -148,8 +148,8 @@ void thread_start_coordinator(Asylo_SGX* sgx){
     sgx->execute_coordinator();
 }
 
-void thread_start_heartbeat(int thread_id, bool is_server){
-    interrupt_timer_thread(thread_id, is_server);
+void thread_start_heartbeat(int thread_id, bool is_server, bool* kill){
+    interrupt_timer_thread(thread_id, is_server, kill);
 }
 
 void thread_crypt_actor_thread(Asylo_SGX* sgx){
@@ -625,23 +625,21 @@ public:
     std::unique_ptr <asylo::SigningKey> signing_key; 
     asylo::CleansingVector<uint8_t> serialized_signing_key;
     Asylo_SGX* sgx;
+    bool kill;
 
-    void kill() {
-        if(sgx) {
-            delete sgx;
-        }
-        else {
-            for(auto it = threads.begin(); it != threads.end(); it++) {
-                // TODO: Send kill signals 
-            }
-        }
+    ThreadGroup() {
+        kill = false;
+    }
+
+    void killHeartbeat() {
+        kill = true;
     }
 };
 
 ThreadGroup* run_server_threads() {
     ThreadGroup* group = new ThreadGroup();
     group->threads.push_back(std::thread(thread_run_zmq_router, 0));
-    group->threads.push_back(std::thread(thread_start_heartbeat, NET_SERVER_MCAST_PORT, true));
+    group->threads.push_back(std::thread(thread_start_heartbeat, NET_SERVER_MCAST_PORT, true, &(group->kill)));
     return group;     
 }
 
@@ -649,7 +647,7 @@ ThreadGroup* run_server_threads() {
 ThreadGroup* run_router_threads(int id) {
     ThreadGroup* group = new ThreadGroup();
     group->threads.push_back(std::thread(thread_run_zmq_intermediate_router, id));
-    group->threads.push_back(std::thread(thread_start_heartbeat, NET_CLIENT_BASE_PORT + id, false));
+    group->threads.push_back(std::thread(thread_start_heartbeat, NET_CLIENT_BASE_PORT + id, false, &(group->kill)));
     return group; 
 }
 
@@ -665,7 +663,7 @@ ThreadGroup* run_js_client(int id, bool with_coordinator, asylo::CleansingVector
         group->threads.push_back(std::thread(thread_start_coordinator, group->sgx)); 
     }
 
-    group->threads.push_back(std::thread(thread_start_heartbeat, NET_CLIENT_BASE_PORT + id, false)); 
+    group->threads.push_back(std::thread(thread_start_heartbeat, NET_CLIENT_BASE_PORT + id, false, &(group->kill))); 
     
     return group;
 }
@@ -692,11 +690,11 @@ int run_worker(){
     thread_groups.push_back(run_router_threads(2));
     thread_groups.push_back(run_router_threads(3));
     sleep(1);
-    thread_groups.push_back(run_js_client(4, true, serialized_signing_key));
-    thread_groups.push_back(run_js_client(5, true, serialized_signing_key));
-    thread_groups.push_back(run_js_client(6, true, serialized_signing_key));
-    thread_groups.push_back(run_js_client(7, true, serialized_signing_key));
-    thread_groups.push_back(run_js_client(8, true, serialized_signing_key));
+    thread_groups.push_back(run_js_client(4, false, serialized_signing_key));
+    thread_groups.push_back(run_js_client(5, false, serialized_signing_key));
+    thread_groups.push_back(run_js_client(6, false, serialized_signing_key));
+    thread_groups.push_back(run_js_client(7, false, serialized_signing_key));
+    thread_groups.push_back(run_js_client(8, false, serialized_signing_key));
     sleep(1);
 
 

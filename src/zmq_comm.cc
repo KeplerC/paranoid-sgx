@@ -81,7 +81,8 @@ void handle_join_request(std::vector<ProtoSocket> &router_sockets_,
                 }
             }
 
-            mindex->send_join(msg, 0); 
+            mindex->send_join(msg, 0);
+            mindex->subtree_size++; 
         }
         // Otherwise, client becomes a direct child of this one 
         else {
@@ -116,7 +117,6 @@ void handle_join_request(std::vector<ProtoSocket> &router_sockets_,
         // If the current node has the maximum # of routers, then pass down to the next level. Add bandwidth
         // to the router with the maximum number of clients
 
-
         if(router_sockets_.size() >= max_child_routers) {
             
             auto maxdex = router_sockets_.begin();
@@ -128,6 +128,7 @@ void handle_join_request(std::vector<ProtoSocket> &router_sockets_,
             }
 
             maxdex->send_join(msg, 1);
+            maxdex->subtree_size++;
         }
         // If we haven't hit the maximum router count, then append the router to this one 
         else {
@@ -311,7 +312,7 @@ void interrupt_timer_thread(int port, bool is_server, bool* kill) {
 
     int counter = 1;
 
-    while(! kill) {
+    while(! *kill) {
         sleep(1);
         counter++;
 
@@ -583,21 +584,24 @@ void ZmqRouter::net_handler() {
             auto it = client_sockets_.begin(); 
 
             while(count > 0 && it != client_sockets_.end()) {
-                it = it.erase();
+                it = client_sockets_.erase(it);
                 count--;
             }
 
             // Is there still an imbalance? Distribute as evenly as possible among the sub-routers.
             // NOTE: THIS MATH IS NOT PERFECT, but that's okay.
-            int num_routers = router_sockets_.size();
-            int share = count / num_routers;
-            if(share == 0) {
-                share++;
-            } 
 
-            it = router_sockets_.begin()
-            while(count > 0 && it != router_sockets_.end()) {
-                it->send_cull(share);
+            if(router_sockets_.size() > 0) {
+                int num_routers = router_sockets_.size();
+                int share = count / num_routers;
+                if(share == 0) {
+                    share++;
+                } 
+
+                it = router_sockets_.begin();
+                while(count > 0 && it != router_sockets_.end()) {
+                    it->send_cull(share);
+                }
             }
 
         }
