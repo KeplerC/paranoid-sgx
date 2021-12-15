@@ -181,6 +181,15 @@ std::string MulticastMessage::unpack_raw_bytes(MulticastMessage::ControlMessage 
     return *(body->mutable_raw_bytes()->mutable_bytestr());
 }
 
+void ProtoSocket::send_cull(int count) {
+    MulticastMessage::ControlMessage message;
+    MulticastMessage::MessageBody* body = message.mutable_body();
+    MulticastMessage::Cull* cull = body->mutable_cull();
+    cull->set_count(count); 
+
+    send_proto(message);
+}
+
 
 void ProtoSocket::send_assign_parent(std::string parent_addr) {
     MulticastMessage::ControlMessage message;

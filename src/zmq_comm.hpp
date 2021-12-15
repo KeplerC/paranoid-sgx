@@ -34,9 +34,13 @@
 #include "asylo/identity/enclave_assertion_authority_configs.h"
 
 #define MAX_CHILD_ROUTERS 2
+
+// The next three constants are in units of seconds
 #define HEARTBEAT_SEND_INTERVAL 1
 #define HEARTBEAT_MONITOR_INTERVAL 3
 #define REBALANCE_TREE_INTERVAL 5
+
+#define MAX_CULL_DELTA 3
 
 class ZmqComm {
 public:

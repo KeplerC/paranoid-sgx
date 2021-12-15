@@ -690,11 +690,20 @@ int run_worker(){
     //worker_threads.push_back(std::thread(thread_run_zmq_intermediate_router, 2));
 
     thread_groups.push_back(run_router_threads(2));
+    thread_groups.push_back(run_router_threads(3));
     sleep(1);
-    thread_groups.push_back(run_js_client(3, true, serialized_signing_key));
+    thread_groups.push_back(run_js_client(4, true, serialized_signing_key));
+    thread_groups.push_back(run_js_client(5, true, serialized_signing_key));
+    thread_groups.push_back(run_js_client(6, true, serialized_signing_key));
+    thread_groups.push_back(run_js_client(7, true, serialized_signing_key));
+    thread_groups.push_back(run_js_client(8, true, serialized_signing_key));
     sleep(1);
+
+
     //thread_groups.push_back(run_js_client(4, false));
     //sleep(1);
+
+    /*
     thread_groups.push_back(run_router_threads(5));
     sleep(1);
     thread_groups.push_back(run_js_client(6, false, serialized_signing_key));
@@ -702,6 +711,7 @@ int run_worker(){
     thread_groups.push_back(run_js_client(7, false, serialized_signing_key));
     sleep(2);
     thread_groups.push_back(run_js_client(8, false, serialized_signing_key));
+    */
 
     sleep(1000);
 

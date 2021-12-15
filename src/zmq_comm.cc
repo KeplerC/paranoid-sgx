@@ -300,7 +300,7 @@ void sweep_stale_and_rejoin(std::vector<ProtoSocket> *router_sockets_,
 }
 
 
-void interrupt_timer_thread(int port, bool is_server) {
+void interrupt_timer_thread(int port, bool is_server, bool* kill) {
     std::unique_ptr<zmq::socket_t> zsock_heartbeat;
     zmq::context_t context_;
     zsock_heartbeat.reset(new zmq::socket_t(context_, ZMQ_PUSH));
@@ -311,7 +311,7 @@ void interrupt_timer_thread(int port, bool is_server) {
 
     int counter = 1;
 
-    while(true) {
+    while(! kill) {
         sleep(1);
         counter++;
 
@@ -431,6 +431,36 @@ void ZmqServer::net_handler() {
                         0 
                         );
             }
+            if(name == "REBALANCE_TREE") {
+                // Always move clients to the bottom of the tree
+                if(router_sockets_.size() > 0 && client_sockets_.size() > 0) {
+                    LOGI << "[SERVER] shunting all clients down.";
+                    client_sockets_.clear();
+                }
+                else if(router_sockets_.size() > 0) {
+                    int min_idx = 0;
+                    int max_idx = 0;
+                    for(int i = 0; i < router_sockets_.size(); i++) {
+                        if(router_sockets_[i].subtree_size < router_sockets_[min_idx].subtree_size) {
+                            min_idx = i;
+                        }
+
+                        if(router_sockets_[i].subtree_size > router_sockets_[max_idx].subtree_size) {
+                            max_idx = i;
+                        }
+                    }
+
+                    int delta = router_sockets_[max_idx].subtree_size - router_sockets_[min_idx].subtree_size;
+
+                    if(delta > MAX_CULL_DELTA) {
+                        LOGI << "[SERVER] SENDING A CULL.";
+                        router_sockets_[max_idx].send_cull(delta / 2); 
+                    }
+                }
+
+
+            }
+
         }
     }
 
@@ -546,6 +576,31 @@ void ZmqRouter::net_handler() {
             }
 
         }
+        else if(body->has_cull()) {
+            int count = body->mutable_cull()->count();
+
+            // If we have clients, cull them. 
+            auto it = client_sockets_.begin(); 
+
+            while(count > 0 && it != client_sockets_.end()) {
+                it = it.erase();
+                count--;
+            }
+
+            // Is there still an imbalance? Distribute as evenly as possible among the sub-routers.
+            // NOTE: THIS MATH IS NOT PERFECT, but that's okay.
+            int num_routers = router_sockets_.size();
+            int share = count / num_routers;
+            if(share == 0) {
+                share++;
+            } 
+
+            it = router_sockets_.begin()
+            while(count > 0 && it != router_sockets_.end()) {
+                it->send_cull(share);
+            }
+
+        }
         else if(body->has_heartbeat()) {
             //LOGI << "[Router " << addr_ << "] got heartbeat";
 
@@ -591,7 +646,33 @@ void ZmqRouter::net_handler() {
                         1 
                         );
             }
+            if(name == "REBALANCE_TREE") {
+                // Always move clients to the bottom of the tree
+                if(router_sockets_.size() > 0 && client_sockets_.size() > 0) {
+                    LOGI << "[Router " << addr_ << "] shunting all clients down.";
+                    client_sockets_.clear();
+                }
+                else if(router_sockets_.size() > 0) {
+                    int min_idx = 0;
+                    int max_idx = 0;
+                    for(int i = 0; i < router_sockets_.size(); i++) {
+                        if(router_sockets_[i].subtree_size < router_sockets_[min_idx].subtree_size) {
+                            min_idx = i;
+                        }
 
+                        if(router_sockets_[i].subtree_size > router_sockets_[max_idx].subtree_size) {
+                            max_idx = i;
+                        }
+                    }
+
+                    int delta = router_sockets_[max_idx].subtree_size - router_sockets_[min_idx].subtree_size;
+
+                    if(delta > MAX_CULL_DELTA) {
+                        LOGI << "[Router " << addr_ << "] SENDING A CULL.";
+                        router_sockets_[max_idx].send_cull(delta / 2); 
+                    }
+                }
+            }
         }
         else {
             LOGI << "[Router " << addr_ << "] error: got unknown message type.";

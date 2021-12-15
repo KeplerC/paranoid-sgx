@@ -37,8 +37,8 @@ public:
     void send_raw_bytes(std::string bytes, bool route_up);
 
     void send_interrupt(int type);
-
     void send_heartbeat(std::string addr_, int subtree_count);
+    void send_cull(int count);
 
     std::string get_endpoint();
 

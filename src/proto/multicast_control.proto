@@ -71,7 +71,7 @@ message Heartbeat {
 }
 
 message Cull {
-  optional int count = 1;
+  optional int32 count = 1;
 }
 
 message MessageBody {
