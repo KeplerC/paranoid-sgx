@@ -159,10 +159,64 @@ void handle_heartbeats(std::vector<ProtoSocket> *router_sockets_,
 }
 
 
-void sweep_stale(std::vector<ProtoSocket> *router_sockets_, 
+void sweep_stale_and_rejoin(std::vector<ProtoSocket> *router_sockets_, 
         std::vector<ProtoSocket> *client_sockets_,
-        std::unique_ptr<ProtoSocket> parent_socket) {
-    
+        std::unique_ptr<ProtoSocket> &parent_socket,
+        bool is_server,
+        ProtoSocket &root_router,
+        std::string addr_,
+        int node_type
+        ) {
+
+    if(client_sockets_) {
+        auto it = client_sockets_->begin();
+
+        while(it != client_sockets_->end()) {
+            int64_t current_timestamp = get_timestamp();           
+            int64_t last_heartbeat = it->last_heartbeat;
+
+            if(current_timestamp - last_heartbeat > HEARTBEAT_MONITOR_INTERVAL * 1000) {
+                LOGI << "STALE CLIENT";
+                it = client_sockets_->erase(it);
+            }
+            else {
+                it++; 
+            }
+        }
+    }
+    if(router_sockets_) {
+        auto it = router_sockets_->begin();
+
+        while(it != router_sockets_->end()) {
+            int64_t current_timestamp = get_timestamp();           
+            int64_t last_heartbeat = it->last_heartbeat;
+
+            if(current_timestamp - last_heartbeat > HEARTBEAT_MONITOR_INTERVAL * 1000) {
+                LOGI << "STALE ROUTER";
+                it = router_sockets_->erase(it);
+            }
+            else {
+                it++; 
+            }
+        }
+    }
+
+    if(! is_server) {
+        if(parent_socket) {
+            int64_t current_timestamp = get_timestamp();           
+            int64_t last_heartbeat = parent_socket->last_heartbeat;
+
+            if(current_timestamp - last_heartbeat > HEARTBEAT_MONITOR_INTERVAL * 1000) {
+                LOGI << "STALE PARENT";
+                parent_socket = nullptr; 
+            }
+        }
+
+        if(! parent_socket) {
+            LOGI << "RESENDING JOIN REQUEST";
+            root_router.send_join(addr_, node_type);
+        }
+    }
 }
 
 
@@ -275,8 +329,19 @@ void ZmqServer::net_handler() {
                     LOGI << "[SERVER] sent heartbeat down.";
                 }
             }
-        }
+            if(name == "LISTEN_HEARTBEAT") {
+                std::unique_ptr<ProtoSocket> empty_socket;
 
+                sweep_stale_and_rejoin(&router_sockets_,
+                        &client_sockets_, 
+                        empty_socket,
+                        true,
+                        socket_join_,
+                        personal_address,
+                        0 
+                        );
+            }
+        }
     }
 
     if (pollitems_[2].revents & ZMQ_POLLIN){
@@ -419,6 +484,17 @@ void ZmqRouter::net_handler() {
                     LOGI << "[Router " << addr_ << "] sent heartbeat up.";
                 }
             }
+            if(name == "LISTEN_HEARTBEAT") {
+                sweep_stale_and_rejoin(&router_sockets_,
+                        &client_sockets_, 
+                        parent_socket_,
+                        false,
+                        socket_join_,
+                        addr_,
+                        1 
+                        );
+            }
+
         }
         else {
             LOGI << "[Router " << addr_ << "] error: got unknown message type.";
@@ -561,6 +637,16 @@ void ZmqJsClient::net_handler() {
                     parent_socket_->send_heartbeat(addr_, 1);
                     LOGI << "[JSClient " << addr_ << "] sent heartbeat up.";
                 }
+            }
+            if(name == "LISTEN_HEARTBEAT") {
+                sweep_stale_and_rejoin(nullptr,
+                        nullptr, 
+                        parent_socket_,
+                        false,
+                        socket_join_,
+                        addr_,
+                        0 
+                        );
             }
         }
         else if(body->has_heartbeat()) {
