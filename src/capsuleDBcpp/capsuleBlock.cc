@@ -106,5 +106,4 @@ std::string CapsuleBlock::writeOut()
 void readIn(std::string transactionHash, CapsuleBlock *location)
 {
     *location = getCapsuleBlock(transactionHash);
-    std::cout << "Test7\n";
 }

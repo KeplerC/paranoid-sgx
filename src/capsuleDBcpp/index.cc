@@ -42,7 +42,7 @@ int CapsuleIndex::getNumLevels() {
     * Output: block hash or error code
     */
 std::string CapsuleIndex::getBlock(int level, std::string key) {
-    // std::cout << "getBlock on level=" << level << " for key=" << key << "\n";
+    std::cout << "getBlock on level=" << level << " for key=" << key << "\n";
     if (level < 0 || level >= numLevels) {
         return "";
     }
@@ -179,6 +179,10 @@ int CapsuleIndex::compactHelper(std::vector<blockHeader> sourceVec, Level destLe
         }
         compactHelper(newSourceVec, levels[destLevel.index]);
         destLevel.recordHashes = remainingBlocks;
+        destLevel.numBlocks = remainingBlocks.size();
+        destLevel.min_key = remainingBlocks[0].minKey;
+        destLevel.max_key = remainingBlocks[remainingBlocks.size() - 1].maxKey;
+
     }
     
     std::vector<blockHeader> newDestLevelVec = merge(sourceVec, destLevel.recordHashes, destLevel.index);
