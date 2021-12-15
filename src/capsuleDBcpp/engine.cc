@@ -72,19 +72,21 @@ std::string CapsuleDB::get(const std::string &key, bool isMulticast /* default i
     if (kv.key == "") //Checks for key in memtable, if not present: checks in levels
     {
         std::cout << "Couldn't find key in Memtable, checking Index...\n";
-        // TODO iterate if there are multiple capsule indices
-        level_info = this->index.getNumLevels();
+        level_info = index.getNumLevels();
         for (int i = 0; i < level_info; i++)
         {
-            block_info = this->index.getBlock(i, key);
+            block_info = index.getBlock(i, key);
             if (block_info != "") // Key might be present, however verify if key exists if not check other levels
             {   
+                std::cout << "Checking block " << block_info << "\n";
                 CapsuleBlock block;
                 readIn(block_info, &block);
                 // std::cout << "block->kvPairs.size()=" <<  block.kvPairs.size() << "\n";
                 for (long unsigned int j = 0; j < block.kvPairs.size(); j++) 
                 {
                     std::tuple<std::string, std::string, int, std::string> kv_tuple = block.kvPairs[j];
+                    std::cout << "CurrKey=" << std::get<0>(kv_tuple) << "\n";
+                    std::cout << "CurrValue=" << std::get<1>(kv_tuple) << "\n";
                     if (i != 0 && std::get<0>(kv_tuple) > key) 
                     {
                         break;

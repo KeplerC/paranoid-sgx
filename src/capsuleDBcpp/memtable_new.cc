@@ -89,10 +89,10 @@ void Memtable::write_out_if_full(CapsuleIndex* index)
     if (memtable.size() >= max_size)
     {
         Level* level_zero = &index->levels.front();
-        std::cout << "level_zero->index=" << level_zero->index << "\n";
-        std::cout << "level_zero->numBlocks=" << level_zero->numBlocks << "\n";
-        std::cout << "level_zero->maxSize=" << level_zero->maxSize << "\n";
-        std::cout << "level_zero->min_key=" << level_zero->min_key << "\n";
+        // std::cout << "level_zero->index=" << level_zero->index << "\n";
+        // std::cout << "level_zero->numBlocks=" << level_zero->numBlocks << "\n";
+        // std::cout << "level_zero->maxSize=" << level_zero->maxSize << "\n";
+        // std::cout << "level_zero->min_key=" << level_zero->min_key << "\n";
 
 
         CapsuleBlock capsule_block(0);
@@ -112,7 +112,7 @@ void Memtable::write_out_if_full(CapsuleIndex* index)
         capsule_block.setMinKey(min_key);
         capsule_block.setMaxKey(max_key);
 
-        std::cout << "writing out block with min_key=" << min_key << ", max_key=" << max_key << "\n";
+        std::cout << "Memtable filled, writing out block with min_key=" << min_key << ", max_key=" << max_key << "\n";
 
         std::string record_hash = capsule_block.writeOut();
         // std::string record_hash = "temp hash";

@@ -36,12 +36,12 @@ std::string putCapsuleBlock(CapsuleBlock inputBlock) {
     boost::archive::text_oarchive oa1(toBeHashed);
     oa1 << inputBlock;
     std::string s = toBeHashed.str();
-    std::cout << "putCapsuleBlock: toBeHashed=" << s << "\n";
+    // std::cout << "putCapsuleBlock: toBeHashed=" << s << "\n";
 
     // Hash bytestream
     char blockHash[65];
     sha256_string(s.data(), blockHash);
-    std::cout << "putCapsuleBlock: blockHash=" << blockHash << "\n";
+    // std::cout << "putCapsuleBlock: blockHash=" << blockHash << "\n";
 
     // Serialize and store block
     std::ofstream storedBlockFile(blockHash);
@@ -65,17 +65,16 @@ CapsuleBlock getCapsuleBlock(std::string inputHash) {
     boost::archive::text_oarchive oa1(toBeHashed);
     oa1 << recoveredBlock;
     std::string s = toBeHashed.str();
-    std::cout << "getCapsuleBlock: toBeHashed=" << s << "\n";
+    // std::cout << "getCapsuleBlock: toBeHashed=" << s << "\n";
     // ** Hash bytestream ** 
     char blockHash[65];
     sha256_string(s.data(), blockHash);
-    std::cout << "getCapsuleBlock: blockHash=" << blockHash << "\n";
+    // std::cout << "getCapsuleBlock: blockHash=" << blockHash << "\n";
     // ** Verify hash **
     if (blockHash != inputHash) {
         std::cout << "inputHash=" << inputHash << "\n";
         throw std::invalid_argument("inputHash not found");
     }
-
     // Return to user
     return recoveredBlock;
 }

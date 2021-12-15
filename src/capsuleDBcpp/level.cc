@@ -14,7 +14,7 @@ Level::Level() {
 Level::Level(int i, int ms) {
     index = i;
     maxSize = ms;
-    levelFilter = create_filter();
+    // levelFilter = create_filter();
 
     numBlocks = 0;
     min_key = "";
@@ -60,7 +60,7 @@ int Level::addBlock(CapsuleBlock* newBlock, std::string hash) {
     for (std::tuple<std::string, std::string, int, std::string> kvt : kvPairs) {
         std::string key = std::get<0>(kvt);
         std::cout << "levelFilter.insert " << key << "\n";
-        levelFilter.insert(key);
+        // levelFilter.insert(key);
     }
 
     std::string new_block_min_key = (*newBlock).getMinKey();
@@ -71,18 +71,18 @@ int Level::addBlock(CapsuleBlock* newBlock, std::string hash) {
         numBlocks++;
         min_key = new_block_min_key;
         max_key = new_block_max_key;
-        blockHeader bh = {hash, min_key, max_key};
+        blockHeader bh = {hash, new_block_min_key, new_block_max_key};
         recordHashes.push_back(bh);
         return 0;
     }
     
     // If this is L0, just append (L0 is unsorted)
     if (index == 0) {
+        blockHeader bh = {hash, new_block_min_key, new_block_max_key};
+        recordHashes.push_back(bh);
         numBlocks++;
         min_key = min(std::string(min_key), std::string(new_block_min_key));
         max_key = max(std::string(max_key), std::string(new_block_max_key));
-        blockHeader bh = {hash, min_key, max_key};
-        recordHashes.push_back(bh);
         return 0;
     } else {
         /*
@@ -120,6 +120,7 @@ std::string Level::getBlock(std::string key) {
     std::cout << "getBlock on level=" << index << " for key=" << key << "\n";
     std::cout << "Level min_key=" << min_key << "\n";
     std::cout << "Level max_key=" << max_key << "\n";
+    std::cout << "Level size=" << recordHashes.size() << "\n";
     if (key < min_key || key > max_key) {
         return "";
     }

@@ -15,6 +15,8 @@ CapsuleBlock::CapsuleBlock() {
 
 CapsuleBlock::CapsuleBlock(int l) {
     level = l;
+    startKey = "";
+    endKey = "";
 }
 
 /*
@@ -57,6 +59,12 @@ void CapsuleBlock::addKVPair(std::string key, std::string value, int64_t timesta
     std::tuple<std::string, std::string, int, std::string> element;
     element = make_tuple(key, value, timestamp, msgType);
     kvPairs.push_back(element);
+    if (startKey == "") {
+        startKey = key;
+    }
+    if (endKey == "") {
+        endKey = key;
+    }
     startKey = min(std::string(startKey), std::string(key));
     endKey = max(std::string(endKey), std::string(key));
 }

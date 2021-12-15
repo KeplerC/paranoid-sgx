@@ -20,8 +20,9 @@ class CapsuleIndex {
         int add_hash(int level, std::string hash, CapsuleBlock block);
         int addLevel(int size);
         int compact();
-        int compactHelper(std::vector<blockHeader> sourceVec, Level destLevel);
+        int compactHelper(std::vector<blockHeader> sourceVec, Level *destLevel);
         std::vector<blockHeader> merge(std::vector<blockHeader> a, std::vector<blockHeader> b, int next_level);
+        void sortL0();
 };
 
 #endif
