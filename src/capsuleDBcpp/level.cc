@@ -120,6 +120,7 @@ std::string Level::getBlock(std::string key) {
     std::cout << "getBlock on level=" << index << " for key=" << key << "\n";
     std::cout << "Level min_key=" << min_key << "\n";
     std::cout << "Level max_key=" << max_key << "\n";
+    std::cout << "Level size=" << recordHashes.size() << "\n";
     if (key < min_key || key > max_key) {
         return "";
     }

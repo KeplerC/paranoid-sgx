@@ -126,9 +126,11 @@ int CapsuleIndex::compact() {
     }
 
     compactHelper(sortedLv0, levels[1]);    
-
-    // lv0->recordHashes.clear();
-    levels[0] = Level(lv0->index, lv0->maxSize);
+    std::cout << "Size of L1 after return from compactHelper=" << levels[1].recordHashes.size() << "\n";
+    lv0->recordHashes.clear();
+    lv0->numBlocks = 0;
+    lv0->min_key = "";
+    lv0->max_key = "";
 
     return 0;
 }
@@ -190,6 +192,7 @@ int CapsuleIndex::compactHelper(std::vector<blockHeader> sourceVec, Level destLe
     destLevel.numBlocks = newDestLevelVec.size();
     destLevel.min_key = newDestLevelVec[0].minKey;
     destLevel.max_key = newDestLevelVec[newDestLevelVec.size() - 1].maxKey;
+    std::cout << "Size of new L1=" << newDestLevelVec.size() << "\n";
     return 0;
 }
 
