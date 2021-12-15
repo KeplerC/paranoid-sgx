@@ -729,7 +729,9 @@ void ZmqJsClient::net_handler() {
 
                 if(check_known_neighbor(nullptr, nullptr, parent_socket_, last_sender)) {
                     LOGI << "[JSClient " << addr_ << "] sending message to enclave:  " + msg ;
-                    sgx_->send_to_sgx(msg);
+
+                    // Disabled for now, some kind of segfault with the ECALL (out of scope for this project?)
+                    //sgx_->send_to_sgx(msg);
                 }
                 else {
                     LOGI << "[JSClient " << addr_ << "] ignoring multicast from unknown source:  " + msg ;

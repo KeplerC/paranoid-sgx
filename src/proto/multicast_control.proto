@@ -70,6 +70,10 @@ message Heartbeat {
   optional int32 subtree_size = 2;
 }
 
+message Cull {
+  optional int count = 1;
+}
+
 message MessageBody {
   oneof msg {
     ErrorMsg error = 1;
@@ -78,6 +82,7 @@ message MessageBody {
     AssignIdMsg assignId = 4;
     InterruptT interrupt = 5;
     Heartbeat heartbeat = 6;
+    Cull cull = 7;
     ExecCodeMsg code = 10;
     RawStrMsg raw_str = 11;
     RawBytesMsg raw_bytes = 12;

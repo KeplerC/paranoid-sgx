@@ -415,6 +415,7 @@ namespace asylo {
                                 } else {
                                     LOGI << "dc verification failed!!!";
                                 }
+
                                 // decrypt payload_l
                                 if (decrypt_payload_l(dc)) {
                                     LOGI << "dc payload_l decryption successful";

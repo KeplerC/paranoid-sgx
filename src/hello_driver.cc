@@ -650,27 +650,13 @@ ThreadGroup* run_router_threads(int id) {
     ThreadGroup* group = new ThreadGroup();
     group->threads.push_back(std::thread(thread_run_zmq_intermediate_router, id));
     group->threads.push_back(std::thread(thread_start_heartbeat, NET_CLIENT_BASE_PORT + id, false));
-    return group;     
+    return group; 
 }
 
-int get_signing_key(asylo::CleansingVector<uint8_t> 
-        &serialized_signing_key, 
-        std::unique_ptr <asylo::SigningKey> &signing_key 
-        ) {
-    signing_key = asylo::EcdsaP256Sha256SigningKey::Create().ValueOrDie();
-    ASSIGN_OR_RETURN(serialized_signing_key,
-                     signing_key->SerializeToDer());
-}
+ThreadGroup* run_js_client(int id, bool with_coordinator, asylo::CleansingVector<uint8_t> &serialized_signing_key) {
+    ThreadGroup* group = new ThreadGroup();
 
-
-int run_js_client_helper(int id, bool with_coordinator, ThreadGroup* &group) {
-    group = new ThreadGroup();
-
-    group->signing_key = asylo::EcdsaP256Sha256SigningKey::Create().ValueOrDie(); 
-    ASSIGN_OR_RETURN(group->serialized_signing_key,
-                     group->signing_key->SerializeToDer());
-
-    group->sgx = new Asylo_SGX( std::to_string(id), id, group->serialized_signing_key);
+    group->sgx = new Asylo_SGX( std::to_string(id), id, serialized_signing_key);
     group->sgx->init();
 
     group->threads.push_back(std::thread(thread_run_zmq_js_client, id, group->sgx));
@@ -679,16 +665,9 @@ int run_js_client_helper(int id, bool with_coordinator, ThreadGroup* &group) {
         group->threads.push_back(std::thread(thread_start_coordinator, group->sgx)); 
     }
 
-    group->threads.push_back(std::thread(thread_start_heartbeat, NET_CLIENT_BASE_PORT + id, false));
-
-    return 0;
-}
-
-ThreadGroup* run_js_client(int id, bool with_coordinator) {
-    ThreadGroup* grp; 
-    run_js_client_helper(id, true, grp);
+    group->threads.push_back(std::thread(thread_start_heartbeat, NET_CLIENT_BASE_PORT + id, false)); 
     
-    return grp;
+    return group;
 }
 
 int run_worker(){
@@ -702,7 +681,7 @@ int run_worker(){
 
     //unsigned long int now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 
-    unsigned thread_id = 3;
+ 
     //worker_threads.push_back(std::thread(thread_run_zmq_router, 0));
     thread_groups.push_back(run_server_threads());
     sleep(1);
@@ -712,10 +691,17 @@ int run_worker(){
 
     thread_groups.push_back(run_router_threads(2));
     sleep(1);
-    thread_groups.push_back(run_js_client(thread_id, true));
-
-    //worker_threads.push_back(std::thread(thread_run_zmq_js_client, thread_id, sgx));
-    //worker_threads.push_back(std::thread(thread_start_heartbeat, NET_CLIENT_BASE_PORT + thread_id, false));
+    thread_groups.push_back(run_js_client(3, true, serialized_signing_key));
+    sleep(1);
+    //thread_groups.push_back(run_js_client(4, false));
+    //sleep(1);
+    thread_groups.push_back(run_router_threads(5));
+    sleep(1);
+    thread_groups.push_back(run_js_client(6, false, serialized_signing_key));
+    sleep(2);
+    thread_groups.push_back(run_js_client(7, false, serialized_signing_key));
+    sleep(2);
+    thread_groups.push_back(run_js_client(8, false, serialized_signing_key));
 
     sleep(1000);
 
