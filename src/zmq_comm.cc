@@ -426,11 +426,13 @@ void ZmqServer::net_handler() {
             if(name == "LISTEN_HEARTBEAT") {
                 int a = router_sockets_.size() > 0 ? router_sockets_[0].subtree_size : -1;
                 int b = router_sockets_.size() > 1 ? router_sockets_[1].subtree_size : -1;
-                LOGI << "ROUTER: " << addr_ 
+                LOGI << "ROUTER: " << personal_address 
+                        << " " << get_timestamp() 
                         << " " << level 
                         << " " << client_sockets_.size() 
                         << " " << a 
                         << " " << b;
+
 
                 std::unique_ptr<ProtoSocket> empty_socket;
 
@@ -657,6 +659,7 @@ void ZmqRouter::net_handler() {
                 int a = router_sockets_.size() > 0 ? router_sockets_[0].subtree_size : -1;
                 int b = router_sockets_.size() > 1 ? router_sockets_[1].subtree_size : -1;
                 LOGI << "ROUTER: " << addr_ 
+                        << " " << get_timestamp() 
                         << " " << level 
                         << " " << client_sockets_.size() 
                         << " " << a 

@@ -54,6 +54,8 @@
 #include <netinet/in.h>
 #include <netdb.h>
 
+#include <random>
+
 // #include "asylo/identity/enclave_assertion_authority_config.proto.h"
 #include "asylo/identity/enclave_assertion_authority_configs.h"
 
@@ -687,22 +689,36 @@ int run_worker(){
     //sgx->init();
     //worker_threads.push_back(std::thread(thread_run_zmq_intermediate_router, 2));
 
-    thread_groups.push_back(run_router_threads(2));
-    thread_groups.push_back(run_router_threads(3));
-    thread_groups.push_back(run_router_threads(9));
-    thread_groups.push_back(run_router_threads(10));
 
-    sleep(1);
-    thread_groups.push_back(run_js_client(4, false, serialized_signing_key));
-    thread_groups.push_back(run_js_client(5, false, serialized_signing_key));
-    thread_groups.push_back(run_js_client(6, false, serialized_signing_key));
-    thread_groups.push_back(run_js_client(7, false, serialized_signing_key));
-    thread_groups.push_back(run_js_client(8, false, serialized_signing_key));
-    sleep(1);
+    std::random_device dev;
+    std::mt19937 rng(dev());
+    std::uniform_int_distribution<std::mt19937::result_type> dist6(0,9); // distribution in range [1, 6]
+
+    int total_elements = 5;
+
+    for(int i = 0; i < total_elements; i++) {
+        if(dist6(rng) == 0) {
+            LOGI << get_timestamp() << " ADDING ROUTER!";
+            thread_groups.push_back(run_router_threads(i + 4));
+        }
+        else {
+            thread_groups.push_back(run_js_client(i + 4, false, serialized_signing_key));
+        }
+        sleep(1);
+    }
+
+    for(int i = 0; i < total_elements; i++) {
+        std::uniform_int_distribution<std::mt19937::result_type> dist7(1,thread_groups.size() -1);
+
+        int rand_choice = dist7(rng);
+        LOGI << get_timestamp() << " KILLING AGENT";
+        thread_groups[rand_choice]->killHeartbeat();
+        thread_groups.erase(thread_groups.begin() + rand_choice);
+        sleep(1);
+    } 
 
     sleep(10);
-    LOGI << "KILLING ROUTER HEARTBEAT";
-    thread_groups[1]->killHeartbeat();
+    //thread_groups[1]->killHeartbeat();
 
 
     //thread_groups.push_back(run_js_client(4, false));
