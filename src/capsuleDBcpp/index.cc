@@ -105,7 +105,7 @@ int CapsuleIndex::compact() {
 
     // Sort vectors in each block of L0
     sortL0();
-    
+
     // Sort L0
     std::vector<blockHeader> sortedLv0;
     sortedLv0.push_back(lv0->recordHashes[0]);
@@ -256,7 +256,8 @@ std::vector<blockHeader> CapsuleIndex::merge(std::vector<blockHeader> a, std::ve
                 advanceA = true;
                 advanceB = true;
             }
-        }
+        }    std::cout << "Test";
+
         
         // Advance pointers for either A or B or both, pulling in next CapsuleBlock if reached end of current one.
         if (advanceA) {
@@ -322,10 +323,14 @@ std::vector<blockHeader> CapsuleIndex::merge(std::vector<blockHeader> a, std::ve
  * Output: None
  */
 void CapsuleIndex::sortL0() {
-    Level lv0 = levels[0];
-    CapsuleBlock * currBlock;
-    for (int i = 0; i < lv0.recordHashes.size(); i++) {
-        readIn(lv0.recordHashes[i].hash, currBlock);
-        std::sort(currBlock->kvPairs.begin(), currBlock->kvPairs.end());
+    std::cout << "ENTERING sortL0()" << "\n";
+    Level* lv0 = &levels.front();
+    CapsuleBlock currBlock;
+    std::vector<blockHeader> newRecordHashes;
+    for (int i = 0; i < lv0->recordHashes.size(); i++) {
+        readIn(lv0->recordHashes[i].hash, &currBlock); 
+        std::sort(currBlock.kvPairs.begin(), currBlock.kvPairs.end());
+        std::string hash = currBlock.writeOut();
+        lv0->recordHashes[i].hash = hash;
     }
 }

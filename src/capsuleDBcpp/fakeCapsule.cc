@@ -75,7 +75,6 @@ CapsuleBlock getCapsuleBlock(std::string inputHash) {
         std::cout << "inputHash=" << inputHash << "\n";
         throw std::invalid_argument("inputHash not found");
     }
-
     // Return to user
     return recoveredBlock;
 }
