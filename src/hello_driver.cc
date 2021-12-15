@@ -692,9 +692,9 @@ int run_worker(){
 
     std::random_device dev;
     std::mt19937 rng(dev());
-    std::uniform_int_distribution<std::mt19937::result_type> dist6(0,9); // distribution in range [1, 6]
+    std::uniform_int_distribution<std::mt19937::result_type> dist6(0,8); // distribution in range [1, 6]
 
-    int total_elements = 5;
+    int total_elements = 300;
 
     for(int i = 0; i < total_elements; i++) {
         if(dist6(rng) == 0) {
@@ -714,7 +714,7 @@ int run_worker(){
         LOGI << get_timestamp() << " KILLING AGENT";
         thread_groups[rand_choice]->killHeartbeat();
         thread_groups.erase(thread_groups.begin() + rand_choice);
-        sleep(1);
+        sleep(2);
     } 
 
     sleep(10);

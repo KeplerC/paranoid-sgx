@@ -12,6 +12,8 @@ ProtoSocket::ProtoSocket(zmq::socket_t* socket, uint64_t id)
         log_file_.open("proto_log.out", // TODO parameterize this somehow
                        ios::binary | ios::out | ios::app);
     }
+    router_count = 0;
+    subtree_size = 0;
 }
 
 void ProtoSocket::connect(std::string endpoint) {
@@ -227,13 +229,14 @@ void ProtoSocket::send_interrupt(int type) {
 }
 
 
-void ProtoSocket::send_heartbeat(std::string addr_, int subtree_count, int level) {
+void ProtoSocket::send_heartbeat(std::string addr_, int subtree_count, int level, int router_count) {
     MulticastMessage::ControlMessage message;
     MulticastMessage::MessageBody* body = message.mutable_body();
     auto heartbeat = body->mutable_heartbeat();
     heartbeat->set_subtree_size(subtree_count);
     heartbeat->set_sender(addr_);
     heartbeat->set_level(level);
+    heartbeat->set_router_count(router_count);
     send_proto(message);
 }
 

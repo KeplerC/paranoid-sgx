@@ -69,6 +69,7 @@ message Heartbeat {
   optional string sender = 1;
   optional int32 subtree_size = 2;
   optional int32 level = 3;
+  optional int32 router_count = 4;
 }
 
 message Cull {

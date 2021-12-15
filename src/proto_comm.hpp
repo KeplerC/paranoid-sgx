@@ -37,7 +37,7 @@ public:
     void send_raw_bytes(std::string bytes, bool route_up);
 
     void send_interrupt(int type);
-    void send_heartbeat(std::string addr_, int subtree_count, int level);
+    void send_heartbeat(std::string addr_, int subtree_count, int level, int router_count);
     void send_cull(int count);
 
     std::string get_endpoint();
@@ -48,7 +48,7 @@ public:
     // data members private.
     uint64_t last_heartbeat;
     int subtree_size;
-
+    int router_count;
 
 private:
     virtual MulticastMessage::ControlMessage recv_proto();
