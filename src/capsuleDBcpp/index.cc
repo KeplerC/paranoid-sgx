@@ -125,7 +125,7 @@ int CapsuleIndex::compact() {
         addLevel(10 * lv0->maxSize);
     }
 
-    compactHelper(sortedLv0, levels[1]);    
+    compactHelper(sortedLv0, &(levels[1]));    
     std::cout << "Size of L1 after return from compactHelper=" << levels[1].recordHashes.size() << "\n";
     std::cout << "Size of L1 after return from compactHelper=" << levels[1].min_key << "\n";
     lv0->recordHashes.clear();
@@ -145,14 +145,14 @@ int CapsuleIndex::compact() {
  * Output: 0 if no error, other number otherwise
  */
 
-int CapsuleIndex::compactHelper(std::vector<blockHeader> sourceVec, Level destLevel) {
+int CapsuleIndex::compactHelper(std::vector<blockHeader> sourceVec, Level *destLevel) {
     
     std::cout << "ENTERING compactHelper()\n";
     std::cout << "sourceVec.size()=" << sourceVec.size() << "\n";
-    std::cout << "destLevel.recordHashes.size()=" << destLevel.recordHashes.size() << "\n";
-    std::cout << "destLevel.maxSize=" << destLevel.maxSize << "\n";
+    std::cout << "destLevel.recordHashes.size()=" << destLevel->recordHashes.size() << "\n";
+    std::cout << "destLevel.maxSize=" << destLevel->maxSize << "\n";
  
-    if (blocksize * sourceVec.size() + blocksize * destLevel.recordHashes.size() >= destLevel.maxSize) {
+    if (blocksize * sourceVec.size() + blocksize * destLevel->recordHashes.size() >= destLevel->maxSize) {
         // Identify Affected blocks
         std::vector<blockHeader> newSourceVec;
         std::vector<blockHeader> remainingBlocks;
@@ -161,8 +161,8 @@ int CapsuleIndex::compactHelper(std::vector<blockHeader> sourceVec, Level destLe
         blockHeader lastAdded;
         for (int i = 0; i < sourceVec.size(); i++) {
             currBlock = sourceVec[i];
-            while (destInd < destLevel.recordHashes.size()) {
-                blockHeader currExamining = destLevel.recordHashes[destInd];
+            while (destInd < destLevel->recordHashes.size()) {
+                blockHeader currExamining = destLevel->recordHashes[destInd];
                 if (currBlock.minKey >= currExamining.minKey && currBlock.minKey <= currExamining.maxKey && currExamining.hash != lastAdded.hash) {
                     newSourceVec.push_back(currExamining);
                     lastAdded = currExamining;
@@ -177,24 +177,24 @@ int CapsuleIndex::compactHelper(std::vector<blockHeader> sourceVec, Level destLe
                 destInd++;
             }
         }
-        if (destLevel.index + 1 >= numLevels) {
-            addLevel(destLevel.maxSize * 10);
+        if (destLevel->index + 1 >= numLevels) {
+            addLevel(destLevel->maxSize * 10);
         }
-        compactHelper(newSourceVec, levels[destLevel.index]);
-        destLevel.recordHashes = remainingBlocks;
-        destLevel.numBlocks = remainingBlocks.size();
-        destLevel.min_key = remainingBlocks[0].minKey;
-        destLevel.max_key = remainingBlocks[remainingBlocks.size() - 1].maxKey;
+        compactHelper(newSourceVec, &(levels[destLevel->index]));
+        destLevel->recordHashes = remainingBlocks;
+        destLevel->numBlocks = remainingBlocks.size();
+        destLevel->min_key = remainingBlocks[0].minKey;
+        destLevel->max_key = remainingBlocks[remainingBlocks.size() - 1].maxKey;
 
     }
     
-    std::vector<blockHeader> newDestLevelVec = merge(sourceVec, destLevel.recordHashes, destLevel.index);
-    destLevel.recordHashes = newDestLevelVec;
-    destLevel.numBlocks = newDestLevelVec.size();
-    destLevel.min_key = newDestLevelVec[0].minKey;
-    destLevel.max_key = newDestLevelVec[newDestLevelVec.size() - 1].maxKey;
-    std::cout << "Size of new L1 vec=" << destLevel.recordHashes.size() << "\n";
-    std::cout << "MinKey of new L1=" << destLevel.min_key << "\n";
+    std::vector<blockHeader> newDestLevelVec = merge(sourceVec, destLevel->recordHashes, destLevel->index);
+    destLevel->recordHashes = newDestLevelVec;
+    destLevel->numBlocks = newDestLevelVec.size();
+    destLevel->min_key = newDestLevelVec[0].minKey;
+    destLevel->max_key = newDestLevelVec[newDestLevelVec.size() - 1].maxKey;
+    std::cout << "Size of new L1 vec=" << destLevel->recordHashes.size() << "\n";
+    std::cout << "MinKey of new L1=" << destLevel->min_key << "\n";
     return 0;
 }
 
