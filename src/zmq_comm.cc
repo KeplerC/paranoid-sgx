@@ -153,9 +153,9 @@ void handle_heartbeats(std::vector<ProtoSocket> *router_sockets_,
     if (! found) {
         LOGI << "GOT HEARTBEAT FROM UNKNOWN SOURCE";
     }
-    else {
+    /*else {
         LOGI << "LOGGED HEARTBEAT";
-    }
+    }*/
 }
 
 
@@ -212,35 +212,69 @@ void ZmqServer::net_handler() {
         handle_join_request(router_sockets_, client_sockets_, msg, personal_address, node_type, max_child_routers, true, context_, thread_id_);
     }
 
+    std::string personal_address = "tcp://localhost:" + std::to_string(NET_SERVER_MCAST_PORT);
     //receive new message to mcast
     if (pollitems_[1].revents & ZMQ_POLLIN){
         MulticastMessage::ControlMessage msg(socket_msg_.recv());
         assert(msg.has_body());
-
-        // TODO: Assert that message is of the form "raw bytes"
-        LOGI << "[SERVER] Mcast Message: " + msg.ShortDebugString();
-
-        msg.mutable_body()->mutable_raw_bytes()->set_route_up(false); // Server must route all messages down. 
-
         auto body = msg.mutable_body();
 
-        std::string last_sender = "";
-        if(body->mutable_raw_bytes()->has_last_sender_addr()) {
-            last_sender = body->mutable_raw_bytes()->last_sender_addr();
-        } 
+        if(body->has_raw_bytes()) {
+            // TODO: Assert that message is of the form "raw bytes"
+            LOGI << "[SERVER] Mcast Message: " + msg.ShortDebugString();
+            body->mutable_raw_bytes()->set_route_up(false); // Server must route all messages down. 
 
-        body->mutable_raw_bytes()->set_last_sender_addr("tcp://localhost:" + std::to_string(NET_SERVER_MCAST_PORT));  
-        
-        //mcast to all child routers and clients
-        for(auto it = this->router_sockets_.begin(); it != this->router_sockets_.end(); it++) {
-            if(it->get_endpoint() != last_sender) {
-                it->send(msg);
+            std::string last_sender = "";
+            if(body->mutable_raw_bytes()->has_last_sender_addr()) {
+                last_sender = body->mutable_raw_bytes()->last_sender_addr();
             } 
+
+            body->mutable_raw_bytes()->set_last_sender_addr(personal_address);  
+            
+            //mcast to all child routers and clients
+            for(auto it = this->router_sockets_.begin(); it != this->router_sockets_.end(); it++) {
+                if(it->get_endpoint() != last_sender) {
+                    it->send(msg);
+                } 
+            }
+            for(auto it = this->client_sockets_.begin(); it != this->client_sockets_.end(); it++) {
+                if(it->get_endpoint() != last_sender) {
+                    it->send(msg);
+                } 
+            }
         }
-        for(auto it = this->client_sockets_.begin(); it != this->client_sockets_.end(); it++) {
-            if(it->get_endpoint() != last_sender) {
-                it->send(msg);
-            } 
+        else if(body->has_heartbeat()) {
+            LOGI << "[SERVER] got heartbeat";
+
+            std::unique_ptr<ProtoSocket> empty_socket;
+
+            MulticastMessage::Heartbeat* msg = body->mutable_heartbeat();
+
+            handle_heartbeats(&router_sockets_, 
+                &client_sockets_,
+                empty_socket,
+                msg 
+                );
+
+        }
+        else if(body->has_interrupt()) {
+            MulticastMessage::InterruptT interrupt = body->interrupt();
+            std::string name = MulticastMessage::InterruptT_Name(interrupt);
+
+            if(name == "SEND_HEARTBEAT") {
+                // Count up the total number of children
+                int total_children = client_sockets_.size();
+ 
+                for(auto it = this->router_sockets_.begin(); it != this->router_sockets_.end(); it++) {
+                    it->send_heartbeat(personal_address, -1);
+                    total_children += it->subtree_size;
+                    LOGI << "[SERVER] sent heartbeat down.";
+                }
+                for(auto it = this->client_sockets_.begin(); it != this->client_sockets_.end(); it++) {
+                    it->send_heartbeat(personal_address, -1);
+                    LOGI << "[SERVER] sent heartbeat down.";
+                }
+            }
         }
 
     }
@@ -361,6 +395,30 @@ void ZmqRouter::net_handler() {
                 msg 
                 );
 
+        }
+        else if(body->has_interrupt()) {
+            MulticastMessage::InterruptT interrupt = body->interrupt();
+            std::string name = MulticastMessage::InterruptT_Name(interrupt);
+
+            if(name == "SEND_HEARTBEAT") {
+                // Count up the total number of children
+                int total_children = client_sockets_.size();
+ 
+                for(auto it = this->router_sockets_.begin(); it != this->router_sockets_.end(); it++) {
+                    it->send_heartbeat(addr_, -1);
+                    total_children += it->subtree_size;
+                    LOGI << "[Router " << addr_ << "] sent heartbeat down.";
+                }
+                for(auto it = this->client_sockets_.begin(); it != this->client_sockets_.end(); it++) {
+                    it->send_heartbeat(addr_, -1);
+                    LOGI << "[Router " << addr_ << "] sent heartbeat down.";
+                }
+
+                if(parent_socket_) {
+                    parent_socket_->send_heartbeat(addr_, total_children + 1);
+                    LOGI << "[Router " << addr_ << "] sent heartbeat up.";
+                }
+            }
         }
         else {
             LOGI << "[Router " << addr_ << "] error: got unknown message type.";
@@ -505,7 +563,17 @@ void ZmqJsClient::net_handler() {
                 }
             }
         }
+        else if(body->has_heartbeat()) {
+            LOGI << "[JSClient " << addr_ << "] got heartbeat";
 
+            MulticastMessage::Heartbeat* msg = body->mutable_heartbeat();
+
+            handle_heartbeats(nullptr,
+                nullptr,
+                parent_socket_,
+                msg 
+                );
+        }
     }
 
     if (pollitems_[1].revents & ZMQ_POLLIN) {
