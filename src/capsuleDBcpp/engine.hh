@@ -8,7 +8,7 @@
 #include <string>
 #include <vector>
 #include "memtable_new.hpp"
-#include "../common.h"
+#include "../benchmark.h"
 #include "absl/strings/string_view.h"
 #include "index.hh"
 
@@ -29,10 +29,20 @@ class CapsuleDB {
         };
         Memtable memtable;
         CapsuleIndex index;
+        M_BENCHMARK_HERE
 
         CapsuleDB();
         std::string get(const std::string &key, bool isMulticast = false);
         void put(const kvs_payload *payload);
+        void benchmark_put(std::string key, std::string value)
+        {
+            kvs_payload kvs;
+            kvs.key = key;
+            kvs.value = value;
+            kvs.txn_timestamp = std::chrono::system_clock::to_time_t(
+                           std::chrono::system_clock::now());
+            put(&kvs);
+        }
 };
 
 /*

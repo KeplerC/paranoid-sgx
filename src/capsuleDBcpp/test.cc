@@ -6,7 +6,10 @@
 int main()
 {
     // Create instance with memtable/blocksize capacity of 2 key-value pairs
-    CapsuleDB instance = spawnDB(2);
+    CapsuleDB instance = spawnDB(50);
+    instance.benchmark();
+    std::string check_value = instance.get("6164213995759621");
+    std::cout << "OUTPUT value=" << check_value << "\n\n";
 
     // Put testval at testkey
     kvs_payload kvsp_put = {};

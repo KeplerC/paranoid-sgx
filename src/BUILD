@@ -316,6 +316,7 @@ cc_library(
     srcs=[
         "capsuleDBcpp/engine.cc",
         "common.h",
+        "benchmark.h",
         ],
     hdrs=["capsuleDBcpp/engine.hh"],
     deps=[
