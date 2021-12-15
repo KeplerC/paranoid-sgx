@@ -208,6 +208,37 @@ void handle_heartbeats(std::vector<ProtoSocket> *router_sockets_,
 }
 
 
+bool check_known_neighbor(std::vector<ProtoSocket> *router_sockets_, 
+        std::vector<ProtoSocket> *client_sockets_,
+        std::unique_ptr<ProtoSocket> &parent_socket,
+        std::string sender
+        ) {
+
+    bool known_neighbor = false;
+    if(router_sockets_) {
+        for(auto it = router_sockets_->begin(); it != router_sockets_->end(); it++) {
+            if(it->get_endpoint() == sender) {
+                known_neighbor = true;
+            }
+        }
+    } 
+
+    if(client_sockets_) {
+        for(auto it = client_sockets_->begin(); it != client_sockets_->end(); it++) {
+            if(it->get_endpoint() == sender) {
+                known_neighbor = true;
+            }
+        }
+    }
+    if(parent_socket) {
+        if(parent_socket->get_endpoint() == sender) {
+            known_neighbor = true;
+        }
+    }
+
+    return known_neighbor;
+}
+
 void sweep_stale_and_rejoin(std::vector<ProtoSocket> *router_sockets_, 
         std::vector<ProtoSocket> *client_sockets_,
         std::unique_ptr<ProtoSocket> &parent_socket,
@@ -322,29 +353,39 @@ void ZmqServer::net_handler() {
         assert(msg.has_body());
         auto body = msg.mutable_body();
 
-        if(body->has_raw_bytes()) {
-            // TODO: Assert that message is of the form "raw bytes"
-            LOGI << "[SERVER] Mcast Message: " + msg.ShortDebugString();
-            body->mutable_raw_bytes()->set_route_up(false); // Server must route all messages down. 
+        if(body->has_raw_bytes()) { 
 
             std::string last_sender = "";
+            std::unique_ptr<ProtoSocket> empty_socket;
+
             if(body->mutable_raw_bytes()->has_last_sender_addr()) {
                 last_sender = body->mutable_raw_bytes()->last_sender_addr();
             } 
 
-            body->mutable_raw_bytes()->set_last_sender_addr(personal_address);  
-            
-            //mcast to all child routers and clients
-            for(auto it = this->router_sockets_.begin(); it != this->router_sockets_.end(); it++) {
-                if(it->get_endpoint() != last_sender) {
-                    it->send(msg);
-                } 
+            if(check_known_neighbor(&router_sockets_, &client_sockets_, empty_socket, last_sender)) {
+
+                LOGI << "[SERVER] Routing Message: " + msg.ShortDebugString();
+                body->mutable_raw_bytes()->set_route_up(false); // Server must route all messages down. 
+
+                body->mutable_raw_bytes()->set_last_sender_addr(personal_address);  
+                
+                //mcast to all child routers and clients
+                for(auto it = this->router_sockets_.begin(); it != this->router_sockets_.end(); it++) {
+                    if(it->get_endpoint() != last_sender) {
+                        it->send(msg);
+                    } 
+                }
+                for(auto it = this->client_sockets_.begin(); it != this->client_sockets_.end(); it++) {
+                    if(it->get_endpoint() != last_sender) {
+                        it->send(msg);
+                    } 
+                }
             }
-            for(auto it = this->client_sockets_.begin(); it != this->client_sockets_.end(); it++) {
-                if(it->get_endpoint() != last_sender) {
-                    it->send(msg);
-                } 
+            else {
+                LOGI << "[SERVER] Got multicast message from unknown source : " + msg.ShortDebugString();
             }
+
+
         }
         else if(body->has_heartbeat()) {
             //LOGI << "[SERVER] got heartbeat";
@@ -467,36 +508,43 @@ void ZmqRouter::net_handler() {
         }
         else if(body->has_raw_bytes()) {
             std::string msg = MulticastMessage::unpack_raw_bytes(recv);
-            LOGI << "[Router " << addr_ << "] routing message:  " + msg ;
 
             std::string last_sender = "";
             if(body->mutable_raw_bytes()->has_last_sender_addr()) {
                 last_sender = body->mutable_raw_bytes()->last_sender_addr();
             } 
-            
-            body->mutable_raw_bytes()->set_last_sender_addr(addr_);
 
-            // Send to everybody except the last sender 
+            if(check_known_neighbor(&router_sockets_, &client_sockets_, parent_socket_, last_sender)) {
+                LOGI << "[Router " << addr_ << "] routing message:  " + msg ;
 
-            body->mutable_raw_bytes()->set_route_up(true);
-            if(parent_socket_) {
-                if(parent_socket_->get_endpoint() != last_sender) {
-                    parent_socket_->send(recv);
+                body->mutable_raw_bytes()->set_last_sender_addr(addr_);
+
+                // Send to everybody except the last sender 
+
+                body->mutable_raw_bytes()->set_route_up(true);
+                if(parent_socket_) {
+                    if(parent_socket_->get_endpoint() != last_sender) {
+                        parent_socket_->send(recv);
+                    }
+                }
+
+                body->mutable_raw_bytes()->set_route_up(false);
+                //mcast to all child routers and clients
+                for(auto it = this->router_sockets_.begin(); it != this->router_sockets_.end(); it++) {
+                    if(it->get_endpoint() != last_sender) {
+                        it->send(recv);
+                    } 
+                }
+                for(auto it = this->client_sockets_.begin(); it != this->client_sockets_.end(); it++) {
+                    if(it->get_endpoint() != last_sender) {
+                        it->send(recv);
+                    } 
                 }
             }
+            else {
+                LOGI << "[Router " << addr_ << "] got multicast from unknown source:  " + msg ;
+            }
 
-            body->mutable_raw_bytes()->set_route_up(false);
-            //mcast to all child routers and clients
-            for(auto it = this->router_sockets_.begin(); it != this->router_sockets_.end(); it++) {
-                if(it->get_endpoint() != last_sender) {
-                    it->send(recv);
-                } 
-            }
-            for(auto it = this->client_sockets_.begin(); it != this->client_sockets_.end(); it++) {
-                if(it->get_endpoint() != last_sender) {
-                    it->send(recv);
-                } 
-            }
         }
         else if(body->has_heartbeat()) {
             //LOGI << "[Router " << addr_ << "] got heartbeat";
@@ -672,9 +720,21 @@ void ZmqJsClient::net_handler() {
                 }
             }
             else {
-                LOGI << "[JSClient " << addr_ << "] sending message to enclave:  " + msg ;
 
-                sgx_->send_to_sgx(msg);
+                // Don't accept multicasts from anyone but verified neighbors 
+                std::string last_sender = "";
+                if(body->mutable_raw_bytes()->has_last_sender_addr()) {
+                    last_sender = body->mutable_raw_bytes()->last_sender_addr();
+                } 
+
+                if(check_known_neighbor(nullptr, nullptr, parent_socket_, last_sender)) {
+                    LOGI << "[JSClient " << addr_ << "] sending message to enclave:  " + msg ;
+                    sgx_->send_to_sgx(msg);
+                }
+                else {
+                    LOGI << "[JSClient " << addr_ << "] ignoring multicast from unknown source:  " + msg ;
+                }
+
             }
         }
         else if(body->has_interrupt()) {
