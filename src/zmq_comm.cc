@@ -41,6 +41,7 @@ ZmqServer::ZmqServer(std::string ip, unsigned thread_id)
     socket_control_.bind("tcp://*:" + std::to_string(NET_SERVER_CONTROL_PORT));
     socket_result_.bind("tcp://*:" + std::to_string(NET_SERVER_RESULT_PORT));
     LOGI << "[ZmqComm] Finished constructing ZmqServer";
+    level = 0;
 
     max_child_routers = MAX_CHILD_ROUTERS;
 }
@@ -128,7 +129,6 @@ void handle_join_request(std::vector<ProtoSocket> &router_sockets_,
             }
 
             maxdex->send_join(msg, 1);
-            maxdex->subtree_size++;
         }
         // If we haven't hit the maximum router count, then append the router to this one 
         else {
@@ -166,7 +166,8 @@ void handle_join_request(std::vector<ProtoSocket> &router_sockets_,
 void handle_heartbeats(std::vector<ProtoSocket> *router_sockets_, 
         std::vector<ProtoSocket> *client_sockets_,
         std::unique_ptr<ProtoSocket> &parent_socket,
-        MulticastMessage::Heartbeat* msg 
+        MulticastMessage::Heartbeat* msg,
+        int &level
         ) {
     int64_t heartbeat_timestamp = get_timestamp();
     std::string sender = msg->sender();
@@ -179,6 +180,7 @@ void handle_heartbeats(std::vector<ProtoSocket> *router_sockets_,
             found = true;
             parent_socket->last_heartbeat = heartbeat_timestamp;
             parent_socket->subtree_size = subtree_size;
+            level = msg->level() + 1;
         }
     }
     if(client_sockets_) {
@@ -288,13 +290,13 @@ void sweep_stale_and_rejoin(std::vector<ProtoSocket> *router_sockets_,
             int64_t last_heartbeat = parent_socket->last_heartbeat;
 
             if(current_timestamp - last_heartbeat > HEARTBEAT_MONITOR_INTERVAL * 1000) {
-                LOGI << "STALE PARENT";
+                LOGI << addr_ << " STALE PARENT";
                 parent_socket = nullptr; 
             }
         }
 
         if(! parent_socket) {
-            LOGI << "RESENDING JOIN REQUEST";
+            LOGI << addr_ << " RESENDING JOIN REQUEST";
             root_router.send_join(addr_, node_type);
         }
     }
@@ -398,7 +400,8 @@ void ZmqServer::net_handler() {
             handle_heartbeats(&router_sockets_, 
                 &client_sockets_,
                 empty_socket,
-                msg 
+                msg,
+                level
                 );
 
         }
@@ -411,16 +414,24 @@ void ZmqServer::net_handler() {
                 int total_children = client_sockets_.size();
  
                 for(auto it = this->router_sockets_.begin(); it != this->router_sockets_.end(); it++) {
-                    it->send_heartbeat(personal_address, -1);
+                    it->send_heartbeat(personal_address, -1, level);
                     total_children += it->subtree_size;
                     //LOGI << "[SERVER] sent heartbeat down.";
                 }
                 for(auto it = this->client_sockets_.begin(); it != this->client_sockets_.end(); it++) {
-                    it->send_heartbeat(personal_address, -1);
+                    it->send_heartbeat(personal_address, -1, level);
                     //LOGI << "[SERVER] sent heartbeat down.";
                 }
             }
             if(name == "LISTEN_HEARTBEAT") {
+                int a = router_sockets_.size() > 0 ? router_sockets_[0].subtree_size : -1;
+                int b = router_sockets_.size() > 1 ? router_sockets_[1].subtree_size : -1;
+                LOGI << "ROUTER: " << addr_ 
+                        << " " << level 
+                        << " " << client_sockets_.size() 
+                        << " " << a 
+                        << " " << b;
+
                 std::unique_ptr<ProtoSocket> empty_socket;
 
                 sweep_stale_and_rejoin(&router_sockets_,
@@ -501,6 +512,7 @@ ZmqRouter::ZmqRouter(std::string ip, unsigned thread_id)
     LOGI << "[ZmqComm] Finished constructing ZmqRouter";
 
     max_child_routers = MAX_CHILD_ROUTERS;
+    level = -1;
 }
 
 void ZmqRouter::net_setup() {
@@ -613,7 +625,8 @@ void ZmqRouter::net_handler() {
             handle_heartbeats(&router_sockets_, 
                 &client_sockets_,
                 parent_socket_,
-                msg 
+                msg,
+                level
                 );
 
         }
@@ -626,21 +639,29 @@ void ZmqRouter::net_handler() {
                 int total_children = client_sockets_.size();
  
                 for(auto it = this->router_sockets_.begin(); it != this->router_sockets_.end(); it++) {
-                    it->send_heartbeat(addr_, -1);
+                    it->send_heartbeat(addr_, -1, level);
                     total_children += it->subtree_size;
                     //LOGI << "[Router " << addr_ << "] sent heartbeat down.";
                 }
                 for(auto it = this->client_sockets_.begin(); it != this->client_sockets_.end(); it++) {
-                    it->send_heartbeat(addr_, -1);
+                    it->send_heartbeat(addr_, -1, level);
                     //LOGI << "[Router " << addr_ << "] sent heartbeat down.";
                 }
 
                 if(parent_socket_) {
-                    parent_socket_->send_heartbeat(addr_, total_children + 1);
+                    parent_socket_->send_heartbeat(addr_, total_children + 1, level);
                     //LOGI << "[Router " << addr_ << "] sent heartbeat up.";
                 }
             }
             if(name == "LISTEN_HEARTBEAT") {
+                int a = router_sockets_.size() > 0 ? router_sockets_[0].subtree_size : -1;
+                int b = router_sockets_.size() > 1 ? router_sockets_[1].subtree_size : -1;
+                LOGI << "ROUTER: " << addr_ 
+                        << " " << level 
+                        << " " << client_sockets_.size() 
+                        << " " << a 
+                        << " " << b;
+
                 sweep_stale_and_rejoin(&router_sockets_,
                         &client_sockets_, 
                         parent_socket_,
@@ -755,6 +776,7 @@ ZmqJsClient::ZmqJsClient(std::string ip, unsigned thread_id, Asylo_SGX* sgx)
     socket_from_server_.bind ("tcp://*:" + port_);
     socket_send_.bind ("tcp://*:" + std::to_string(NET_SERVER_MCAST_PORT + thread_id));
     socket_code_.bind ("tcp://*:" + std::to_string(3006 + thread_id));
+    level = -1;
     LOGI << "[ZmqComm] Finished constructing ZmqJsClient";
 }
 
@@ -830,7 +852,7 @@ void ZmqJsClient::net_handler() {
 
             if(name == "SEND_HEARTBEAT") {
                 if(parent_socket_) {
-                    parent_socket_->send_heartbeat(addr_, 1);
+                    parent_socket_->send_heartbeat(addr_, 1, level);
                     //LOGI << "[JSClient " << addr_ << "] sent heartbeat up.";
                 }
             }
@@ -853,7 +875,8 @@ void ZmqJsClient::net_handler() {
             handle_heartbeats(nullptr,
                 nullptr,
                 parent_socket_,
-                msg 
+                msg,
+                level
                 );
         }
     }

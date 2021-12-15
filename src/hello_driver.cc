@@ -689,6 +689,9 @@ int run_worker(){
 
     thread_groups.push_back(run_router_threads(2));
     thread_groups.push_back(run_router_threads(3));
+    thread_groups.push_back(run_router_threads(9));
+    thread_groups.push_back(run_router_threads(10));
+
     sleep(1);
     thread_groups.push_back(run_js_client(4, false, serialized_signing_key));
     thread_groups.push_back(run_js_client(5, false, serialized_signing_key));
@@ -696,6 +699,10 @@ int run_worker(){
     thread_groups.push_back(run_js_client(7, false, serialized_signing_key));
     thread_groups.push_back(run_js_client(8, false, serialized_signing_key));
     sleep(1);
+
+    sleep(10);
+    LOGI << "KILLING ROUTER HEARTBEAT";
+    thread_groups[1]->killHeartbeat();
 
 
     //thread_groups.push_back(run_js_client(4, false));

@@ -227,12 +227,13 @@ void ProtoSocket::send_interrupt(int type) {
 }
 
 
-void ProtoSocket::send_heartbeat(std::string addr_, int subtree_count) {
+void ProtoSocket::send_heartbeat(std::string addr_, int subtree_count, int level) {
     MulticastMessage::ControlMessage message;
     MulticastMessage::MessageBody* body = message.mutable_body();
     auto heartbeat = body->mutable_heartbeat();
     heartbeat->set_subtree_size(subtree_count);
     heartbeat->set_sender(addr_);
+    heartbeat->set_level(level);
     send_proto(message);
 }
 

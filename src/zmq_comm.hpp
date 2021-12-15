@@ -56,6 +56,7 @@ protected:
     std::string seed_server_join_port_;
     std::string seed_server_mcast_port_;
 
+    int level;
     int enclave_seq_number_;
     std::string coordinator_;
 
