@@ -108,29 +108,29 @@ oG+ldQH94d6FPkRWOMwY+ppB+SQ8XnUFRA==
 
 zmq::context_t context(1);
 
-void thread_run_zmq_client(unsigned thread_id, Asylo_SGX* sgx){
+void thread_run_zmq_client(unsigned thread_id, Asylo_SGX* sgx, zmq::context_t* context_){
     LOG(INFO) << "[thread_run_zmq_client_worker]";
-    ZmqComm* zs = new ZmqClient(NET_WORKER_IP, thread_id, sgx);
+    ZmqComm* zs = new ZmqClient(NET_WORKER_IP, thread_id, sgx, context_);
     zs->run(); // run_client
 }
 
-void thread_run_zmq_js_client(unsigned thread_id, Asylo_SGX* sgx){
+void thread_run_zmq_js_client(unsigned thread_id, Asylo_SGX* sgx, zmq::context_t* context_){
     LOG(INFO) << "[thread_run_zmq_client_worker]";
-    ZmqComm* zs = new ZmqJsClient(NET_WORKER_IP, thread_id, sgx);
+    ZmqComm* zs = new ZmqJsClient(NET_WORKER_IP, thread_id, sgx, context_);
     zs->run(); // run_js_client
 }
 
 
-void thread_run_zmq_intermediate_router(unsigned thread_id){
+void thread_run_zmq_intermediate_router(unsigned thread_id, zmq::context_t* context_){
     LOG(INFO) << "[thread_run_zmq_intermediate_router]";
-    ZmqComm* zs = new ZmqRouter(NET_WORKER_IP, thread_id);
+    ZmqComm* zs = new ZmqRouter(NET_WORKER_IP, thread_id, context_);
     zs->run(); 
 }
 
 
-void thread_run_zmq_router(unsigned thread_id){
+void thread_run_zmq_router(unsigned thread_id, zmq::context_t* context_) {
     LOG(INFO) << "[thread_run_zmq_server]"; 
-    ZmqComm* zs = new ZmqServer(NET_SEED_ROUTER_IP, thread_id);
+    ZmqComm* zs = new ZmqServer(NET_SEED_ROUTER_IP, thread_id, context_);
     zs->run(); // run_server
 }
 
@@ -150,8 +150,8 @@ void thread_start_coordinator(Asylo_SGX* sgx){
     sgx->execute_coordinator();
 }
 
-void thread_start_heartbeat(int thread_id, bool is_server, bool* kill){
-    interrupt_timer_thread(thread_id, is_server, kill);
+void thread_start_heartbeat(int thread_id, bool is_server, bool* kill, zmq::context_t* context){
+    interrupt_timer_thread(thread_id, is_server, kill, context);
 }
 
 void thread_crypt_actor_thread(Asylo_SGX* sgx){
@@ -159,6 +159,7 @@ void thread_crypt_actor_thread(Asylo_SGX* sgx){
 }
 
 int run_multicast_test() {
+    zmq::context_t context (1);
     std::unique_ptr <asylo::SigningKey> signing_key = asylo::EcdsaP256Sha256SigningKey::Create().ValueOrDie();
     asylo::CleansingVector<uint8_t> serialized_signing_key;
     ASSIGN_OR_RETURN(serialized_signing_key,
@@ -190,7 +191,7 @@ int run_multicast_test() {
         Asylo_SGX* sgx = new Asylo_SGX( std::to_string(thread_id), port, serialized_signing_key);
         sgx->init();
         sleep(1);
-        worker_threads.push_back(std::thread(thread_run_zmq_js_client, thread_id, sgx));
+        worker_threads.push_back(std::thread(thread_run_zmq_js_client, thread_id, sgx, &context));
         sgxs.push_back(sgx);
     }
     for (auto sgx : sgxs) {
@@ -204,6 +205,7 @@ int run_multicast_test() {
 }
 
 int run_clients_only(){
+    zmq::context_t context (1);
     std::unique_ptr <asylo::SigningKey> signing_key = asylo::EcdsaP256Sha256SigningKey::Create().ValueOrDie();
     asylo::CleansingVector<uint8_t> serialized_signing_key;
     ASSIGN_OR_RETURN(serialized_signing_key,
@@ -219,7 +221,7 @@ int run_clients_only(){
         sgx->init();
         sgx->setTimeStamp(now);
         sleep(1);
-        worker_threads.push_back(std::thread(thread_run_zmq_client, thread_id, sgx));
+        worker_threads.push_back(std::thread(thread_run_zmq_client, thread_id, sgx, &context));
         worker_threads.push_back(std::thread(thread_start_fake_client, sgx));
     }
     sleep(1 * 1000 * 1000);
@@ -229,6 +231,7 @@ int run_clients_only(){
 
 int run_client_and_router() {
 
+    zmq::context_t context (1);
     std::unique_ptr <asylo::SigningKey> signing_key = asylo::EcdsaP256Sha256SigningKey::Create().ValueOrDie();
     asylo::CleansingVector<uint8_t> serialized_signing_key;
     ASSIGN_OR_RETURN(serialized_signing_key,
@@ -248,24 +251,24 @@ int run_client_and_router() {
         sgx->setTimeStamp(now);
         sleep(1);
         if(thread_id == 1){
-            worker_threads.push_back(std::thread(thread_run_zmq_client, thread_id, sgx));
+            worker_threads.push_back(std::thread(thread_run_zmq_client, thread_id, sgx, &context));
             worker_threads.push_back(std::thread(thread_start_coordinator, sgx));
         } else{
-            worker_threads.push_back(std::thread(thread_run_zmq_client, thread_id, sgx));
+            worker_threads.push_back(std::thread(thread_run_zmq_client, thread_id, sgx, &context));
             worker_threads.push_back(std::thread(thread_start_fake_client, sgx));
         }
 
     }
     sleep(2);
-
+ 
     //start router
-    worker_threads.push_back(std::thread(thread_run_zmq_router, 0));
+    worker_threads.push_back(std::thread(thread_run_zmq_router, 0, &context));
     sleep(1 * 1000 * 1000);
     return 0;
 }
 
 int run_listener(){
-
+    zmq::context_t context (1);
     std::unique_ptr <asylo::SigningKey> signing_key(std::move(asylo::EcdsaP256Sha256SigningKey::CreateFromPem(
                                             signing_key_pem)).ValueOrDie());
 
@@ -332,7 +335,8 @@ int run_listener(){
             
             sleep(1);
 
-            worker_threads.push_back(std::thread(thread_run_zmq_client, thread_id, sgx));
+
+            worker_threads.push_back(std::thread(thread_run_zmq_client, thread_id, sgx, &context));
             client_threads.push_back(std::thread(thread_start_mpl_client, sgx));
 
             for(int i = 0; i < NUM_CRYPTO_ACTORS; i++)
@@ -366,7 +370,7 @@ int run_listener(){
 }
 
 int run_mp_coordinator(){
-
+    zmq::context_t context (1);
     std::unique_ptr <asylo::SigningKey> signing_key(std::move(asylo::EcdsaP256Sha256SigningKey::CreateFromPem(
                                             signing_key_pem)).ValueOrDie());
 
@@ -459,14 +463,14 @@ int run_mp_coordinator(){
     Asylo_SGX* sgx = new Asylo_SGX( std::to_string(coordinator_id), serialized_signing_key);
     sgx->init();
     sleep(1);
-    worker_threads.push_back(std::thread(thread_run_zmq_client, coordinator_id, sgx));
+    worker_threads.push_back(std::thread(thread_run_zmq_client, coordinator_id, sgx, &context));
     worker_threads.push_back(std::thread(thread_start_coordinator, sgx));
 
     for(int i = 0; i < NUM_CRYPTO_ACTORS; i++)
             worker_threads.push_back(std::thread(thread_crypt_actor_thread, sgx));
 
     //Initiate ZMQ server 
-    worker_threads.push_back(std::thread(thread_run_zmq_router, 0));
+    worker_threads.push_back(std::thread(thread_run_zmq_router, 0, &context));
     sleep(1 * 1000 * 1000);
     return 0;
 }
@@ -638,39 +642,40 @@ public:
     }
 };
 
-ThreadGroup* run_server_threads() {
+ThreadGroup* run_server_threads(zmq::context_t* context_) {
     ThreadGroup* group = new ThreadGroup();
-    group->threads.push_back(std::thread(thread_run_zmq_router, 0));
-    group->threads.push_back(std::thread(thread_start_heartbeat, NET_SERVER_MCAST_PORT, true, &(group->kill)));
+    group->threads.push_back(std::thread(thread_run_zmq_router, 0, context_));
+    group->threads.push_back(std::thread(thread_start_heartbeat, NET_SERVER_MCAST_PORT, true, &(group->kill), context_));
     return group;     
 }
 
 
-ThreadGroup* run_router_threads(int id) {
+ThreadGroup* run_router_threads(int id, zmq::context_t* context_) {
     ThreadGroup* group = new ThreadGroup();
-    group->threads.push_back(std::thread(thread_run_zmq_intermediate_router, id));
-    group->threads.push_back(std::thread(thread_start_heartbeat, NET_CLIENT_BASE_PORT + id, false, &(group->kill)));
+    group->threads.push_back(std::thread(thread_run_zmq_intermediate_router, id, context_));
+    group->threads.push_back(std::thread(thread_start_heartbeat, NET_CLIENT_BASE_PORT + id, false, &(group->kill), context_));
     return group; 
 }
 
-ThreadGroup* run_js_client(int id, bool with_coordinator, asylo::CleansingVector<uint8_t> &serialized_signing_key) {
+ThreadGroup* run_js_client(int id, bool with_coordinator, asylo::CleansingVector<uint8_t> &serialized_signing_key, zmq::context_t* context_) {
     ThreadGroup* group = new ThreadGroup();
 
     group->sgx = new Asylo_SGX( std::to_string(id), id, serialized_signing_key);
     group->sgx->init();
 
-    group->threads.push_back(std::thread(thread_run_zmq_js_client, id, group->sgx));
+    group->threads.push_back(std::thread(thread_run_zmq_js_client, id, group->sgx, context_));
 
     if(with_coordinator) {
         group->threads.push_back(std::thread(thread_start_coordinator, group->sgx)); 
     }
 
-    group->threads.push_back(std::thread(thread_start_heartbeat, NET_CLIENT_BASE_PORT + id, false, &(group->kill))); 
+    group->threads.push_back(std::thread(thread_start_heartbeat, NET_CLIENT_BASE_PORT + id, false, &(group->kill), context_)); 
     
     return group;
 }
 
 int run_worker(){
+    zmq::context_t context_ (1);
     std::unique_ptr <asylo::SigningKey> signing_key = asylo::EcdsaP256Sha256SigningKey::Create().ValueOrDie();
     asylo::CleansingVector<uint8_t> serialized_signing_key;
     ASSIGN_OR_RETURN(serialized_signing_key,
@@ -683,7 +688,7 @@ int run_worker(){
 
  
     //worker_threads.push_back(std::thread(thread_run_zmq_router, 0));
-    thread_groups.push_back(run_server_threads());
+    thread_groups.push_back(run_server_threads(&context_));
     sleep(1);
     //Asylo_SGX* sgx = new Asylo_SGX( std::to_string(thread_id), thread_id, serialized_signing_key);
     //sgx->init();
@@ -699,10 +704,10 @@ int run_worker(){
     for(int i = 0; i < total_elements; i++) {
         if(dist6(rng) == 0) {
             LOGI << get_timestamp() << " ADDING ROUTER!";
-            thread_groups.push_back(run_router_threads(i + 4));
+            thread_groups.push_back(run_router_threads(i + 4, &context_));
         }
         else {
-            thread_groups.push_back(run_js_client(i + 4, false, serialized_signing_key));
+            thread_groups.push_back(run_js_client(i + 4, false, serialized_signing_key, &context_));
         }
         sleep(1);
     }

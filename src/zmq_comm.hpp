@@ -44,12 +44,12 @@
 
 class ZmqComm {
 public:
-    ZmqComm(std::string ip, unsigned thread_id);
+    ZmqComm(std::string ip, unsigned thread_id, zmq::context_t* context_);
     [[noreturn]] void run();
 
 protected:
     unsigned thread_id_;
-    zmq::context_t context_;
+    zmq::context_t* context_;
     std::string port_;
     std::string addr_;
     std::string seed_server_ip_;
@@ -90,7 +90,7 @@ protected:
 
 class ZmqServer: public ZmqComm {
 public:
-    ZmqServer(std::string ip, unsigned thread_id);
+    ZmqServer(std::string ip, unsigned thread_id, zmq::context_t* context_);
 private:
     long unsigned int max_child_routers;
 
@@ -120,7 +120,7 @@ private:
 
 class ZmqRouter: public ZmqComm {
 public:
-    ZmqRouter(std::string ip, unsigned thread_id);
+    ZmqRouter(std::string ip, unsigned thread_id, zmq::context_t* context_);
 private:
     long unsigned int max_child_routers;
 
@@ -143,7 +143,7 @@ private:
 
 class ZmqClient: public ZmqComm {
 public:
-    ZmqClient(std::string ip, unsigned thread_id, Asylo_SGX* sgx);
+    ZmqClient(std::string ip, unsigned thread_id, Asylo_SGX* sgx, zmq::context_t* context_);
 private:
     Asylo_SGX* sgx_;
 
@@ -161,7 +161,7 @@ private:
 
 class ZmqJsClient: public ZmqComm {
 public:
-    ZmqJsClient(std::string ip, unsigned thread_id, Asylo_SGX* sgx);
+    ZmqJsClient(std::string ip, unsigned thread_id, Asylo_SGX* sgx, zmq::context_t* context_);
 private:
     Asylo_SGX* sgx_;
 
@@ -205,4 +205,4 @@ private:
 };
 
 
-void interrupt_timer_thread(int port, bool is_server, bool* kill);
+void interrupt_timer_thread(int port, bool is_server, bool* kill, zmq::context_t* context);

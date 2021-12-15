@@ -1,8 +1,8 @@
 #include "zmq_comm.hpp"
 
-ZmqComm::ZmqComm(std::string ip, unsigned thread_id)
+ZmqComm::ZmqComm(std::string ip, unsigned thread_id, zmq::context_t* context_)
             : thread_id_(thread_id)
-            , context_(1)
+            , context_(context_)
             , seed_server_ip_(NET_SEED_ROUTER_IP)
             , seed_server_join_port_(std::to_string(NET_SERVER_JOIN_PORT))
             , seed_server_mcast_port_(std::to_string(NET_SERVER_MCAST_PORT))
@@ -26,12 +26,12 @@ void ZmqComm::poll() {
     zmq::poll(pollitems_.data(), pollitems_.size(), 0);
 }
 
-ZmqServer::ZmqServer(std::string ip, unsigned thread_id)
-                     : ZmqComm(ip, thread_id)
-                     , zsock_join_(context_, ZMQ_PULL)
-                     , zsock_msg_(context_, ZMQ_PULL)
-                     , zsock_control_(context_, ZMQ_PULL)
-                     , zsock_result_(context_, ZMQ_PULL)
+ZmqServer::ZmqServer(std::string ip, unsigned thread_id, zmq::context_t* context_)
+                     : ZmqComm(ip, thread_id, context_)
+                     , zsock_join_(*context_, ZMQ_PULL)
+                     , zsock_msg_(*context_, ZMQ_PULL)
+                     , zsock_control_(*context_, ZMQ_PULL)
+                     , zsock_result_(*context_, ZMQ_PULL)
                      , socket_join_(&zsock_join_, thread_id)
                      , socket_msg_(&zsock_msg_, thread_id)
                      , socket_control_(&zsock_control_, thread_id)
@@ -306,10 +306,9 @@ void sweep_stale_and_rejoin(std::vector<ProtoSocket> *router_sockets_,
 }
 
 
-void interrupt_timer_thread(int port, bool is_server, bool* kill) {
+void interrupt_timer_thread(int port, bool is_server, bool* kill, zmq::context_t* context) {
     std::unique_ptr<zmq::socket_t> zsock_heartbeat;
-    zmq::context_t context_;
-    zsock_heartbeat.reset(new zmq::socket_t(context_, ZMQ_PUSH));
+    zsock_heartbeat.reset(new zmq::socket_t(*context, ZMQ_PUSH));
     ProtoSocket heartbeat_socket(zsock_heartbeat.get(), port);
     heartbeat_socket.connect ("tcp://localhost:" + std::to_string(port));
 
@@ -349,7 +348,7 @@ void ZmqServer::net_handler() {
 
         // TODO: Should change from localhost...
         std::string personal_address = "tcp://localhost:" + std::to_string(NET_SERVER_MCAST_PORT);
-        handle_join_request(router_sockets_, client_sockets_, msg, personal_address, node_type, max_child_routers, true, context_, thread_id_);
+        handle_join_request(router_sockets_, client_sockets_, msg, personal_address, node_type, max_child_routers, true, *context_, thread_id_);
     }
 
     std::string personal_address = "tcp://localhost:" + std::to_string(NET_SERVER_MCAST_PORT);
@@ -484,7 +483,7 @@ void ZmqServer::net_handler() {
         std::string coordinator_addr = MulticastMessage::unpack_raw_str(socket_control_.recv());
         LOGI << "[SERVER] REV CONTRL Message from" << coordinator_addr ;
 
-        zmq::socket_t* socket_ptr  = new  zmq::socket_t(context_, ZMQ_PUSH);
+        zmq::socket_t* socket_ptr  = new  zmq::socket_t(*context_, ZMQ_PUSH);
         ProtoSocket socket(socket_ptr, thread_id_);
         socket.connect(coordinator_addr + std::to_string(3010));
 
@@ -496,7 +495,7 @@ void ZmqServer::net_handler() {
         std::string result = MulticastMessage::unpack_raw_str(socket_result_.recv());
         LOGI << "[SERVER] REV result Message: " + result ;
 
-        zmq::socket_t* socket_ptr  = new  zmq::socket_t(context_, ZMQ_PUSH);
+        zmq::socket_t* socket_ptr  = new  zmq::socket_t(*context_, ZMQ_PUSH);
         ProtoSocket socket(socket_ptr, thread_id_);
         socket.connect(this->coordinator_ + std::to_string(3011));
 
@@ -504,10 +503,10 @@ void ZmqServer::net_handler() {
     }
 }
 
-ZmqRouter::ZmqRouter(std::string ip, unsigned thread_id)
-                         : ZmqComm(ip, thread_id) 
-                         , zsock_join_(context_, ZMQ_PUSH)
-                         , zsock_from_server_(context_, ZMQ_PULL)
+ZmqRouter::ZmqRouter(std::string ip, unsigned thread_id, zmq::context_t* context_)
+                         : ZmqComm(ip, thread_id, context_) 
+                         , zsock_join_(*context_, ZMQ_PUSH)
+                         , zsock_from_server_(*context_, ZMQ_PULL)
                          , socket_join_(&zsock_join_, thread_id)
                          , socket_from_server_(&zsock_from_server_, thread_id) {
     socket_join_.connect ("tcp://" + seed_server_ip_ + ":" + seed_server_join_port_);
@@ -542,7 +541,7 @@ void ZmqRouter::net_handler() {
 
             std::string parent = unpack_assign_parent(recv);
 
-            zsock_parent_.reset(new zmq::socket_t(context_, ZMQ_PUSH));
+            zsock_parent_.reset(new zmq::socket_t(*context_, ZMQ_PUSH));
             parent_socket_.reset(new ProtoSocket(zsock_parent_.get(), thread_id_));
             parent_socket_->connect (parent);
             //LOGI << "[Router " << addr_ << "] has new parent:  " << parent;
@@ -551,7 +550,7 @@ void ZmqRouter::net_handler() {
             int node_type;
             std::string msg = MulticastMessage::unpack_join(recv, &node_type);
             std::string personal_address = "tcp://localhost:" + port_;
-            handle_join_request(router_sockets_, client_sockets_, msg, personal_address, node_type, max_child_routers, false, context_, thread_id_);
+            handle_join_request(router_sockets_, client_sockets_, msg, personal_address, node_type, max_child_routers, false, *context_, thread_id_);
         }
         else if(body->has_raw_bytes()) {
             std::string msg = MulticastMessage::unpack_raw_bytes(recv);
@@ -732,12 +731,12 @@ std::vector<std::string> ZmqServer::deserialize_group_addresses(std::string grou
     return ret;
 }
 
-ZmqClient::ZmqClient(std::string ip, unsigned thread_id, Asylo_SGX* sgx)
-                     : ZmqComm(ip, thread_id)
+ZmqClient::ZmqClient(std::string ip, unsigned thread_id, Asylo_SGX* sgx, zmq::context_t* context_)
+                     : ZmqComm(ip, thread_id, context_)
                      , sgx_(sgx)
-                     , zsock_join_(context_, ZMQ_PUSH)
-                     , zsock_from_server_(context_, ZMQ_PULL)
-                     , zsock_send_(context_, ZMQ_PUSH)
+                     , zsock_join_(*context_, ZMQ_PUSH)
+                     , zsock_from_server_(*context_, ZMQ_PULL)
+                     , zsock_send_(*context_, ZMQ_PUSH)
                      , socket_join_(&zsock_join_, thread_id)
                      , socket_from_server_(&zsock_from_server_, thread_id)
                      , socket_send_(&zsock_send_, thread_id) {
@@ -771,13 +770,13 @@ void ZmqClient::net_handler() {
     }
 }
 
-ZmqJsClient::ZmqJsClient(std::string ip, unsigned thread_id, Asylo_SGX* sgx)
-                         : ZmqComm(ip, thread_id)
+ZmqJsClient::ZmqJsClient(std::string ip, unsigned thread_id, Asylo_SGX* sgx, zmq::context_t* context_)
+                         : ZmqComm(ip, thread_id, context_)
                          , sgx_(sgx)
-                         , zsock_join_(context_, ZMQ_PUSH)
-                         , zsock_from_server_(context_, ZMQ_PULL)
-                         , zsock_code_(context_, ZMQ_PULL)
-                         , zsock_send_(context_, ZMQ_PULL)
+                         , zsock_join_(*context_, ZMQ_PUSH)
+                         , zsock_from_server_(*context_, ZMQ_PULL)
+                         , zsock_code_(*context_, ZMQ_PULL)
+                         , zsock_send_(*context_, ZMQ_PULL)
                          , socket_join_(&zsock_join_, thread_id)
                          , socket_from_server_(&zsock_from_server_, thread_id)
                          , socket_code_(&zsock_code_, thread_id)
@@ -816,7 +815,7 @@ void ZmqJsClient::net_handler() {
 
             std::string parent = unpack_assign_parent(recv);
 
-            zsock_parent_.reset(new zmq::socket_t(context_, ZMQ_PUSH));
+            zsock_parent_.reset(new zmq::socket_t(*context_, ZMQ_PUSH));
             parent_socket_.reset(new ProtoSocket(zsock_parent_.get(), thread_id_));
             parent_socket_->connect (parent);
 
