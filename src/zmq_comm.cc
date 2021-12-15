@@ -649,7 +649,7 @@ void ZmqRouter::net_handler() {
                 }
 
                 if(parent_socket_) {
-                    parent_socket_->send_heartbeat(addr_, total_children + 1, level);
+                    parent_socket_->send_heartbeat(addr_, total_children, level);
                     //LOGI << "[Router " << addr_ << "] sent heartbeat up.";
                 }
             }
