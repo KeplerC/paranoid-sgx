@@ -71,41 +71,90 @@ void handle_join_request(std::vector<ProtoSocket> &router_sockets_,
         // If there are routers underneath this one,
         // pass the buck to them 
         if(router_sockets_.size() > 0) {
-            // Pass down to the first router in the list, a bad implementation.
-            router_sockets_[0].send_join(msg, 0); 
+            // Find the router with the smallest subtree size and pass down 
+
+            auto mindex = router_sockets_.begin();
+
+            for(auto it = router_sockets_.begin(); it != router_sockets_.end(); it++) {
+                if(it->subtree_size < mindex->subtree_size) {
+                    mindex = it;
+                }
+            }
+
+            mindex->send_join(msg, 0); 
         }
         // Otherwise, client becomes a direct child of this one 
         else {
             // TODO: Need to clean up the memory leak induced by this allocation 
             LOGI << "[" << header << "] JOIN FROM CLIENT " + msg ;
 
-            zmq::socket_t* socket_ptr  = new  zmq::socket_t(context_, ZMQ_PUSH); 
-            client_sockets_.emplace_back(socket_ptr, thread_id_);
-            client_sockets_[client_sockets_.size() - 1].last_heartbeat = get_timestamp();
-            client_sockets_[client_sockets_.size() - 1].subtree_size = 1; 
+            // Sweep through the list of routers, make sure we haven't already seen this one before (so we don't double-parent)
+            auto it = client_sockets_.begin();
 
-            client_sockets_[client_sockets_.size() - 1].connect(msg);
-            client_sockets_[client_sockets_.size() - 1].send_assign_parent(personal_address);
+            while(it != client_sockets_.end() && it->get_endpoint() != msg) {
+                it++;
+            }
+
+            ProtoSocket* neighbor;
+
+            if(it == client_sockets_.end()) {
+                zmq::socket_t* socket_ptr  = new  zmq::socket_t(context_, ZMQ_PUSH);
+                client_sockets_.emplace_back(socket_ptr, thread_id_);
+                neighbor = &(client_sockets_[client_sockets_.size() - 1]);
+                neighbor->connect(msg);
+            }
+            else {
+                neighbor = &(*it);
+            }
+
+            neighbor->last_heartbeat = get_timestamp();
+            neighbor->subtree_size = 1;
+            neighbor->send_assign_parent(personal_address);
         }
     }
     else if(node_type == 1) {
-        // If the current node has the maximum # of routers, then pass down to the next level 
+        // If the current node has the maximum # of routers, then pass down to the next level. Add bandwidth
+        // to the router with the maximum number of clients
+
+
         if(router_sockets_.size() >= max_child_routers) {
-            router_sockets_[0].send_join(msg, 1); 
+            
+            auto maxdex = router_sockets_.begin();
+
+            for(auto it = router_sockets_.begin(); it != router_sockets_.end(); it++) {
+                if(it->subtree_size > maxdex ->subtree_size) {
+                    maxdex = it;
+                }
+            }
+
+            maxdex->send_join(msg, 1);
         }
         // If we haven't hit the maximum router count, then append the router to this one 
         else {
             LOGI << "[" << header << "] JOIN FROM ROUTER " + msg ;
 
-            zmq::socket_t* socket_ptr  = new  zmq::socket_t(context_, ZMQ_PUSH);
-            router_sockets_.emplace_back(socket_ptr, thread_id_);
-            //router_addresses_.push_back(msg);
+            // Sweep through the list of routers, make sure we haven't already seen this one before (so we don't double-parent)
+            auto it = router_sockets_.begin();
 
-            router_sockets_[router_sockets_.size() - 1].connect(msg);
-            router_sockets_[router_sockets_.size() - 1].send_assign_parent(personal_address);
+            while(it != router_sockets_.end() && it->get_endpoint() != msg) {
+                it++;
+            }
 
-            router_sockets_[router_sockets_.size() - 1].last_heartbeat = get_timestamp();
-            router_sockets_[router_sockets_.size() - 1].subtree_size = 1;
+            ProtoSocket* neighbor;
+
+            if(it == router_sockets_.end()) {
+                zmq::socket_t* socket_ptr  = new  zmq::socket_t(context_, ZMQ_PUSH);
+                router_sockets_.emplace_back(socket_ptr, thread_id_);
+                neighbor = &(router_sockets_[router_sockets_.size() - 1]);
+                neighbor->connect(msg);
+            }
+            else {
+                neighbor = &(*it);
+            }
+
+            neighbor->last_heartbeat = get_timestamp();
+            neighbor->subtree_size = 1;
+            neighbor->send_assign_parent(personal_address);
         }
     }
     else {
@@ -227,7 +276,7 @@ void interrupt_timer_thread(int port, bool is_server) {
     ProtoSocket heartbeat_socket(zsock_heartbeat.get(), port);
     heartbeat_socket.connect ("tcp://localhost:" + std::to_string(port));
 
-    LOGI << "Heartbeat sending to " << ("tcp://localhost:" + std::to_string(port));
+    //LOGI << "Heartbeat sending to " << ("tcp://localhost:" + std::to_string(port));
 
     int counter = 1;
 
@@ -243,7 +292,7 @@ void interrupt_timer_thread(int port, bool is_server) {
             heartbeat_socket.send_interrupt(1);
         }
 
-        if(is_server && counter % REBALANCE_TREE_INTERVAL == 0) {
+        if(counter % REBALANCE_TREE_INTERVAL == 0) {
             heartbeat_socket.send_interrupt(2);
         }
     }
@@ -298,7 +347,7 @@ void ZmqServer::net_handler() {
             }
         }
         else if(body->has_heartbeat()) {
-            LOGI << "[SERVER] got heartbeat";
+            //LOGI << "[SERVER] got heartbeat";
 
             std::unique_ptr<ProtoSocket> empty_socket;
 
@@ -322,11 +371,11 @@ void ZmqServer::net_handler() {
                 for(auto it = this->router_sockets_.begin(); it != this->router_sockets_.end(); it++) {
                     it->send_heartbeat(personal_address, -1);
                     total_children += it->subtree_size;
-                    LOGI << "[SERVER] sent heartbeat down.";
+                    //LOGI << "[SERVER] sent heartbeat down.";
                 }
                 for(auto it = this->client_sockets_.begin(); it != this->client_sockets_.end(); it++) {
                     it->send_heartbeat(personal_address, -1);
-                    LOGI << "[SERVER] sent heartbeat down.";
+                    //LOGI << "[SERVER] sent heartbeat down.";
                 }
             }
             if(name == "LISTEN_HEARTBEAT") {
@@ -450,7 +499,7 @@ void ZmqRouter::net_handler() {
             }
         }
         else if(body->has_heartbeat()) {
-            LOGI << "[Router " << addr_ << "] got heartbeat";
+            //LOGI << "[Router " << addr_ << "] got heartbeat";
 
             MulticastMessage::Heartbeat* msg = body->mutable_heartbeat();
 
@@ -472,16 +521,16 @@ void ZmqRouter::net_handler() {
                 for(auto it = this->router_sockets_.begin(); it != this->router_sockets_.end(); it++) {
                     it->send_heartbeat(addr_, -1);
                     total_children += it->subtree_size;
-                    LOGI << "[Router " << addr_ << "] sent heartbeat down.";
+                    //LOGI << "[Router " << addr_ << "] sent heartbeat down.";
                 }
                 for(auto it = this->client_sockets_.begin(); it != this->client_sockets_.end(); it++) {
                     it->send_heartbeat(addr_, -1);
-                    LOGI << "[Router " << addr_ << "] sent heartbeat down.";
+                    //LOGI << "[Router " << addr_ << "] sent heartbeat down.";
                 }
 
                 if(parent_socket_) {
                     parent_socket_->send_heartbeat(addr_, total_children + 1);
-                    LOGI << "[Router " << addr_ << "] sent heartbeat up.";
+                    //LOGI << "[Router " << addr_ << "] sent heartbeat up.";
                 }
             }
             if(name == "LISTEN_HEARTBEAT") {
@@ -635,7 +684,7 @@ void ZmqJsClient::net_handler() {
             if(name == "SEND_HEARTBEAT") {
                 if(parent_socket_) {
                     parent_socket_->send_heartbeat(addr_, 1);
-                    LOGI << "[JSClient " << addr_ << "] sent heartbeat up.";
+                    //LOGI << "[JSClient " << addr_ << "] sent heartbeat up.";
                 }
             }
             if(name == "LISTEN_HEARTBEAT") {
@@ -650,7 +699,7 @@ void ZmqJsClient::net_handler() {
             }
         }
         else if(body->has_heartbeat()) {
-            LOGI << "[JSClient " << addr_ << "] got heartbeat";
+            //LOGI << "[JSClient " << addr_ << "] got heartbeat";
 
             MulticastMessage::Heartbeat* msg = body->mutable_heartbeat();
 
