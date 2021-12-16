@@ -7,6 +7,7 @@
 
 #include <string>
 #include <vector>
+#include <map>
 #include "memtable_new.hpp"
 //#include "../benchmark.h"
 #include "absl/strings/string_view.h"
@@ -16,9 +17,11 @@
 
 class CapsuleDB {
     public:
+        std::map <std::string, std::string> test_map;
         std::string name;
         int maxLevels = 5;
         std::string targetCapsule;
+        int test_count=0;
         std::vector<int> maxLevelSizes; //Each level in bytes
         const absl::string_view signing_key_pem = {
             R"pem(-----BEGIN EC PRIVATE KEY-----
@@ -36,9 +39,11 @@ class CapsuleDB {
         void put(const kvs_payload *payload);
         void benchmark_put(std::string key, std::string value)
         {
+            test_map.insert({key, value});
             kvs_payload kvs;
             kvs.key = key;
             kvs.value = value;
+
             kvs.txn_timestamp = std::chrono::system_clock::to_time_t(
                            std::chrono::system_clock::now());
             put(&kvs);
@@ -46,6 +51,37 @@ class CapsuleDB {
         void benchmark_get(std::string key)
         {
             get(key);
+        }
+
+        void benchmark_verify() {
+            int num_found =0;
+            for(const auto& [key, value] : test_map) {
+                std::string value1 = get(key);
+                if(value1==""){
+                    std::cout << key << "not found in capsuleDB";
+                    test_count++;
+                }
+                if(value1 == value){
+                    num_found++;
+                }
+            }
+            std::cout << "no.of.keys not found is:"<<test_count << "\n";
+            std::cout << "no.of.keys found is:"<<num_found <<"\n";
+            std::cout << "size of test_map" <<test_map.size(); 
+        }
+
+        void benchmark2(){
+            for(int i=1; i<2000; i++)
+            {
+                test_map.insert({std::to_string(i),std::to_string(i)});
+                kvs_payload kvs;
+                kvs.key = std::to_string(i);
+                kvs.value = std::to_string(i);
+
+                kvs.txn_timestamp = std::chrono::system_clock::to_time_t(
+                               std::chrono::system_clock::now());
+                put(&kvs);
+            }
         }
 };
 
