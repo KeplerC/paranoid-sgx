@@ -54,10 +54,12 @@ class CapsuleDB {
         }
 
         void benchmark_verify() {
-            int num_found =0;
+            int num_found = 0;
+            std::vector<std::string> failed_keys; 
             for(const auto& [key, value] : test_map) {
                 std::string value1 = get(key);
                 if(value1==""){
+                    failed_keys.push_back(key);
                     std::cout << key << "not found in capsuleDB";
                     test_count++;
                 }
@@ -67,7 +69,9 @@ class CapsuleDB {
             }
             std::cout << "no.of.keys not found is:"<<test_count << "\n";
             std::cout << "no.of.keys found is:"<<num_found <<"\n";
-            std::cout << "size of test_map" <<test_map.size(); 
+            std::cout << "size of test_map" <<test_map.size() <<"\n"; 
+            for(int x=0; x <failed_keys.size();x++)
+                std::cout << failed_keys.at(x)<<" ";
         }
 
         void benchmark2(){

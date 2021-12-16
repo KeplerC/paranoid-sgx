@@ -54,7 +54,9 @@ void Level::setNumBlocks(int n) {
 * Output: 0 on success, other int on error.
 */
 int Level::addBlock(CapsuleBlock* newBlock, std::string hash) {
+    #ifdef DEBUG
     std::cout << "addBlock on level=" << index << "\n";
+    #endif
     // Add kv pairs in block to bloom filter
     std::vector < std::tuple<std::string, std::string, int, std::string> > kvPairs = newBlock->getKVPairs();
     for (std::tuple<std::string, std::string, int, std::string> kvt : kvPairs) {
@@ -117,17 +119,21 @@ int Level::addBlock(CapsuleBlock* newBlock, std::string hash) {
 * Output: The hash which potentially contains the requested key, error code if not present
 */
 std::string Level::getBlock(std::string key) {
+    #ifdef DEBUG
     std::cout << "getBlock on level=" << index << " for key=" << key << "\n";
     std::cout << "Level min_key=" << min_key << "\n";
     std::cout << "Level max_key=" << max_key << "\n";
     std::cout << "Level size=" << recordHashes.size() << "\n";
+    #endif
     if (key < min_key || key > max_key) {
         return "";
     }
     // Otherwise search -> is Binary really needed?
     
     for (int i = 0; i < numBlocks; i++) {
+        #ifdef DEBUG
         std::cout << "recordHashes[" << i << "].hash=" << recordHashes[i].hash << "\n";
+        #endif
         if (recordHashes[i].minKey <= key && key <= recordHashes[i].maxKey) {
             return recordHashes[i].hash;
         }
