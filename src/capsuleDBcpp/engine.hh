@@ -8,7 +8,7 @@
 #include <string>
 #include <vector>
 #include "memtable_new.hpp"
-#include "../benchmark.h"
+//#include "../benchmark.h"
 #include "absl/strings/string_view.h"
 #include "index.hh"
 
@@ -29,8 +29,8 @@ class CapsuleDB {
         };
         Memtable memtable;
         CapsuleIndex index;
-        M_BENCHMARK_HERE
-
+        //M_BENCHMARK_HERE
+	#include "../benchmark.h"
         CapsuleDB();
         std::string get(const std::string &key, bool isMulticast = false);
         void put(const kvs_payload *payload);
