@@ -22,9 +22,7 @@ kvs_payload Memtable::get(const std::string &key)
     kvs_payload got;
     if (!locklst.contains(key))
     {
-        #ifdef DEBUG
         std::cout << "Memtable: Couldn't find key: " << key << "\n";
-        #endif
         got.key = "";
     }
     else
@@ -54,20 +52,16 @@ bool Memtable::put(const kvs_payload *payload, CapsuleIndex* index)
         //the timestamp of this payload is earlier, skip the change
         if (payload->txn_timestamp <= prev_timestamp)
         {
-            #ifdef DEBUG
             std::cout << "[EARLIER DISCARDED] Timestamp of incoming payload key: " << payload->key
                  << ", timestamp: " << payload->txn_timestamp << " ealier than " << prev_timestamp;
-            #endif
            lock->unlock();
            return false;
         }
         else
         {
             memtable[payload->key] = *payload;
-            #ifdef DEBUG
             std::cout << "[SAME PAYLOAD UPDATED] Timestamp of incoming payload {key=" << payload->key
                  << ", timestamp=" << payload->txn_timestamp << "} replaces previous timestamp=" << prev_timestamp << "\n";
-            #endif
             lock->unlock();
             return true;
         }
@@ -118,9 +112,8 @@ void Memtable::write_out_if_full(CapsuleIndex* index)
         capsule_block.setMinKey(min_key);
         capsule_block.setMaxKey(max_key);
 
-#ifdef DEBUG
         std::cout << "Memtable filled, writing out block with min_key=" << min_key << ", max_key=" << max_key << "\n";
-#endif
+
         std::string record_hash = capsule_block.writeOut();
         // std::string record_hash = "temp hash";
 

@@ -50,9 +50,7 @@ void CapsuleDB::put(const kvs_payload *payload)
     std::cout << "PUT key=" << payload->key << ", value=" << payload->value << "\n";
     if (!memtable.put(payload, &this->index))
     {
-        #ifdef DEBUG
         std::cout << "Failed to write key in the Database";
-        #endif
     }
 }
 
@@ -65,9 +63,7 @@ void CapsuleDB::put(const kvs_payload *payload)
  */
 std::string CapsuleDB::get(const std::string &key, bool isMulticast /* default is already false from function declaration in engine.hh */)
 {
-   #ifdef DEBUG
     std::cout << "GET key=" << key << "\n";
-    #endif
     int level_info;
     kvs_payload kv = memtable.get(key);
     std::string block_info, k;
@@ -75,29 +71,22 @@ std::string CapsuleDB::get(const std::string &key, bool isMulticast /* default i
     // int t;
     if (kv.key == "") //Checks for key in memtable, if not present: checks in levels
     {
-        #ifdef DEBUG
         std::cout << "Couldn't find key in Memtable, checking Index...\n";
-        #endif
         level_info = index.getNumLevels();
         for (int i = 0; i < level_info; i++)
         {
             block_info = index.getBlock(i, key);
             if (block_info != "") // Key might be present, however verify if key exists if not check other levels
             {   
-                #ifdef DEBUG
                 std::cout << "Checking block " << block_info << "\n";
-                #endif
                 CapsuleBlock block;
                 readIn(block_info, &block);
                 // std::cout << "block->kvPairs.size()=" <<  block.kvPairs.size() << "\n";
                 for (long unsigned int j = 0; j < block.kvPairs.size(); j++) 
                 {
-                    
                     std::tuple<std::string, std::string, int, std::string> kv_tuple = block.kvPairs[j];
-                    #ifdef DEBUG
                     std::cout << "CurrKey=" << std::get<0>(kv_tuple) << "\n";
                     std::cout << "CurrValue=" << std::get<1>(kv_tuple) << "\n";
-                    #endif
                     if (i != 0 && std::get<0>(kv_tuple) > key) 
                     {
                         break;
@@ -119,9 +108,7 @@ std::string CapsuleDB::get(const std::string &key, bool isMulticast /* default i
                 //     return v;
             }
         }
-        #ifdef DEBUG
         std::cout << "CapsuleDb: Couldn't find key: " << key << "\n";
-        #endif
         return "";
     }
     else
