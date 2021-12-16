@@ -12,7 +12,7 @@ def proc_put(line):
 
 def proc_get(line):
     global M_FINAL_SCRIPT
-    #M_FINAL_SCRIPT += ("\tget(\"{}\");\\\n".format(line[1]))
+    M_FINAL_SCRIPT += ("\tget(\"{}\");\\\n".format(line[1]))
 
 M_FINAL_SCRIPT += "\t LOGD << \"Load started\"; \\\n"
 

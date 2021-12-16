@@ -43,6 +43,10 @@ class CapsuleDB {
                            std::chrono::system_clock::now());
             put(&kvs);
         }
+        void benchmark_get(std::string key)
+        {
+            get(key);
+        }
 };
 
 /*
