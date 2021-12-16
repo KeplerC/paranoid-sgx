@@ -59,7 +59,7 @@ int Level::addBlock(CapsuleBlock* newBlock, std::string hash) {
     std::vector < std::tuple<std::string, std::string, int, std::string> > kvPairs = newBlock->getKVPairs();
     for (std::tuple<std::string, std::string, int, std::string> kvt : kvPairs) {
         std::string key = std::get<0>(kvt);
-        std::cout << "levelFilter.insert " << key << "\n";
+        // std::cout << "levelFilter.insert " << key << "\n";
         // levelFilter.insert(key);
     }
 

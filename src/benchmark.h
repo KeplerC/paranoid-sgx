@@ -1,5 +1,5 @@
 void benchmark(){ 
-	 std::cout << "Load started"; 
+	 std::cout << "Load started\n"; 
 	benchmark_put("6284781860667377", ":Sg3Ow5-v.6f>Q7)");
 	benchmark_put("8517097267634966", "'Uw'.6(&1");
 	benchmark_put("1820151046732198", "/M%=,z23$,Gu:W%8");

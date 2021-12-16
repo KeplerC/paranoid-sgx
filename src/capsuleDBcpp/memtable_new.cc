@@ -88,7 +88,7 @@ void Memtable::write_out_if_full(CapsuleIndex* index)
 
     if (memtable.size() >= max_size)
     {
-        Level* level_zero = &index->levels.front();
+        // Level* level_zero = &index->levels.front();
         // std::cout << "level_zero->index=" << level_zero->index << "\n";
         // std::cout << "level_zero->numBlocks=" << level_zero->numBlocks << "\n";
         // std::cout << "level_zero->maxSize=" << level_zero->maxSize << "\n";
