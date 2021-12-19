@@ -8,7 +8,7 @@
 typedef struct {
     std::string key;
     std::string value;
-    int64_t txn_timestamp;
+    std::time_t txn_timestamp;
     std::string txn_msgType;
 } kvs_payload;
 
@@ -22,7 +22,7 @@ typedef struct {
     std::string prevHash; //Hash ptr to the previous record, not needed for the minimal prototype
     std::string hash;
 
-    int64_t timestamp;
+    std::time_t timestamp;
     std::string msgType;
 
 } capsule_pdu;

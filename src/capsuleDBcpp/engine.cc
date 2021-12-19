@@ -2,23 +2,30 @@
  * This file manages the database as well as read/write requests.  
  */
 
-#include <fstream>
+#include <iostream>
 #include <string>
 #include "memtable_new.hpp"
 #include "../common.h"
+#include "engine.hh"
 
-using namespace asylo;
+// using namespace asylo;
+
+CapsuleDB::CapsuleDB() {
+
+}
 
 /*
  * This function creates a new CapsuleDB instance.  It takes in information about the sizes of levels and other metadata to establish compaction rules.
  * 
- * Inputs: ???
+ * Inputs: ??? (Maybe name?)
  * Outputs: An error code
  */
-int spawnDB()
+CapsuleDB spawnDB(size_t memtable_size)
 {
-
-    return 0;
+    CapsuleDB newInstance = CapsuleDB();
+    newInstance.memtable = Memtable(memtable_size);
+    newInstance.index = CapsuleIndex(memtable_size);
+    return newInstance;
 }
 
 /*
@@ -39,10 +46,13 @@ int connectDB()
  * Output: Nothing
  */
 void CapsuleDB::put(const kvs_payload *payload)
-{
-    if (!memtable->put(payload))
+{   
+    std::cout << "PUT key=" << payload->key << ", value=" << payload->value << "\n";
+    if (!memtable.put(payload, &this->index))
     {
-        LOGI << "Failed to write key in the Database";
+        #ifdef DEBUG
+        std::cout << "Failed to write key in the Database";
+        #endif
     }
 }
 
@@ -53,39 +63,67 @@ void CapsuleDB::put(const kvs_payload *payload)
  * Inputs: The key whose value is requested, the requesting enclave, and a return mode.
  * Output: The requested value or an error if the key does not exist.
  */
-char *CapsuleDB::get(const std::string &key, Enclave requester, bool isMulticast = false)
+std::string CapsuleDB::get(const std::string &key, bool isMulticast /* default is already false from function declaration in engine.hh */)
 {
+   #ifdef DEBUG
+    std::cout << "GET key=" << key << "\n";
+    #endif
     int level_info;
-    kvs_payload kv = memtable->get(key);
+    kvs_payload kv = memtable.get(key);
     std::string block_info, k;
-    unsigned char v[];
-    int t;
-
+    // unsigned char v[];
+    // int t;
     if (kv.key == "") //Checks for key in memtable, if not present: checks in levels
     {
-        // TODO iterate if there are multiple capsule indices
-        level_info = capIndex->getNumLevels();
-        for (i = 0; i <= level_info; i++)
+        #ifdef DEBUG
+        std::cout << "Couldn't find key in Memtable, checking Index...\n";
+        #endif
+        level_info = index.getNumLevels();
+        for (int i = 0; i < level_info; i++)
         {
-            block_info = capIndex->getblock(i, key);
-            if (block_info != NULL) // Key might be present, however verify if key exists if not check other levels
-            {
-                CapsuleIndex::Level &lvls = capIndex->levels[i];
-                std::vector<CapsuleIndex::Level>::iterator it = std::find(lvls.recordHashes.begin(), lvls.recordHashes.end(), block_info, != lvls.recordHashes.end());
-                int index = std::distance(lvls.recordHashes.begin(), it);
-                CapsuleBlock &capblock = lvls->block[index];
-                std::vector<CapsuleBlock>::iterator it = std::find(capblock.kvpairs.begin(), capblock.kvpairs.end(), key, != capblock.kvpairs.end());
-                std::tie(k, v, t) = *it;
-                if (key == k)
-                    return v;
+            block_info = index.getBlock(i, key);
+            if (block_info != "") // Key might be present, however verify if key exists if not check other levels
+            {   
+                #ifdef DEBUG
+                std::cout << "Checking block " << block_info << "\n";
+                #endif
+                CapsuleBlock block;
+                readIn(block_info, &block);
+                // std::cout << "block->kvPairs.size()=" <<  block.kvPairs.size() << "\n";
+                for (long unsigned int j = 0; j < block.kvPairs.size(); j++) 
+                {
+                    
+                    std::tuple<std::string, std::string, int, std::string> kv_tuple = block.kvPairs[j];
+                    #ifdef DEBUG
+                    std::cout << "CurrKey=" << std::get<0>(kv_tuple) << "\n";
+                    std::cout << "CurrValue=" << std::get<1>(kv_tuple) << "\n";
+                    #endif
+                    if (i != 0 && std::get<0>(kv_tuple) > key) 
+                    {
+                        break;
+                    } else if (std::get<0>(kv_tuple) == key) 
+                    {
+                        return std::get<1>(kv_tuple);
+                    } 
+
+                }
+
+                // Saving old code
+                // CapsuleIndex::Level &lvls = this.capIndex->levels[i];
+                // std::vector<CapsuleIndex::Level>::iterator it = std::find(lvls.recordHashes.begin(), lvls.recordHashes.end(), block_info, != lvls.recordHashes.end());
+                // int index = std::distance(lvls.recordHashes.begin(), it);
+                // CapsuleBlock &capblock = lvls->block[index];
+                // std::vector<CapsuleBlock>::iterator it = std::find(capblock.kvPairs.begin(), capblock.kvPairs.end(), key, != capblock.kvPairs.end());
+                // std::tie(k, v, t) = *it;
+                // if (key == k)
+                //     return v;
             }
         }
-        if ((i == level_info) || (block_info == NULL))
-        {
-            LOGI << "CapsuleDb: Couldn't find key: " << key;
-            return "";
-        }
+        #ifdef DEBUG
+        std::cout << "CapsuleDb: Couldn't find key: " << key << "\n";
+        #endif
+        return "";
     }
     else
-        return &kv.value;
+        return kv.value;
 }

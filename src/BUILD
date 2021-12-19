@@ -233,56 +233,106 @@ cc_library(
     name="duktape",
     srcs=["duktape/duktape.c"],
     hdrs=["duktape/duktape.h",  "duktape/duk_config.h"],
+    textual_hdrs=["capsuleDBcpp/index.cc"]
+)
+
+# CapsuleDB targets
+cc_library(
+    name = "capsuleBlock",
+    srcs=[
+        "capsuleDBcpp/fakeCapsule.hh",
+        "serialize-tuple/serialize_tuple.h",
+        "capsuleDBcpp/capsuleBlock.cc",
+],
+    hdrs=["capsuleDBcpp/capsuleBlock.hh"],
+    deps=[
+        "@boost//:archive",
+        "@boost//:serialization",
+        ":fakeCapsule"
+    ],
+)
+
+cc_library(
+    name="fakeCapsule",
+    srcs=[
+        "capsuleDBcpp/fakeCapsule.cc",
+        "capsuleDBcpp/capsuleBlock.hh",
+        "crypto.h",
+        "serialize-tuple/serialize_tuple.h",
+    ],
+    hdrs=["capsuleDBcpp/fakeCapsule.hh"],
+    deps=[
+        "@boost//:archive",
+        "@boost//:serialization",
+        "@com_github_grpc_grpc//:grpc++",
+    ],
+)
+
+cc_library(
+    name="capsuleIndex",
+    srcs=[
+        "capsuleDBcpp/index.cc",
+        "bloom/bloom_filter.hpp",
+    ],
+    hdrs=["capsuleDBcpp/index.hh"],
+    deps=[
+        ":capsuleBlock",
+        ":capsuleLevel",
+    ],
+)
+
+cc_library(
+    name="capsuleLevel",
+    srcs=[
+        "capsuleDBcpp/level.cc",
+        "bloom/bloom_filter.hpp",
+    ],
+    hdrs=["capsuleDBcpp/level.hh"],
+    deps=[
+        ":fakeCapsule",
+        ":capsuleBlock",
+    ],
+)
+
+cc_library(
+    name="memtable_new",
+    srcs=[
+        "capsuleDBcpp/memtable_new.cc",
+        "kvs_include/capsule.h",
+        "common.h",
+    ],
+    hdrs=["capsuleDBcpp/memtable_new.hpp"],
+    deps=[
+        ":capsuleBlock",
+        ":capsuleIndex",
+        ":capsuleLevel",
+        "@com_google_asylo//asylo/util:logging",
+        "@com_google_absl//absl/container:flat_hash_map",
+    ],
+)
+
+cc_library(
+    name="capsuleEngine",
+    srcs=[
+        "capsuleDBcpp/engine.cc",
+        "common.h",
+        "benchmark.h",
+        ],
+    hdrs=["capsuleDBcpp/engine.hh"],
+    deps=[
+        ":memtable_new",
+        ":capsuleIndex",
+        "@com_google_absl//absl/strings",
+    ],
 )
 
 cc_binary(
     name="capsuleDB",
     srcs=[
-        "capsuleDBcpp/memtable_new.hpp",
-        "capsuleDBcpp/memtable_new.cc",
-        "capsuleDBcpp/capsuleBlock.cc",
-        "capsuleDBcpp/compactor.cc",
-        "capsuleDBcpp/engine.cc",
-        "capsuleDBcpp/fakeCapsule.cc",
-        "capsuleDBcpp/index.cc",
         "capsuleDBcpp/test.cc",
-        "capsuleDBcpp/testFileStream.cc",
-        "capsuleDBcpp/capsuledb.cc",
-        "common.h",
-        "benchmark.h",
-        "sgx_spinlock.h",
-        "crypto.h"],
+    ],
     deps=[
-        ":hello_cc_proto",
-        #":mpl_hdrs",
-        #":mpl_data",
-        "@eigen//:eigen3",
-        "@nigh//:nigh",
-        "@libccd//:libccd",
-        # "@fcl//:fcl",
-        # "@assimp//:assimp",
-	"@boost//:archive",
-	"@boost//:serialization",
-        ":duktape",
-        ":translator_server",
-        "@com_google_absl//absl/strings",
-        "@com_google_absl//absl/base:core_headers",
-        "@com_google_absl//absl/synchronization",
-        "@com_google_absl//absl/container:flat_hash_map",
-        #"@com_google_asylo//asylo:enclave_runtime",
-        #"@com_google_asylo//asylo/util:logging",
-        #"@com_google_asylo//asylo/util:status",
-        #"@com_google_asylo//asylo/crypto:aead_cryptor",
-        #"@com_google_asylo//asylo/crypto:ecdsa_p256_sha256_signing_key",
-        #"@com_google_asylo//asylo/crypto:sha256_hash_util",
-        #"@com_google_asylo//asylo/platform/primitives:trusted_primitives",
-        #"@com_google_asylo//asylo/identity/platform/sgx:sgx_identity_util",
-        #"@com_google_asylo//asylo/identity/attestation/sgx:sgx_local_assertion_generator",
-        #"@com_google_asylo//asylo/identity:enclave_assertion_authority_configs",
-        #"@com_google_asylo//asylo/grpc/auth:grpc++_security_enclave",
-        #"@com_google_asylo//asylo/grpc/auth:sgx_local_credentials_options",
-        "@com_github_grpc_grpc//:grpc++",
-        "@com_google_absl//absl/time",
+        ":capsuleEngine",
     ],
 )
 
