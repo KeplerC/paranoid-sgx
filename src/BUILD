@@ -241,11 +241,12 @@ cc_library(
     name = "capsuleBlock",
     srcs=[
         "capsuleDBcpp/capsuleBlock.cc",
-        "kvs_include/capsule.h",
-        "capsuleDBcpp/fakeCapsule.hh",
-        "serialize-tuple/serialize_tuple.h",
 ],
-    hdrs=["capsuleDBcpp/capsuleBlock.hh"],
+    hdrs=[
+        "capsuleDBcpp/capsuleBlock.hh",
+        "capsuleDBcpp/fakeCapsule.hh",
+        "kvs_include/capsule.h"
+    ],
     deps=[
         "@boost//:archive",
         "@boost//:serialization",
@@ -257,12 +258,14 @@ cc_library(
     name="fakeCapsule",
     srcs=[
         "capsuleDBcpp/fakeCapsule.cc",
-        "common.h",
-        "capsuleDBcpp/capsuleBlock.hh",
-        "crypto.h",
-        "serialize-tuple/serialize_tuple.h",
     ],
-    hdrs=["capsuleDBcpp/fakeCapsule.hh"],
+    hdrs=[
+        "capsuleDBcpp/fakeCapsule.hh",
+        "common.h",
+        "kvs_include/capsule.h",
+        "capsuleDBcpp/capsuleBlock.hh",
+        "crypto.h"
+    ],
     deps=[
         "@boost//:archive",
         "@boost//:serialization",
@@ -274,9 +277,11 @@ cc_library(
     name="capsuleIndex",
     srcs=[
         "capsuleDBcpp/index.cc",
+    ],
+    hdrs=[
+        "capsuleDBcpp/index.hh",
         "bloom/bloom_filter.hpp",
     ],
-    hdrs=["capsuleDBcpp/index.hh"],
     deps=[
         ":capsuleBlock",
         ":capsuleLevel",
@@ -287,9 +292,11 @@ cc_library(
     name="capsuleLevel",
     srcs=[
         "capsuleDBcpp/level.cc",
+    ],
+    hdrs=[
+        "capsuleDBcpp/level.hh",
         "bloom/bloom_filter.hpp",
     ],
-    hdrs=["capsuleDBcpp/level.hh"],
     deps=[
         ":fakeCapsule",
         ":capsuleBlock",
@@ -300,10 +307,12 @@ cc_library(
     name="memtable_new",
     srcs=[
         "capsuleDBcpp/memtable_new.cc",
+    ],
+    hdrs=[
+        "capsuleDBcpp/memtable_new.hpp",
         "kvs_include/capsule.h",
         "common.h",
     ],
-    hdrs=["capsuleDBcpp/memtable_new.hpp"],
     deps=[
         ":capsuleBlock",
         ":capsuleIndex",
@@ -317,11 +326,13 @@ cc_library(
     name="capsuleEngine",
     srcs=[
         "capsuleDBcpp/engine.cc",
-        # "common.h",
         "benchmark.h",
-        # "kvs_include/capsule.h"
         ],
-    hdrs=["capsuleDBcpp/engine.hh", "kvs_include/capsule.h","common.h"],
+    hdrs=[
+        "capsuleDBcpp/engine.hh", 
+        "kvs_include/capsule.h",
+        "common.h"
+    ],
     deps=[
         ":memtable_new",
         ":capsuleIndex",

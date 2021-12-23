@@ -1,11 +1,11 @@
 #include <string>
 #include <tuple>
 #include <vector>
+#include <iostream>
 #include "../bloom/bloom_filter.hpp"
 #include "capsuleBlock.hh"
 #include "fakeCapsule.hh"
 #include "level.hh"
-#include <iostream>
 
 Level::Level() {
     Level(-1, -1);
@@ -135,7 +135,7 @@ std::string Level::getBlock(std::string key) {
         #ifdef DEBUG
         std::cout << "recordHashes[" << i << "].hash=" << recordHashes[i].hash << "\n";
         #endif
-        
+
         if (recordHashes[i].minKey <= key && key <= recordHashes[i].maxKey) {
             return recordHashes[i].hash;
         }

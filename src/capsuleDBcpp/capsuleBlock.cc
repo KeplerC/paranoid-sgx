@@ -6,7 +6,7 @@
 #include <vector>
 #include <iostream>
 #include "capsuleBlock.hh"
-// #include "../kvs_include/capsule.h"
+#include "../kvs_include/capsule.h"
 #include "fakeCapsule.hh"
 
 CapsuleBlock::CapsuleBlock() {
