@@ -240,15 +240,16 @@ cc_library(
 cc_library(
     name = "capsuleBlock",
     srcs=[
+        "capsuleDBcpp/capsuleBlock.cc",
+        "kvs_include/capsule.h",
         "capsuleDBcpp/fakeCapsule.hh",
         "serialize-tuple/serialize_tuple.h",
-        "capsuleDBcpp/capsuleBlock.cc",
 ],
     hdrs=["capsuleDBcpp/capsuleBlock.hh"],
     deps=[
         "@boost//:archive",
         "@boost//:serialization",
-        ":fakeCapsule"
+        ":fakeCapsule",
     ],
 )
 
@@ -256,6 +257,7 @@ cc_library(
     name="fakeCapsule",
     srcs=[
         "capsuleDBcpp/fakeCapsule.cc",
+        "common.h",
         "capsuleDBcpp/capsuleBlock.hh",
         "crypto.h",
         "serialize-tuple/serialize_tuple.h",
@@ -315,10 +317,11 @@ cc_library(
     name="capsuleEngine",
     srcs=[
         "capsuleDBcpp/engine.cc",
-        "common.h",
+        # "common.h",
         "benchmark.h",
+        # "kvs_include/capsule.h"
         ],
-    hdrs=["capsuleDBcpp/engine.hh"],
+    hdrs=["capsuleDBcpp/engine.hh", "kvs_include/capsule.h","common.h"],
     deps=[
         ":memtable_new",
         ":capsuleIndex",
@@ -335,6 +338,8 @@ cc_binary(
         ":capsuleEngine",
     ],
 )
+
+# End CapsuleDB build targets
 
 cc_unsigned_enclave(
     name="hello_enclave_unsigned.so",

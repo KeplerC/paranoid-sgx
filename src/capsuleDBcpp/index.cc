@@ -47,6 +47,7 @@ std::string CapsuleIndex::getBlock(int level, std::string key) {
     #ifdef DEBUG
     std::cout << "getBlock on level=" << level << " for key=" << key << "\n";
     #endif
+
     if (level < 0 || level >= numLevels) {
         return "";
     }
@@ -96,20 +97,23 @@ int CapsuleIndex::addLevel(int size) {
 */
 int CapsuleIndex::compact() {
     Level* lv0 = &levels.front();
+
     #ifdef DEBUG
     std::cout << "ENTERING compact()\n";
 
     std::cout << "blocksize=" << blocksize << "\n";
     std::cout << "lv0->numBlocks=" << lv0->numBlocks << "\n";
     std::cout << "lv0->maxSize=" << lv0->maxSize << "\n";
-
     #endif
+
     if (blocksize * lv0->numBlocks < lv0->maxSize) {
         return 0;
     }
+
     #ifdef DEBUG
     std::cout << "recordHashes.size()=" << lv0->recordHashes.size() << "\n";
     #endif
+   
     // std::cout << "recordHashes[0].minKey=" << lv0->recordHashes[0].minKey << "\n";
     // std::cout << "recordHashes[0].maxKey=" << lv0->recordHashes[0].maxKey << "\n";
     // std::cout << "recordHashes[1].minKey=" << lv0->recordHashes[1].minKey << "\n";
@@ -126,9 +130,11 @@ int CapsuleIndex::compact() {
         currBlock.push_back(lv0->recordHashes[i]);
         sortedLv0 = merge(sortedLv0, currBlock, 0);
     }
+    
     #ifdef DEBUG
     std::cout << "sortedLv0.size()=" << sortedLv0.size() << "\n";
     #endif
+    
     // std::cout << "sortedLv0[0].minKey=" << sortedLv0[0].minKey << "\n";
     // std::cout << "sortedLv0[0].maxKey=" << sortedLv0[0].maxKey << "\n";
     // std::cout << "sortedLv0[1].minKey=" << sortedLv0[1].minKey << "\n";
@@ -139,10 +145,12 @@ int CapsuleIndex::compact() {
     }
 
     compactHelper(sortedLv0, &(levels[1]));    
+    
     #ifdef DEBUG
     std::cout << "Size of L1 after return from compactHelper=" << levels[1].recordHashes.size() << "\n";
     std::cout << "min_key of L1 after return from compactHelper=" << levels[1].min_key << "\n";
     #endif
+    
     levels[0] = Level(0, lv0->maxSize);
     // lv0->recordHashes.clear();
     // lv0->numBlocks = 0;
@@ -165,12 +173,14 @@ int CapsuleIndex::compact() {
  */
 
 int CapsuleIndex::compactHelper(std::vector<blockHeader> sourceVec, Level *destLevel) {
+    
     #ifdef DEBUG
     std::cout << "ENTERING compactHelper()\n";
     std::cout << "sourceVec.size()=" << sourceVec.size() << "\n";
     std::cout << "destLevel.recordHashes.size()=" << destLevel->recordHashes.size() << "\n";
     std::cout << "destLevel.maxSize=" << destLevel->maxSize << "\n";
     #endif
+    
     if (blocksize * sourceVec.size() + blocksize * destLevel->recordHashes.size() >= destLevel->maxSize) {
         // Identify Affected blocks
         std::vector<blockHeader> newSourceVec;
@@ -212,10 +222,12 @@ int CapsuleIndex::compactHelper(std::vector<blockHeader> sourceVec, Level *destL
     destLevel->numBlocks = newDestLevelVec.size();
     destLevel->min_key = newDestLevelVec[0].minKey;
     destLevel->max_key = newDestLevelVec[newDestLevelVec.size() - 1].maxKey;
+    
     #ifdef DEBUG
     std::cout << "Size of new L1 vec=" << destLevel->recordHashes.size() << "\n";
     std::cout << "MinKey of new L1=" << destLevel->min_key << "\n";
     #endif
+
     return 0;
 }
 
@@ -253,7 +265,7 @@ std::vector<blockHeader> CapsuleIndex::merge(std::vector<blockHeader> a, std::ve
     while (aa != a.size() || bb != b.size()) {
 
         // Find smallest KV pair by comparing the next KV pair of each level.
-        std::tuple<std::string, std::string, int, std::string> nextKVPair;
+        kvs_payload nextKVPair;
 
         // If we've reached the end of either level, use other level.
         if (aa == a.size()) {
@@ -265,10 +277,10 @@ std::vector<blockHeader> CapsuleIndex::merge(std::vector<blockHeader> a, std::ve
             advanceA = true;
         } else {
             // If both levels have remaining KV pairs to add, push out the smallest one.
-            std::tuple<std::string, std::string, int, std::string> KVPairA = capsuleBlockA.getKVPairs()[aaa];
-            std::tuple<std::string, std::string, int, std::string> KVPairB = capsuleBlockB.getKVPairs()[bbb];
-            std::string keyA = std::get<0>(KVPairA);
-            std::string keyB = std::get<0>(KVPairB);
+            kvs_payload KVPairA = capsuleBlockA.getKVPairs()[aaa];
+            kvs_payload KVPairB = capsuleBlockB.getKVPairs()[bbb];
+            std::string keyA = KVPairA.key;
+            std::string keyB = KVPairB.key;
             if (keyB < keyA) {
                 nextKVPair = KVPairB;
                 advanceB = true;
@@ -277,8 +289,8 @@ std::vector<blockHeader> CapsuleIndex::merge(std::vector<blockHeader> a, std::ve
                 advanceA = true;
             } else {
                 // If both KV pairs have the same key, push out the most recent one and disregard the older one.
-                int64_t timestampA = std::get<2>(KVPairA);
-                int64_t timestampB = std::get<2>(KVPairB);
+                int64_t timestampA = KVPairA.txn_timestamp;
+                int64_t timestampB = KVPairB.txn_timestamp;
                 if (timestampB >= timestampA) {
                     nextKVPair = KVPairB;
                 } else {
@@ -288,6 +300,7 @@ std::vector<blockHeader> CapsuleIndex::merge(std::vector<blockHeader> a, std::ve
                 advanceB = true;
             }
         }
+
         #ifdef DEBUG    
         std::cout << "Test";
         #endif
@@ -322,11 +335,8 @@ std::vector<blockHeader> CapsuleIndex::merge(std::vector<blockHeader> a, std::ve
         #ifdef DEBUG
         std::cout << "next key=" << std::get<0>(nextKVPair) << "\n";
         #endif
-        next_cb.addKVPair(
-            std::get<0>(nextKVPair), 
-            std::get<1>(nextKVPair), 
-            std::get<2>(nextKVPair), 
-            std::get<3>(nextKVPair));
+        
+        next_cb.addKVPair(nextKVPair);
         if (next_cb.getKVPairs().size() == blocksize) {
             std::string hash = next_cb.writeOut();
             blockHeader bh = {};

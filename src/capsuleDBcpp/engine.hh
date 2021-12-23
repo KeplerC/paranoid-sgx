@@ -9,15 +9,17 @@
 #include <vector>
 #include <map>
 #include "memtable_new.hpp"
-//#include "../benchmark.h"
 #include "absl/strings/string_view.h"
 #include "index.hh"
+#include "../kvs_include/capsule.h"
+//#include "../benchmark.h"
 
 // using namespace asylo;
 
 class CapsuleDB {
     public:
         std::map <std::string, std::string> test_map;
+
         std::string name;
         int maxLevels = 5;
         std::string targetCapsule;
@@ -32,11 +34,14 @@ class CapsuleDB {
         };
         Memtable memtable;
         CapsuleIndex index;
+        CapsuleDB();
+        kvs_payload get(const std::string &key, bool isMulticast = false);
+        void put(const kvs_payload *payload);
+        
+        
+        
         //M_BENCHMARK_HERE
 	#include "../benchmark.h"
-        CapsuleDB();
-        std::string get(const std::string &key, bool isMulticast = false);
-        void put(const kvs_payload *payload);
         void benchmark_put(std::string key, std::string value)
         {
             test_map.insert({key, value});

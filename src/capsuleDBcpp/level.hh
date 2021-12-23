@@ -16,13 +16,13 @@ class Level {
         std::vector <blockHeader> recordHashes;
         // bloom_filter levelFilter;
 
+        Level();
+        Level(int i, int ms);
         bloom_filter create_filter();
         int getNumBlocks();
         void setNumBlocks(int n);
         int addBlock(CapsuleBlock* newBlock, std::string hash);
         std::string getBlock(std::string key);
-        Level();
-        Level(int i, int ms);
 };
 
 #endif

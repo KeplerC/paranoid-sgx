@@ -4,10 +4,10 @@
 
 #include <string>
 #include <vector>
-#include <tuple>
-#include "capsuleBlock.hh"
-#include "fakeCapsule.hh"
 #include <iostream>
+#include "capsuleBlock.hh"
+// #include "../kvs_include/capsule.h"
+#include "fakeCapsule.hh"
 
 CapsuleBlock::CapsuleBlock() {
     CapsuleBlock(-1);
@@ -49,24 +49,22 @@ std::string CapsuleBlock::getMaxKey()
     return endKey;
 }
 
-std::vector<std::tuple<std::string, std::string, int, std::string> > CapsuleBlock::getKVPairs()
+std::vector<kvs_payload> CapsuleBlock::getKVPairs()
 {
     return kvPairs;
 }
 
-void CapsuleBlock::addKVPair(std::string key, std::string value, int64_t timestamp, std::string msgType)
+void CapsuleBlock::addKVPair(kvs_payload element)
 {
-    std::tuple<std::string, std::string, int, std::string> element;
-    element = make_tuple(key, value, timestamp, msgType);
     kvPairs.push_back(element);
     if (startKey == "") {
-        startKey = key;
+        startKey = element.key;
     }
     if (endKey == "") {
-        endKey = key;
+        endKey = element.key;
     }
-    startKey = min(std::string(startKey), std::string(key));
-    endKey = max(std::string(endKey), std::string(key));
+    startKey = min(std::string(startKey), std::string(element.key));
+    endKey = max(std::string(endKey), std::string(element.key));
 }
 
 /*

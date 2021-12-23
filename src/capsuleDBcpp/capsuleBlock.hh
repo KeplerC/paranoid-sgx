@@ -3,11 +3,11 @@
 
 #include <string>
 #include <vector>
-#include <tuple>
 #include <boost/archive/text_oarchive.hpp>
 #include <boost/archive/text_iarchive.hpp>
 #include <boost/serialization/vector.hpp>
 #include "../serialize-tuple/serialize_tuple.h"
+#include "../kvs_include/capsule.h"
 
 typedef struct {
     std::string hash;
@@ -30,15 +30,15 @@ class CapsuleBlock {
         int level;
         std::string startKey; // Defines the range of keys contained in this block
         std::string endKey;
-        std::vector<std::tuple<std::string, std::string, int, std::string>> kvPairs; // Key, value, timestamp, msgType
+        std::vector<kvs_payload> kvPairs; // Key, value, timestamp, msgType
         
         CapsuleBlock();
         CapsuleBlock(int l);
         int getLevel();
         std::string getMinKey();
         std::string getMaxKey();
-        std::vector<std::tuple<std::string, std::string, int, std::string> > getKVPairs();
-        void addKVPair(std::string key, std::string value, int64_t timestamp, std::string msgType);
+        std::vector<kvs_payload> getKVPairs();
+        void addKVPair(kvs_payload);
         void setMinKey(std::string k);
         void setMaxKey(std::string k);
         std::string writeOut();

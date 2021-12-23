@@ -58,9 +58,9 @@ int Level::addBlock(CapsuleBlock* newBlock, std::string hash) {
     std::cout << "addBlock on level=" << index << "\n";
     #endif
     // Add kv pairs in block to bloom filter
-    std::vector < std::tuple<std::string, std::string, int, std::string> > kvPairs = newBlock->getKVPairs();
-    for (std::tuple<std::string, std::string, int, std::string> kvt : kvPairs) {
-        std::string key = std::get<0>(kvt);
+    std::vector <kvs_payload> kvPairs = newBlock->getKVPairs();
+    for (kvs_payload kvt : kvPairs) {
+        std::string key = kvt.key;
         // std::cout << "levelFilter.insert " << key << "\n";
         // levelFilter.insert(key);
     }
@@ -125,6 +125,7 @@ std::string Level::getBlock(std::string key) {
     std::cout << "Level max_key=" << max_key << "\n";
     std::cout << "Level size=" << recordHashes.size() << "\n";
     #endif
+
     if (key < min_key || key > max_key) {
         return "";
     }
@@ -134,6 +135,7 @@ std::string Level::getBlock(std::string key) {
         #ifdef DEBUG
         std::cout << "recordHashes[" << i << "].hash=" << recordHashes[i].hash << "\n";
         #endif
+        
         if (recordHashes[i].minKey <= key && key <= recordHashes[i].maxKey) {
             return recordHashes[i].hash;
         }

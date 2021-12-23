@@ -1,5 +1,14 @@
 /*
  * This file manages the database as well as read/write requests.  
+ *
+ * Commands:
+ * MY_PROJECT=~/Documents/Research/paranoid-sgx
+ * docker run -it --rm \
+   -v bazel-cache:/root/.cache/bazel \
+    -v "${MY_PROJECT}":/opt/my-project \
+    -w /opt/my-project \
+    keplerc/paranoid-asylo:latest 
+ * bazel run //src:capsuleDB
  */
 
 #include <iostream>
@@ -7,6 +16,7 @@
 #include "memtable_new.hpp"
 #include "../common.h"
 #include "engine.hh"
+#include "../kvs_include/capsule.h"
 
 // using namespace asylo;
 
@@ -58,72 +68,66 @@ void CapsuleDB::put(const kvs_payload *payload)
 
 /* 
  * This function retrieves a key from CapsuleDB.  It queries the DataCapsule for the most recent index and then traverses the DataCapsule to find the requested key.
- * It returns the value either directly to the requesting enclave or multicasts it depending on selected mode.
+ * It returns the kvs_payload either directly to the requesting enclave or multicasts it depending on selected mode.
  *
  * Inputs: The key whose value is requested, the requesting enclave, and a return mode.
  * Output: The requested value or an error if the key does not exist.
  */
-std::string CapsuleDB::get(const std::string &key, bool isMulticast /* default is already false from function declaration in engine.hh */)
+kvs_payload CapsuleDB::get(const std::string &key, bool isMulticast /* default is already false from function declaration in engine.hh */)
 {
-   #ifdef DEBUG
+    #ifdef DEBUG
     std::cout << "GET key=" << key << "\n";
     #endif
+
     int level_info;
-    kvs_payload kv = memtable.get(key);
     std::string block_info, k;
-    // unsigned char v[];
-    // int t;
-    if (kv.key == "") //Checks for key in memtable, if not present: checks in levels
+
+    kvs_payload kv = memtable.get(key);
+    if (kv.key != "") {
+        return kv;
+    }
+
+    #ifdef DEBUG
+    std::cout << "Couldn't find key in Memtable, checking Index...\n";
+    #endif
+
+    level_info = index.getNumLevels();
+    for (int i = 0; i < level_info; i++)
     {
-        #ifdef DEBUG
-        std::cout << "Couldn't find key in Memtable, checking Index...\n";
-        #endif
-        level_info = index.getNumLevels();
-        for (int i = 0; i < level_info; i++)
-        {
-            block_info = index.getBlock(i, key);
-            if (block_info != "") // Key might be present, however verify if key exists if not check other levels
-            {   
+        block_info = index.getBlock(i, key);
+        if (block_info != "") // Key might be present, however verify if key exists if not check other levels
+        {   
+            #ifdef DEBUG
+            std::cout << "Checking block " << block_info << "\n";
+            #endif
+
+            CapsuleBlock block;
+            readIn(block_info, &block);
+            for (long unsigned int j = 0; j < block.kvPairs.size(); j++) 
+            {
+                
+                kvs_payload kv_tuple = block.kvPairs[j];
+                
                 #ifdef DEBUG
-                std::cout << "Checking block " << block_info << "\n";
+                std::cout << "CurrKey=" << kv_tuple.key << "\n";
+                std::cout << "CurrValue=" << kv_tuple.key << "\n";
                 #endif
-                CapsuleBlock block;
-                readIn(block_info, &block);
-                // std::cout << "block->kvPairs.size()=" <<  block.kvPairs.size() << "\n";
-                for (long unsigned int j = 0; j < block.kvPairs.size(); j++) 
+
+                if (i != 0 && kv_tuple.key > key) 
                 {
-                    
-                    std::tuple<std::string, std::string, int, std::string> kv_tuple = block.kvPairs[j];
-                    #ifdef DEBUG
-                    std::cout << "CurrKey=" << std::get<0>(kv_tuple) << "\n";
-                    std::cout << "CurrValue=" << std::get<1>(kv_tuple) << "\n";
-                    #endif
-                    if (i != 0 && std::get<0>(kv_tuple) > key) 
-                    {
-                        break;
-                    } else if (std::get<0>(kv_tuple) == key) 
-                    {
-                        return std::get<1>(kv_tuple);
-                    } 
+                    break;
+                } else if (kv_tuple.key == key) 
+                {
+                    return kv_tuple;
+                } 
 
-                }
-
-                // Saving old code
-                // CapsuleIndex::Level &lvls = this.capIndex->levels[i];
-                // std::vector<CapsuleIndex::Level>::iterator it = std::find(lvls.recordHashes.begin(), lvls.recordHashes.end(), block_info, != lvls.recordHashes.end());
-                // int index = std::distance(lvls.recordHashes.begin(), it);
-                // CapsuleBlock &capblock = lvls->block[index];
-                // std::vector<CapsuleBlock>::iterator it = std::find(capblock.kvPairs.begin(), capblock.kvPairs.end(), key, != capblock.kvPairs.end());
-                // std::tie(k, v, t) = *it;
-                // if (key == k)
-                //     return v;
             }
         }
-        #ifdef DEBUG
-        std::cout << "CapsuleDb: Couldn't find key: " << key << "\n";
-        #endif
-        return "";
     }
-    else
-        return kv.value;
+
+    #ifdef DEBUG
+    std::cout << "CapsuleDb: Couldn't find key: " << key << "\n";
+    #endif
+
+    return "";
 }
