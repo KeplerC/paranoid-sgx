@@ -110,7 +110,7 @@ void Memtable::write_out_if_full(CapsuleIndex* index)
         for (const auto &p : memtable)
         {
             kvs_payload payload = p.second;
-            capsule_block.addKVPair(payload.key, payload.value, payload.txn_timestamp, payload.txn_msgType);
+            capsule_block.addKVPair(payload);
             min_key = min(std::string(min_key), std::string(p.first));
             max_key = max(std::string(max_key), std::string(p.first));
         }

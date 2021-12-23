@@ -376,8 +376,18 @@ void CapsuleIndex::sortL0() {
     std::vector<blockHeader> newRecordHashes;
     for (int i = 0; i < lv0->recordHashes.size(); i++) {
         readIn(lv0->recordHashes[i].hash, &currBlock); 
-        std::sort(currBlock.kvPairs.begin(), currBlock.kvPairs.end());
+        std::sort(currBlock.kvPairs.begin(), currBlock.kvPairs.end(), comparePayloads);
         std::string hash = currBlock.writeOut();
         lv0->recordHashes[i].hash = hash;
     }
+}
+
+/*
+ * Compares two kvs_payloads to determine which is less than the other.
+ * 
+ * Input: Two payloads to compare
+ * Output: True if payloadOne < payloadTwo, false otherwise
+ */
+bool comparePayloads (kvs_payload payloadOne, kvs_payload payloadTwo) {
+    return payloadOne.key < payloadTwo.key;
 }

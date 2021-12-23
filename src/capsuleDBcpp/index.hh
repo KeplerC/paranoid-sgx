@@ -24,5 +24,6 @@ class CapsuleIndex {
         std::vector<blockHeader> merge(std::vector<blockHeader> a, std::vector<blockHeader> b, int next_level);
         void sortL0();
 };
+bool comparePayloads (kvs_payload payloadOne, kvs_payload payloadTwo);
 
 #endif

@@ -83,44 +83,43 @@ kvs_payload CapsuleDB::get(const std::string &key, bool isMulticast /* default i
     std::string block_info, k;
 
     kvs_payload kv = memtable.get(key);
-    if (kv.key != "") {
-        return kv;
-    }
-
-    #ifdef DEBUG
-    std::cout << "Couldn't find key in Memtable, checking Index...\n";
-    #endif
-
-    level_info = index.getNumLevels();
-    for (int i = 0; i < level_info; i++)
-    {
-        block_info = index.getBlock(i, key);
-        if (block_info != "") // Key might be present, however verify if key exists if not check other levels
-        {   
-            #ifdef DEBUG
-            std::cout << "Checking block " << block_info << "\n";
-            #endif
-
-            CapsuleBlock block;
-            readIn(block_info, &block);
-            for (long unsigned int j = 0; j < block.kvPairs.size(); j++) 
-            {
-                
-                kvs_payload kv_tuple = block.kvPairs[j];
-                
+    if (kv.key == "") {
+        
+        #ifdef DEBUG
+        std::cout << "Couldn't find key in Memtable, checking Index...\n";
+        #endif
+        
+        level_info = index.getNumLevels();
+        for (int i = 0; i < level_info; i++)
+        {
+            block_info = index.getBlock(i, key);
+            if (block_info != "") // Key might be present, however verify if key exists if not check other levels
+            {   
                 #ifdef DEBUG
-                std::cout << "CurrKey=" << kv_tuple.key << "\n";
-                std::cout << "CurrValue=" << kv_tuple.key << "\n";
+                std::cout << "Checking block " << block_info << "\n";
                 #endif
 
-                if (i != 0 && kv_tuple.key > key) 
+                CapsuleBlock block;
+                readIn(block_info, &block);
+                for (long unsigned int j = 0; j < block.kvPairs.size(); j++) 
                 {
-                    break;
-                } else if (kv_tuple.key == key) 
-                {
-                    return kv_tuple;
-                } 
+                    
+                    kvs_payload kv_tuple = block.kvPairs[j];
+                    
+                    #ifdef DEBUG
+                    std::cout << "CurrKey=" << kv_tuple.key << "\n";
+                    std::cout << "CurrValue=" << kv_tuple.key << "\n";
+                    #endif
 
+                    if (i != 0 && kv_tuple.key > key) 
+                    {
+                        break;
+                    } else if (kv_tuple.key == key) 
+                    {
+                        return kv_tuple;
+                    } 
+
+                }
             }
         }
     }
@@ -129,5 +128,5 @@ kvs_payload CapsuleDB::get(const std::string &key, bool isMulticast /* default i
     std::cout << "CapsuleDb: Couldn't find key: " << key << "\n";
     #endif
 
-    return "";
+    return kv;
 }

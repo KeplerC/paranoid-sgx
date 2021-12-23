@@ -62,7 +62,8 @@ class CapsuleDB {
             int num_found = 0;
             std::vector<std::string> failed_keys; 
             for(const auto& [key, value] : test_map) {
-                std::string value1 = get(key);
+                kvs_payload payload = get(key);
+                std::string value1 = payload.value;
                 if(value1==""){
                     failed_keys.push_back(key);
                     //std::cout << key << "not found in capsuleDB";

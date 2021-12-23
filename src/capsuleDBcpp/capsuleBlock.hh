@@ -14,6 +14,18 @@ typedef struct {
     std::string maxKey;
 } blockHeader;
 
+namespace boost{
+    namespace serialization{
+        template<class Archive>
+        void serialize (Archive & ar, kvs_payload & g, const unsigned int version){
+            ar & g.key;
+            ar & g.value;
+            ar & g.txn_timestamp;
+            ar & g.txn_msgType;
+        }
+    }
+}
+
 class CapsuleBlock {
     private:
         friend class boost::serialization::access;
