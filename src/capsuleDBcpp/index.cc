@@ -136,21 +136,17 @@ int CapsuleIndex::compact() {
         addLevel(10 * lv0->maxSize);
     }
 
-    compactHelper(sortedLv0, &(levels[1]));    
+    compactHelper(sortedLv0, 1);    
     
     // #ifdef DEBUG
     std::cout << "Size of L1 after return from compactHelper=" << levels[1].recordHashes.size() << "\n";
     std::cout << "min_key of L1 after return from compactHelper=" << levels[1].min_key << "\n";
     // #endif
     
-    // TODO: Fix this
-    // levels[0] = Level(0, lv0->maxSize);
-    // lv0 = &(levels.front());
-    lv0->recordHashes.clear();
-    lv0->numBlocks = 0;
-    lv0->min_key = "";
-    lv0->max_key = "";
-    
+    levels[0].recordHashes.clear();
+    levels[0].numBlocks = 0;
+    levels[0].min_key = "";
+    levels[0].max_key = "";
 
     return 0;
 }
@@ -164,7 +160,7 @@ int CapsuleIndex::compact() {
  * Output: 0 if no error, other number otherwise
  */
 
-int CapsuleIndex::compactHelper(std::vector<blockHeader> sourceVec, Level *destLevel) {
+int CapsuleIndex::compactHelper(std::vector<blockHeader> sourceVec, int destLevelInd) {
     
     #ifdef DEBUG
     std::cout << "ENTERING compactHelper()\n";
@@ -173,7 +169,12 @@ int CapsuleIndex::compactHelper(std::vector<blockHeader> sourceVec, Level *destL
     std::cout << "destLevel.maxSize=" << destLevel->maxSize << "\n";
     #endif
     
-    if (blocksize * sourceVec.size() + blocksize * destLevel->recordHashes.size() >= destLevel->maxSize) {
+    if (blocksize * sourceVec.size() + blocksize * levels[destLevelInd].recordHashes.size() >= levels[destLevelInd].maxSize) {
+        // Add new level
+        if (levels[destLevelInd].index + 1 >= numLevels) {
+            addLevel(levels[destLevelInd].maxSize * 10);
+        }
+
         // Identify Affected blocks
         std::vector<blockHeader> newSourceVec;
         std::vector<blockHeader> remainingBlocks;
@@ -182,8 +183,8 @@ int CapsuleIndex::compactHelper(std::vector<blockHeader> sourceVec, Level *destL
         blockHeader lastAdded;
         for (int i = 0; i < sourceVec.size(); i++) {
             currBlock = sourceVec[i];
-            while (destInd < destLevel->recordHashes.size()) {
-                blockHeader currExamining = destLevel->recordHashes[destInd];
+            while (destInd < levels[destLevelInd].recordHashes.size()) {
+                blockHeader currExamining = levels[destLevelInd].recordHashes[destInd];
                 if (currBlock.minKey >= currExamining.minKey && currBlock.minKey <= currExamining.maxKey && currExamining.hash != lastAdded.hash) {
                     newSourceVec.push_back(currExamining);
                     lastAdded = currExamining;
@@ -198,44 +199,42 @@ int CapsuleIndex::compactHelper(std::vector<blockHeader> sourceVec, Level *destL
                 destInd++;
             }
         }
-
-        if (destLevel->index + 1 >= numLevels) {
-            addLevel(destLevel->maxSize * 10);
-        }
     
-        // Select blocks if not enough are evicted
+        // Select additional blocks if not enough are evicted
         if (newSourceVec.size() < sourceVec.size()) {
             auto it = std::next(remainingBlocks.begin(), sourceVec.size() - newSourceVec.size());
             std::move(remainingBlocks.begin(), it, std::back_inserter(newSourceVec));
             remainingBlocks.erase(remainingBlocks.begin(), it);
         }
 
-        // TODO: What is going on here??? Why does this break the reference to dest level?
-        int savedInd = destLevel->index;
-        compactHelper(newSourceVec, &(levels[(destLevel->index) + 1]));
-        destLevel = &(levels[savedInd]);
-        std::cout << "Dest Level index: " << destLevel->index << "\n";
+        compactHelper(newSourceVec, destLevelInd + 1);
+        std::cout << "Return from recursive call\n";
 
-
-        destLevel->recordHashes = remainingBlocks;
-        destLevel->numBlocks = remainingBlocks.size();
-        destLevel->min_key = remainingBlocks[0].minKey;
-        destLevel->max_key = remainingBlocks[remainingBlocks.size() - 1].maxKey;
-
+        if (remainingBlocks.size() == 0) {
+            levels[destLevelInd].recordHashes.clear();
+            levels[destLevelInd].numBlocks = 0;
+            levels[destLevelInd].min_key = "";
+            levels[destLevelInd].max_key = "";
+        } else {
+            levels[destLevelInd].recordHashes = remainingBlocks;
+            levels[destLevelInd].numBlocks = remainingBlocks.size();
+            levels[destLevelInd].min_key = remainingBlocks[0].minKey;
+            levels[destLevelInd].max_key = remainingBlocks[remainingBlocks.size() - 1].maxKey;
+        }
     }
     
-    // TODO: Check this line
-    // std::cout << "Dest Level index: " << destLevel->index << "\n";
-    // std::cout << "Total num levels: " << levels.size() << "\n";
-    // std::cout << "Next level ind: " << (destLevel->index) + 1 << "\n";
-    std::vector<blockHeader> newDestLevelVec = merge(sourceVec, destLevel->recordHashes, destLevel->index);
-    // std::cout << "Vec size: " << newDestLevelVec.size() << "\n";
-    destLevel->recordHashes = newDestLevelVec;
-    destLevel->numBlocks = newDestLevelVec.size();
-    destLevel->min_key = newDestLevelVec[0].minKey;
-    destLevel->max_key = newDestLevelVec[newDestLevelVec.size() - 1].maxKey;
-
-    // std::cout << "Curr Level's minKey: " << destLevel->min_key << "\n";
+    std::vector<blockHeader> newDestLevelVec = merge(sourceVec, levels[destLevelInd].recordHashes, destLevelInd);
+    if (newDestLevelVec.size() == 0) {
+        levels[destLevelInd].recordHashes.clear();
+        levels[destLevelInd].numBlocks = 0;
+        levels[destLevelInd].min_key = "";
+        levels[destLevelInd].max_key = "";
+    } else {
+        levels[destLevelInd].recordHashes = newDestLevelVec;
+        levels[destLevelInd].numBlocks = newDestLevelVec.size();
+        levels[destLevelInd].min_key = newDestLevelVec[0].minKey;
+        levels[destLevelInd].max_key = newDestLevelVec[newDestLevelVec.size() - 1].maxKey;
+    }
 
     return 0;
 }
