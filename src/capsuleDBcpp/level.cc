@@ -86,25 +86,6 @@ int Level::addBlock(CapsuleBlock* newBlock, std::string hash) {
         min_key = min(std::string(min_key), std::string(new_block_min_key));
         max_key = max(std::string(max_key), std::string(new_block_max_key));
         return 0;
-    } else {
-        /*
-        TODO: combine and reorganize blocks
-        Algorithm: 
-        Assume blocks in level are monotonically increasing. We want to insert block with min and max.
-        Find block i and j where i < j and i_min < min < i_max and j_min < max < j_max
-            Pull in all blocks between i and j, inclusive, dump into giant vector, and insert all kv pairs in block?
-        */
-        return -1;
-        // for (int i = 0; i < numBlocks; i++) {
-        //     CapsuleBlock curr_block = getCapsuleBlock(recordHashes[i]);
-        //     if (curr_block.getMinKey() > new_block_max_key) {
-        //         recordHashes.insert(recordHashes.begin() + i, hash);
-        //         numBlocks++;
-        //         min_key = min(std::string(min_key), std::string(new_block_min_key));
-        //         max_key = max(std::string(max_key), std::string(new_block_max_key));
-        //         return 0;
-        //     }
-        // }
     }
 
     return -1;

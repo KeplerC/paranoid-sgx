@@ -66,16 +66,24 @@ class CapsuleDB {
                 std::string value1 = payload.value;
                 if(value1==""){
                     failed_keys.push_back(key);
-                    //std::cout << key << "not found in capsuleDB";
+                    // std::cout << key << "not found in capsuleDB";
                     test_count++;
                 }
                 if(value1 == value){
                     num_found++;
                 }
             }
+            std::cout << "Num levels at end: " << index.levels.size() << "\n";
+            std::cout << "First key l0: " << index.levels[0].recordHashes[0].minKey << "\n";
+            std::cout << "Last key l0: " << index.levels[0].recordHashes[index.levels[0].recordHashes.size() - 1].maxKey << "\n";
+            std::cout << "L0 max size: " << index.levels[0].maxSize << "\n";
+            std::cout << "First key l1: " << index.levels[1].recordHashes[0].minKey << "\n";
+            std::cout << "Last key l1: " << index.levels[1].recordHashes[index.levels[1].recordHashes.size() - 1].maxKey << "\n";
+            std::cout << "L1 max size: " << index.levels[1].maxSize << "\n";
+            std::cout << "Key not found: " << failed_keys[1] << "\n";
             std::cout << "no.of.keys not found is:"<<test_count << "\n";
             std::cout << "no.of.keys found is:"<<num_found <<"\n";
-            std::cout << "size of test_map" <<test_map.size() <<"\n"; 
+            std::cout << "size of test_map: " <<test_map.size() <<"\n"; 
         //    for(int x=0; x <failed_keys.size();x++)
                 //std::cout << failed_keys.at(x)<<" ";
         }
