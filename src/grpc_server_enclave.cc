@@ -328,36 +328,30 @@ asylo::Status GrpcServerEnclave::Initialize(
   std::string age_server_address = "unix:/tmp/assertion_generator_enclave"; // Set this to the address of the AGE's gRPC server.
   asylo::SgxIdentity age_sgx_identity = asylo::GetSelfSgxIdentity(); // Set this to the AGE's expected identity.
 
-//  LOGI << "1";
-//  asylo::EnclaveConfig config;
-//  ASYLO_ASSIGN_OR_RETURN(*(config.add_enclave_assertion_authority_configs()),
-//  asylo::CreateSgxAgeRemoteAssertionAuthorityConfig(age_server_address, age_sgx_identity));
-//  LOGI << "2";
+  //initialize generator
+  asylo::SgxAgeRemoteAssertionAuthorityConfig authority_config;
+    authority_config.set_server_address(age_server_address);
+    *authority_config.mutable_intel_root_certificate() = GetFakeIntelRoot();
+    *authority_config.add_root_ca_certificates() = GetAdditionalRoot();
+  std::unique_ptr<asylo::SgxAgeRemoteAssertionGenerator> generator_ = absl::make_unique<asylo::SgxAgeRemoteAssertionGenerator>();
+  std::string config_in_str;
+  authority_config.SerializeToString(&config_in_str);
+  LOGI << config_in_str;
+  generator_->Initialize(config_in_str);
+  LOGI << "Generator is initialized: " << generator_ -> IsInitialized();
 
-      //initialize generator
-      asylo::SgxAgeRemoteAssertionAuthorityConfig authority_config;
-        authority_config.set_server_address(age_server_address);
-        *authority_config.mutable_intel_root_certificate() = GetFakeIntelRoot();
-        *authority_config.add_root_ca_certificates() = GetAdditionalRoot();
-      std::unique_ptr<asylo::SgxAgeRemoteAssertionGenerator> generator_ = absl::make_unique<asylo::SgxAgeRemoteAssertionGenerator>();
-      std::string config_in_str;
-      authority_config.SerializeToString(&config_in_str);
-      LOGI << config_in_str;
-      generator_->Initialize(config_in_str);
-      LOGI << "Generator is initialized: " << generator_ -> IsInitialized();
+  //make assertion request
+  asylo::AssertionRequest assertion_request;
+  ASYLO_ASSIGN_OR_RETURN(assertion_request, MakeAssertionRequest({GetFakeIntelRoot()}));
+  bool result;
+  ASYLO_ASSIGN_OR_RETURN(result, generator_->CanGenerate(assertion_request));
+  LOGI << "Generator can be generated: " << result;
 
-      //make assertion request
-      asylo::AssertionRequest assertion_request;
-      ASYLO_ASSIGN_OR_RETURN(assertion_request, MakeAssertionRequest({GetFakeIntelRoot()}));
-      bool result;
-      ASYLO_ASSIGN_OR_RETURN(result, generator_->CanGenerate(assertion_request));
-      LOGI << "Generator can be generated: " << result;
-
-      asylo::Assertion assertion;
-      generator_->Generate(kUserData, assertion_request, &assertion);
-      std::string assertion_in_str;
-      assertion.SerializeToString(&assertion_in_str);
-      LOGI << "Returned assertion: " << assertion_in_str;
+  asylo::Assertion assertion;
+  generator_->Generate(kUserData, assertion_request, &assertion);
+  std::string assertion_in_str;
+  assertion.SerializeToString(&assertion_in_str);
+  LOGI << "Returned assertion: " << assertion_in_str;
 
   // Add a listening port to the server.
   builder.AddListeningPort(
