@@ -59,7 +59,7 @@ asylo::Status LoadGrpcServerEnclave(
       expectation;
   ASYLO_ASSIGN_OR_RETURN(
       *config->add_enclave_assertion_authority_configs(),
-      asylo::CreateSgxLocalAssertionAuthorityConfig(kAttestationDomain));
+      asylo::CreateSgxLocalAssertionAuthorityConfig());
 
   // The SgxLoadConfig sets up configuration specific to an SGX enclave,
   // including the location of the enclave binary and whether to run in debug
