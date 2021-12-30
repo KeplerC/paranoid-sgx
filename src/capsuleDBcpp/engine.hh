@@ -80,12 +80,15 @@ class CapsuleDB {
             std::cout << "First key l1: " << index.levels[1].recordHashes[0].minKey << "\n";
             std::cout << "Last key l1: " << index.levels[1].recordHashes[index.levels[1].recordHashes.size() - 1].maxKey << "\n";
             std::cout << "L1 max size: " << index.levels[1].maxSize << "\n";
-            std::cout << "Key not found: " << failed_keys[1] << "\n";
+            std::cout << "First key l2: " << index.levels[2].recordHashes[0].minKey << "\n";
+            std::cout << "Last key l2: " << index.levels[2].recordHashes[index.levels[1].recordHashes.size() - 1].maxKey << "\n";
+            std::cout << "L2 max size: " << index.levels[2].maxSize << "\n";
+            // std::cout << "Key not found: " << failed_keys[1] << "\n";
             std::cout << "no.of.keys not found is:"<<test_count << "\n";
             std::cout << "no.of.keys found is:"<<num_found <<"\n";
             std::cout << "size of test_map: " <<test_map.size() <<"\n"; 
         //    for(int x=0; x <failed_keys.size();x++)
-                //std::cout << failed_keys.at(x)<<" ";
+        //         std::cout << failed_keys.at(x)<<" ";
         }
 
         void benchmark2(){

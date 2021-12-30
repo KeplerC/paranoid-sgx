@@ -25,5 +25,6 @@ class CapsuleIndex {
         void sortL0();
 };
 bool comparePayloads (kvs_payload payloadOne, kvs_payload payloadTwo);
+bool compareHeaders (blockHeader headerOne, blockHeader headerTwo);
 
 #endif

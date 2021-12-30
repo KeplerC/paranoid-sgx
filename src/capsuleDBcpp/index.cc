@@ -21,11 +21,7 @@ CapsuleIndex::CapsuleIndex(size_t size) {
     blocksize = size;
     // TODO: prevIndexHash???
     Level level_zero = Level(0, 2 * blocksize);
-    // Level level_one = Level(1, 6);
-    // Level level_two = Level(2, 8);
     levels.push_back(level_zero);
-    // levels.push_back(level_one);
-    // levels.push_back(level_two);
 }
 
 /*
@@ -60,7 +56,6 @@ std::string CapsuleIndex::getBlock(int level, std::string key) {
 }
 
 int CapsuleIndex::add_hash(int level, std::string hash, CapsuleBlock block) {
-    std::cout << "Max size of level 0 during adding: " << levels[0].maxSize << "\n";
     if (level < 0 || level >= numLevels) {
         return -1;
     }
@@ -97,22 +92,21 @@ int CapsuleIndex::addLevel(int size) {
 * Output: Error code or 0 on success.
 */
 int CapsuleIndex::compact() {
-    Level* lv0 = &levels.front();
 
     #ifdef DEBUG
     std::cout << "ENTERING compact()\n";
 
     std::cout << "blocksize=" << blocksize << "\n";
-    std::cout << "lv0->numBlocks=" << lv0->numBlocks << "\n";
-    std::cout << "lv0->maxSize=" << lv0->maxSize << "\n";
+    std::cout << "lv0->numBlocks=" << levels[0].numBlocks << "\n";
+    std::cout << "lv0->maxSize=" << levels[0].maxSize << "\n";
     #endif
 
-    if (blocksize * lv0->numBlocks < lv0->maxSize) {
+    if (blocksize * levels[0].numBlocks < levels[0].maxSize) {
         return 0;
     }
 
     #ifdef DEBUG
-    std::cout << "recordHashes.size()=" << lv0->recordHashes.size() << "\n";
+    std::cout << "recordHashes.size()=" << levels[0].recordHashes.size() << "\n";
     #endif
 
     // Sort vectors in each block of L0
@@ -120,10 +114,10 @@ int CapsuleIndex::compact() {
 
     // Sort L0
     std::vector<blockHeader> sortedLv0;
-    sortedLv0.push_back(lv0->recordHashes[0]);
-    for (int i = 1; i < lv0->recordHashes.size(); i++) {
+    sortedLv0.push_back(levels[0].recordHashes[0]);
+    for (int i = 1; i < levels[0].recordHashes.size(); i++) {
         std::vector<blockHeader> currBlock;
-        currBlock.push_back(lv0->recordHashes[i]);
+        currBlock.push_back(levels[0].recordHashes[i]);
         sortedLv0 = merge(sortedLv0, currBlock, 0);
     }
     
@@ -133,15 +127,16 @@ int CapsuleIndex::compact() {
 
 
     if (numLevels == 1) {
-        addLevel(10 * lv0->maxSize);
+        addLevel(10 * levels[0].maxSize);
     }
 
     compactHelper(sortedLv0, 1);    
     
-    // #ifdef DEBUG
+
+    #ifdef DEBUG
     std::cout << "Size of L1 after return from compactHelper=" << levels[1].recordHashes.size() << "\n";
     std::cout << "min_key of L1 after return from compactHelper=" << levels[1].min_key << "\n";
-    // #endif
+    #endif
     
     levels[0].recordHashes.clear();
     levels[0].numBlocks = 0;
@@ -178,37 +173,35 @@ int CapsuleIndex::compactHelper(std::vector<blockHeader> sourceVec, int destLeve
         // Identify Affected blocks
         std::vector<blockHeader> newSourceVec;
         std::vector<blockHeader> remainingBlocks;
-        blockHeader currBlock;
+        int sourceInd = 0;
         int destInd = 0;
-        blockHeader lastAdded;
-        for (int i = 0; i < sourceVec.size(); i++) {
-            currBlock = sourceVec[i];
-            while (destInd < levels[destLevelInd].recordHashes.size()) {
-                blockHeader currExamining = levels[destLevelInd].recordHashes[destInd];
-                if (currBlock.minKey >= currExamining.minKey && currBlock.minKey <= currExamining.maxKey && currExamining.hash != lastAdded.hash) {
-                    newSourceVec.push_back(currExamining);
-                    lastAdded = currExamining;
-                } else if (currBlock.maxKey >= currExamining.minKey && currBlock.maxKey <= currExamining.maxKey && currExamining.hash != lastAdded.hash) {
-                    newSourceVec.push_back(currExamining);
-                    lastAdded = currExamining;
-                    break;
-                } else if (currExamining.hash != lastAdded.hash) {
-                    remainingBlocks.push_back(currExamining);
-                    break;
+
+        while (sourceInd < sourceVec.size() && destInd < levels[destLevelInd].recordHashes.size()) {
+            if (sourceVec[sourceInd].minKey > levels[destLevelInd].recordHashes[destInd].minKey 
+                && sourceVec[sourceInd].minKey > levels[destLevelInd].recordHashes[destInd].maxKey) {
+                while (destInd < levels[destLevelInd].recordHashes.size()
+                       && sourceVec[sourceInd].maxKey > levels[destLevelInd].recordHashes[destInd].maxKey) {
+                    newSourceVec.push_back(levels[destLevelInd].recordHashes[destInd]);
+                    destInd++;
                 }
+                sourceInd++;
+            } else {
+                remainingBlocks.push_back(levels[destLevelInd].recordHashes[destInd]);
                 destInd++;
             }
         }
+        
+
     
         // Select additional blocks if not enough are evicted
         if (newSourceVec.size() < sourceVec.size()) {
             auto it = std::next(remainingBlocks.begin(), sourceVec.size() - newSourceVec.size());
             std::move(remainingBlocks.begin(), it, std::back_inserter(newSourceVec));
             remainingBlocks.erase(remainingBlocks.begin(), it);
+            std::sort(newSourceVec.begin(), newSourceVec.end(), compareHeaders);
         }
 
         compactHelper(newSourceVec, destLevelInd + 1);
-        std::cout << "Return from recursive call\n";
 
         if (remainingBlocks.size() == 0) {
             levels[destLevelInd].recordHashes.clear();
@@ -309,10 +302,6 @@ std::vector<blockHeader> CapsuleIndex::merge(std::vector<blockHeader> a, std::ve
                 advanceB = true;
             }
         }
-
-        #ifdef DEBUG    
-        std::cout << "Test";
-        #endif
         
         // Advance pointers for either A or B or both, pulling in next CapsuleBlock if reached end of current one.
         if (advanceA) {
@@ -399,4 +388,15 @@ void CapsuleIndex::sortL0() {
  */
 bool comparePayloads (kvs_payload payloadOne, kvs_payload payloadTwo) {
     return payloadOne.key < payloadTwo.key;
+}
+
+/*
+ * Compares two blockHeaders to determine which comes first when ordered.
+ * WARNING: Only use for non-overlapping blockHeaders.
+ * 
+ * Input: Two headers to compare
+ * Output: True if headerOne comes before headerTwo, false otherwise
+ */
+bool compareHeaders (blockHeader headerOne, blockHeader headerTwo) {
+    return headerOne.minKey < headerTwo.minKey;
 }
