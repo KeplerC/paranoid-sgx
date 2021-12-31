@@ -581,15 +581,16 @@ int run_worker(){
 //    sleep(1000);
 
     int num_threads = 4; //# of worker = num_threads - 2
-    worker_threads.push_back(std::thread(thread_run_zmq_router, 0));
+    //worker_threads.push_back(std::thread(thread_run_zmq_router, 0));
 
     for (unsigned thread_id = START_CLIENT_ID; thread_id < num_threads; thread_id++) {
         //unsigned thread_id = 2;
-        Asylo_SGX* sgx = new Asylo_SGX( std::to_string(thread_id), serialized_signing_key);
+        Asylo_SGX* sgx = new Asylo_SGX( std::to_string(thread_id+2), serialized_signing_key);
         sgx->init();
         sleep(2);
-        worker_threads.push_back(std::thread(thread_start_coordinator, sgx));
-        worker_threads.push_back(std::thread(thread_run_zmq_js_client, thread_id, sgx));
+        worker_threads.push_back(std::thread(thread_start_fake_client, sgx));
+	//worker_threads.push_back(std::thread(thread_start_coordinator, sgx));
+        worker_threads.push_back(std::thread(thread_run_zmq_js_client, thread_id+2, sgx));
         sleep(1);
     }
     sleep(1000);

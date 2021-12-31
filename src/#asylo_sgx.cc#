@@ -86,17 +86,14 @@ static void *StartOcallResponder( void *arg ) {
                 in_dc.SerializeToString(&out_s);
                 zmq::message_t msg(out_s.size());
                 memcpy(msg.data(), out_s.c_str(), out_s.size());
-		LOGI << in_dc.msgtype();
                 if(in_dc.msgtype() == COORDINATOR_EOE_TYPE){
-		  LOGI << "Sending PSL_EOE " << out_s;
                     socket_ptr_to_sync->send(msg);
                 }
-                else if(in_dc.msgtype() == "PSL_RET"){
+                if(in_dc.msgtype() == "PSL_RET"){
                     LOGI << "Sending PSL_RET " << out_s;
                     socket_ptr_for_result -> send(msg);
                 }
                 else {
-		  LOGI << "Sending message to router " << out_s;
                     socket_ptr->send(msg);
                 }
                 break;
@@ -310,7 +307,7 @@ void Asylo_SGX::execute(){
 
 
     //Sleep so that threads have time to process ALL requests
-    sleep(1000);
+    sleep(1);
 
 }
 
