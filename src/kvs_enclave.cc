@@ -225,7 +225,7 @@ namespace asylo {
                 while (true){
                     sleep(EPOCH_TIME);
                     //send request to sync packet
-                    // put(COORDINATOR_RTS_TYPE, "RTS", COORDINATOR_RTS_TYPE);
+                    put(COORDINATOR_RTS_TYPE, "RTS", COORDINATOR_RTS_TYPE);
                 }
                 return asylo::Status::OkStatus();
             } else if (input.HasExtension(hello_world::is_actor_thread)){
