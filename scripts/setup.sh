@@ -17,7 +17,7 @@ sudo apt-get install -y libsgx-epid libsgx-quote-ex libsgx-dcap-ql
 
 echo "[pulling and running PSL docker image]"
 sudo docker run -it --rm \
-    --network=host
+    --network=host \
     -v bazel-cache:/root/.cache/bazel \
     -v "${MY_PROJECT}":/opt/my-project \
     -w /opt/my-project \
