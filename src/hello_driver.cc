@@ -507,6 +507,7 @@ int run_local_dispatcher(){
             zmq::message_t message;
             socket_from_user.recv(&message);
             //code = message_to_string(message);
+            LOGI << message_to_string(message);
             std::vector<std::string> splitted_messages = absl::StrSplit(message_to_string(message), GROUP_ADDR_DELIMIT, absl::SkipEmpty());
             return_addr = splitted_messages[0];
             code = splitted_messages[1];
