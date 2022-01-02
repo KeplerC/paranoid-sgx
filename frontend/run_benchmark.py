@@ -1,4 +1,4 @@
-from time import sleep
+import time
 import zmq
 import threading
 
@@ -29,10 +29,7 @@ class ServerTask(threading.Thread):
             if recv_result_socket in sockets:
                 if sockets[recv_result_socket] == zmq.POLLIN:
                     msg = recv_result_socket.recv()
-                    decoded_msg = msg.decode('utf-8', 'backslashreplace')
-                    logs = decoded_msg + "\n" + logs
-                    results =  "Result: " + decoded_msg.split("@@@")[3] + " Packet ID " + decoded_msg.split("@@@")[0]  
-                    print(msg)
+                    print("[" + str(time.time())+ "]" + msg.__str__())
 
 def serialize_message(code):
     return (return_addr + delimiter + code).encode()
@@ -40,24 +37,24 @@ def serialize_message(code):
 def get_code_from_load():
     with open("../YCSB_traces/tracea_load_a.txt") as f:
         lines = f.read().split("\n")
-    cmd = ""
+    cmd = "print(\"start\"); "
     for line in lines:
         key = line.split(" ")[1]
         value = line.split(" ")[2]
         value = "".join(e for e in value if e.isalpha())
         cmd += "psl_put(\"" + key + "\",\"" + value + "\"); "
+    cmd += "print(\"end\"); "
     return cmd
 
 def main():
     server = ServerTask()
     server.start()
     code = get_code_from_load()
-    print(code)
     context = zmq.Context()
     zmq_socket = context.socket(zmq.PUSH)
     zmq_socket.connect(local_dispatcher_addr)
     zmq_socket.send(serialize_message(code))
-    sleep(10)
+    time.sleep(10)
 
 
 main()

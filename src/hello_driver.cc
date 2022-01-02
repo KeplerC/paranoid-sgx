@@ -523,14 +523,21 @@ int run_local_dispatcher(){
         if (pollitems[1].revents & ZMQ_POLLIN) {
             zmq::message_t message;
             socket_for_membership.recv(&message);
+            LOG(INFO)  <<message_to_string(message);
             std::vector<std::string> addresses = absl::StrSplit(message_to_string(message), GROUP_ADDR_DELIMIT, absl::SkipEmpty());
             zmq::socket_t* socket_to_worker;
             int thread_count = 2;
             for( const std::string& a : addresses ) {
-                LOG(INFO)  << "[RECEIVED WORKER ADDR] " + a ;
+
+                std::vector<std::string> address = absl::StrSplit(a, ":", absl::SkipEmpty());
+                LOG(INFO)  << address[2];
+                int port = std::stoi(address[2]);
+                std::string worker_addr = "tcp:" + address[1] + ":" + std::to_string(port + (NET_WORKER_LISTEN_FOR_TASK_BASE_PORT - NET_CLIENT_BASE_PORT));
+                LOG(INFO)  << "[RECEIVED WORKER ADDR] " + worker_addr ;
                 socket_to_worker  = new  zmq::socket_t( context, ZMQ_PUSH);
-                socket_to_worker -> connect ("tcp://" + std::string(NET_WORKER_IP) + ":" + std::to_string(NET_WORKER_LISTEN_FOR_TASK_BASE_PORT +  thread_count));
-                LOGI << "[connected to recv_code_port] " << std::to_string(NET_WORKER_LISTEN_FOR_TASK_BASE_PORT +  thread_count);
+                //"tcp://" + std::string(NET_WORKER_IP) + ":" + std::to_string(NET_WORKER_LISTEN_FOR_TASK_BASE_PORT +  thread_count)
+                socket_to_worker -> connect (worker_addr);
+                //LOGI << "[connected to recv_code_port] " << std::to_string(NET_WORKER_LISTEN_FOR_TASK_BASE_PORT +  thread_count);
                 thread_count += 1;
                 socket_to_worker->send(string_to_message(code));
             }
