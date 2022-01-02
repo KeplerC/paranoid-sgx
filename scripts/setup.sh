@@ -5,9 +5,9 @@
 
 echo "[setting up docker]"
 sudo apt install -y docker.io emacs-nox
-sudo groupadd docker
-sudo usermod -aG docker $USER
-newgrp docker
+#sudo groupadd docker
+#sudo usermod -aG docker $USER
+#newgrp docker
 
 echo "[installing sgx driver]"
 echo 'deb [arch=amd64] https://download.01.org/intel-sgx/sgx_repo/ubuntu focal main' | sudo tee /etc/apt/sources.list.d/intel-sgx.list
