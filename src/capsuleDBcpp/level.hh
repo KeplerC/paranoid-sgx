@@ -6,7 +6,23 @@
 #include "../bloom/bloom_filter.hpp"
 #include "capsuleBlock.hh"
 
-class Level {            
+class Level {  
+    private:
+        friend class boost::serialization::access;
+        // When the class Archive corresponds to an output archive, the
+        // & operator is defined similar to <<.  Likewise, when the class Archive
+        // is a type of input archive the & operator is defined similar to >>.
+        template<class Archive>
+        void serialize(Archive & ar, const unsigned int version)
+        {
+            ar & index;
+            ar & numBlocks;
+            ar & maxSize;
+            ar & min_key;
+            ar & max_key;
+            ar & recordHashes;
+        }
+
     public:
         int index;
         int numBlocks;
@@ -15,6 +31,7 @@ class Level {
         std::string max_key;
         std::vector <blockHeader> recordHashes;
         // bloom_filter levelFilter;
+
 
         Level();
         Level(int i, int ms);

@@ -191,6 +191,10 @@ int CapsuleIndex::compactHelper(std::vector<blockHeader> sourceVec, int destLeve
             }
         }
         
+        while (destInd < levels[destLevelInd].recordHashes.size()) {
+            remainingBlocks.push_back(levels[destLevelInd].recordHashes[destInd]);
+            destInd++;
+        }
 
     
         // Select additional blocks if not enough are evicted
