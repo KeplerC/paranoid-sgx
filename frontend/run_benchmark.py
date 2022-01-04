@@ -11,6 +11,7 @@ delimiter = "@@@"
 results = ""
 logs = ""
 
+
 class ServerTask(threading.Thread):
     """ServerTask"""
     def __init__(self):
@@ -28,13 +29,19 @@ class ServerTask(threading.Thread):
             sockets = dict(poll.poll())
             if recv_result_socket in sockets:
                 if sockets[recv_result_socket] == zmq.POLLIN:
-                    msg = recv_result_socket.recv()
-                    print("[" + str(time.time())+ "]" + msg.__str__())
+                    msg = recv_result_socket.recv().__str__()
+                    print("[" + str(time.time())+ "]" + msg)
+                    if "start" in msg:
+                        logs += ("\nrecv," + str(time.time()))
+                    if "end" in msg:
+                        logs += ("\ndone," + str(time.time()))
+                    
 
 def serialize_message(code):
     return (return_addr + delimiter + code).encode()
 
 def get_code_from_load():
+    print("running trace A")
     with open("../YCSB_traces/tracea_load_a.txt") as f:
         lines = f.read().split("\n")
     cmd = "print(\"start\"); "
@@ -47,6 +54,7 @@ def get_code_from_load():
     return cmd
 
 def main():
+    global logs
     server = ServerTask()
     server.start()
     code = get_code_from_load()
@@ -54,7 +62,9 @@ def main():
     zmq_socket = context.socket(zmq.PUSH)
     zmq_socket.connect(local_dispatcher_addr)
     zmq_socket.send(serialize_message(code))
+    logs += ("starting time," + str( time.time()))
     time.sleep(10)
+    print(logs)
 
 
 main()
