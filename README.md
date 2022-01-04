@@ -60,17 +60,23 @@ docker exec -it YOURCONTAINERNAME bash
 ```
 the name can be found using `docker ps`. 
 
-Then you can start the coordinator by 
+Then you can start  
 ```
- bazel run //src:hello_world_sgx_sim -- --mode=3
-```
-the user by 
-```
- bazel run //src:hello_world_sgx_sim -- --mode=5
-```
-and the worker by 
-```
- bazel run //src:hello_world_sgx_sim -- --mode=6
+(four different terminals)
+# start sync server
+bazel run //src:hello_world_sgx_sim -- --mode=7
+
+# start workers 
+bazel run //src:hello_world_sgx_sim -- --mode=6
+
+# start job dispatcher 
+bazel run //src:hello_world_sgx_sim -- --mode=3
+
+# run benchmark
+apt install python3-pip
+pip3 install zmq
+cd frontend 
+python3 run_benchmark.py
 ```
 
 
