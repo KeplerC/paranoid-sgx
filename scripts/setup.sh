@@ -3,8 +3,7 @@
 #MY_PROJECT=~/paranoid-sgx
 #git clone https://github.com/KeplerC/paranoid-sgx.git "${MY_PROJECT}"
 
-echo "[setting up docker]"
-sudo apt install -y docker.io emacs-nox
+
 #sudo groupadd docker
 #sudo usermod -aG docker $USER
 #newgrp docker
