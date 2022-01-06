@@ -51,6 +51,8 @@
 #define COORDINATOR_SYNC_TYPE "PARANOID_SYNC"
 // Key for latest EOE
 #define COORDINATOR_EOE_TYPE "PARANOID_EOE"
+// Type for replication ack
+#define REPLICATION_ACK "REPLICATION_ACK"
 
 #define START_CLIENT_ID 2 // >=2 ; TOTAL_THREADS - START_CLIENT_ID = Num of clients on this node
 #define TOTAL_THREADS 3
