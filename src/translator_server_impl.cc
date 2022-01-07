@@ -55,58 +55,73 @@ TranslatorServerImpl::TranslatorServerImpl(asylo::IdentityAclPredicate acl):
     return NULL;
 
   }
+    ::grpc::Status TranslatorServerImpl::RetrieveAssertionRequest(
+            ::grpc::ServerContext *context,
+            const grpc_server::RetrieveKeyPairRequest *request,
+            grpc_server::AssertionRequest *response){
+        return ::grpc::Status::OK;
 
+    }
   ::grpc::Status TranslatorServerImpl::RetrieveKeyPair(
-      ::grpc::ServerContext *context,
-      const grpc_server::RetrieveKeyPairRequest *request,
-      grpc_server::RetrieveKeyPairResponse *response){
-
-    // First, access the authentication properties of the connection through
-    // EnclaveAuthContext.
-    auto auth_context_result = asylo::EnclaveAuthContext::CreateFromAuthContext(
-        *context->auth_context());
-    if (!auth_context_result.ok()) {
-      LOG(ERROR) << "Failed to access authentication context: "
-                << auth_context_result.status();
-      return ::grpc::Status(::grpc::StatusCode::INTERNAL,
-                            "Failed to access authentication context");
-    }
-
-
-    asylo::EnclaveAuthContext auth_context = auth_context_result.ValueOrDie();
-
-    // Now, check whether the peer is authorized to call this RPC.
-    std::string explanation;
-    auto authorized_result = auth_context.EvaluateAcl(acl_, &explanation);
-    if (!authorized_result.ok()) {
-      LOG(INFO) << authorized_result.status();
-      return ::grpc::Status(::grpc::StatusCode::INTERNAL,
-                            "Error occurred while evaluating ACL");
-    }
-
-    if (!authorized_result.ValueOrDie()) {
-    std::string combined_error =
-        absl::StrCat("Peer is unauthorized for GetTranslation: ", explanation);
-    std::cout << combined_error << std::endl;
-    return ::grpc::Status(::grpc::StatusCode::PERMISSION_DENIED,
-                          combined_error);
-    }
-        
-      LOG(INFO) << "[KVS Coordinator] Generating Key Pair";
-      struct key_pair *key_pair = find_free_key_pair_idx();
-
-      if(!key_pair){
-        LOG(INFO) << "[KVS Coordinator] Could not find a free key pair!";
-        return ::grpc::Status::OK;  
-      }
-      generate_key_pair(key_pair); 
-
-      response->set_private_key("priv kkkkkkey");
-      response->set_public_key("pub kkkkkkey");
-
-      return ::grpc::Status::OK;        
+          ::grpc::ServerContext *context,
+          const grpc_server::Assertion *request,
+          grpc_server::RetrieveKeyPairResponse *response){
+      return ::grpc::Status::OK;
 
     }
+
+
+//  ::grpc::Status TranslatorServerImpl::RetrieveKeyPair(
+//      ::grpc::ServerContext *context,
+//      const grpc_server::RetrieveKeyPairRequest *request,
+//      grpc_server::RetrieveKeyPairResponse *response){
+//
+//    // First, access the authentication properties of the connection through
+//    // EnclaveAuthContext.
+//    auto auth_context_result = asylo::EnclaveAuthContext::CreateFromAuthContext(
+//        *context->auth_context());
+//    if (!auth_context_result.ok()) {
+//      LOG(ERROR) << "Failed to access authentication context: "
+//                << auth_context_result.status();
+//      return ::grpc::Status(::grpc::StatusCode::INTERNAL,
+//                            "Failed to access authentication context");
+//    }
+//
+//
+//    asylo::EnclaveAuthContext auth_context = auth_context_result.ValueOrDie();
+//
+//    // Now, check whether the peer is authorized to call this RPC.
+//    std::string explanation;
+//    auto authorized_result = auth_context.EvaluateAcl(acl_, &explanation);
+//    if (!authorized_result.ok()) {
+//      LOG(INFO) << authorized_result.status();
+//      return ::grpc::Status(::grpc::StatusCode::INTERNAL,
+//                            "Error occurred while evaluating ACL");
+//    }
+//
+//    if (!authorized_result.ValueOrDie()) {
+//    std::string combined_error =
+//        absl::StrCat("Peer is unauthorized for GetTranslation: ", explanation);
+//    std::cout << combined_error << std::endl;
+//    return ::grpc::Status(::grpc::StatusCode::PERMISSION_DENIED,
+//                          combined_error);
+//    }
+//
+//      LOG(INFO) << "[KVS Coordinator] Generating Key Pair";
+//      struct key_pair *key_pair = find_free_key_pair_idx();
+//
+//      if(!key_pair){
+//        LOG(INFO) << "[KVS Coordinator] Could not find a free key pair!";
+//        return ::grpc::Status::OK;
+//      }
+//      generate_key_pair(key_pair);
+//
+//      response->set_private_key("priv kkkkkkey");
+//      response->set_public_key("pub kkkkkkey");
+//
+//      return ::grpc::Status::OK;
+//
+//    }
 
 }  // namespace secure_grpc
 }  // namespace examples

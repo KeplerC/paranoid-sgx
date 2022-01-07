@@ -52,9 +52,15 @@ class TranslatorServerImpl final : public Translator::Service {
   explicit TranslatorServerImpl(asylo::IdentityAclPredicate acl);
 
  private:
+
+::grpc::Status RetrieveAssertionRequest(
+        ::grpc::ServerContext *context,
+        const grpc_server::RetrieveKeyPairRequest *request,
+        grpc_server::AssertionRequest *response) override;
+
   ::grpc::Status RetrieveKeyPair(
       ::grpc::ServerContext *context,
-      const grpc_server::RetrieveKeyPairRequest *request,
+      const grpc_server::Assertion *request,
       grpc_server::RetrieveKeyPairResponse *response) override;
 
   // A map from words to their translations.
