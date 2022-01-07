@@ -4,49 +4,58 @@
 #include "absl/strings/str_split.h"
 // TODO: currently we get timestamp by ocall, we need optimization here
 #include <sys/time.h>
-#include <boost/archive/text_oarchive.hpp>
-#include <boost/archive/text_iarchive.hpp>
-#include <boost/serialization/vector.hpp>
-#include <sstream>
 #include "../crypto.h"
-#include "../capsuleDBcpp/index.hh"
-#include "../capsuleDBcpp/capsuleBlock.hh"
-#include "../common.h"
+
+std::string delim_str = "@@@";
+char delim = ';';
 
 namespace asylo {
 
-    // Helper functions
     int64_t get_current_time(){
         struct timeval tp;
         gettimeofday(&tp, NULL);
         return tp.tv_sec * 1000 + tp.tv_usec / 1000;
     }
 
-    template <typename T>
-    std::string serialize_payload_l(const std::vector<T> &payload_l) {
+    std::string serialize_payload_l(const std::vector<kvs_payload> &payload_l) {
         std::string payload_l_s;
-
-        std::stringstream toBeSerialized;
-        boost::archive::text_oarchive oa(toBeSerialized);
-        oa << *payload_l;
-        std::string s = toBeSerialized.str();
-
+        for( const kvs_payload& payload : payload_l ) {
+            payload_l_s += std::to_string(payload.txn_timestamp) + delim_str + payload.txn_msgType + delim_str 
+                            + payload.key + delim_str + payload.value + delim_str;
+        }
         return payload_l_s;
     }
 
-    template <typename T>
-    std::vector<T> deserialize_payload_l(const std::string &payload_l_s) {
-        std::vector<T> payload_l;
-        std::ifstream storedPayload(payload_l_s);
-        boost::archive::text_iarchive ia(storedPayload);
-        ia >> payload_l;
+    std::vector<kvs_payload> deserialize_payload_l(const std::string &payload_l_s) {
+        std::vector<kvs_payload> payload_l;
+        std::stringstream ss(payload_l_s);
+        std::string txn_timestamp, txn_msgType, key, value;
+
+        std::vector<std::string> split = absl::StrSplit(payload_l_s, delim_str, absl::SkipEmpty());
+        
+        if(split.size() % 4 != 0){
+            LOG(ERROR) << "invalid payload size " << split.size();
+            for(int i = 0; i < split.size(); i+=1) {
+                LOG(ERROR) << i << " " << split.at(4);
+            }
+            return payload_l;
+        }
+
+        for (int i=0; i < (split.size() / 4)  * 4; i+=4) {
+            kvs_payload payload;
+            txn_timestamp = split.at(i);
+            txn_msgType = split.at(i + 1);
+            key = split.at(i + 2);
+            value = split.at(i + 3);
+            
+            KvToPayload(&payload, key, value, std::stoi(txn_timestamp), txn_msgType);
+            payload_l.push_back(payload);
+        }
+        
         return payload_l;
     }
 
-
-    // Begin main functions
-    template <typename T>
-    bool generate_hash(capsule_pdu<T> *dc){
+    bool generate_hash(capsule_pdu *dc){
         const std::string aggregated = std::to_string(dc->sender) + std::to_string(dc->timestamp)
                                         +dc->payload_in_transit;
         std::vector<uint8_t> digest;
@@ -56,15 +65,13 @@ namespace asylo {
         return true;
     }
 
-    template <typename T>
-    bool sign_dc(capsule_pdu<T> *dc, const std::unique_ptr <SigningKey> &signing_key) {
+    bool sign_dc(capsule_pdu *dc, const std::unique_ptr <SigningKey> &signing_key) {
         std::string aggregated = dc->hash + dc->prevHash;
         dc->signature = SignMessage(aggregated, signing_key);
         return true;
     }
 
-    template <typename T>
-    bool verify_hash(const capsule_pdu<T> *dc){
+    bool verify_hash(const capsule_pdu *dc){
         const std::string aggregated = std::to_string(dc->sender) + std::to_string(dc->timestamp)
                                         +dc->payload_in_transit;
         std::vector<uint8_t> digest;
@@ -73,13 +80,11 @@ namespace asylo {
         return dc->hash == BytesToHexString(digest);
     }
 
-    template <typename T>
-    bool verify_signature(const capsule_pdu<T> *dc, const std::unique_ptr <VerifyingKey> &verifying_key) {
+    bool verify_signature(const capsule_pdu *dc, const std::unique_ptr <VerifyingKey> &verifying_key) {
         return VerifyMessage(dc->hash + dc->prevHash, dc->signature, verifying_key);
     }
 
-    template <typename T>
-    bool verify_dc(const capsule_pdu<T> *dc, const std::unique_ptr <VerifyingKey> &verifying_key){
+    bool verify_dc(const capsule_pdu *dc, const std::unique_ptr <VerifyingKey> &verifying_key){
         
         // verify hash matches
         bool hash_result = verify_hash(dc);
@@ -114,8 +119,7 @@ namespace asylo {
         return true;
     }
 
-    template <typename T>
-    bool encrypt_payload_l(capsule_pdu<T> *dc) {
+    bool encrypt_payload_l(capsule_pdu *dc) {
         std::string aggregated = serialize_payload_l(dc->payload_l);
         std::string encrypted_aggregated;
 
@@ -124,18 +128,16 @@ namespace asylo {
         return true;
     }
 
-    template <typename T>
-    bool decrypt_payload_l(capsule_pdu<T> *dc) {
+    bool decrypt_payload_l(capsule_pdu *dc) {
         std::string decrypted_aggregated;
 
         ASSIGN_OR_RETURN_FALSE(decrypted_aggregated, DecryptMessage(dc->payload_in_transit));
         // std::cout << "After DecryptMessage: " << decrypted_aggregated << std::endl;
         // std::cout << std::endl;
-        dc->payload_l = deserialize_payload_l<std::vector<T>>(decrypted_aggregated);
+        dc->payload_l = deserialize_payload_l(decrypted_aggregated);
         return true;
     }
 
-    template <typename T>
     void KvToPayload(kvs_payload *payload, const std::string &key, const std::string &value, const int64_t timer,
                     const std::string &msgType) {
         payload->key = key;
@@ -144,16 +146,14 @@ namespace asylo {
         payload->txn_msgType = msgType;
     }
 
-    template <typename T>
-    void PayloadListToCapsule(capsule_pdu<T> *dc, const std::vector<T> *payload_l, const int enclave_id) {
+    void PayloadListToCapsule(capsule_pdu *dc, const std::vector<kvs_payload> *payload_l, const int enclave_id) {
         dc->payload_l = *payload_l;
         dc->timestamp = payload_l->back().txn_timestamp;
         dc->msgType = payload_l->back().txn_msgType;
         dc->sender = enclave_id;
     }
 
-    template <typename T>
-    void CapsuleToProto(const capsule_pdu<T> *dc, hello_world::CapsulePDU *dcProto){
+    void CapsuleToProto(const capsule_pdu *dc, hello_world::CapsulePDU *dcProto){
 
         dcProto->set_payload_in_transit(dc->payload_in_transit);
         dcProto->set_signature(dc->signature);
@@ -167,8 +167,7 @@ namespace asylo {
 
     }
 
-    template <typename T>
-    void CapsuleFromProto(capsule_pdu<T> *dc, const hello_world::CapsulePDU *dcProto) {
+    void CapsuleFromProto(capsule_pdu *dc, const hello_world::CapsulePDU *dcProto) {
 
         dc->signature = dcProto->signature();
         dc->sender = dcProto->sender();
@@ -181,8 +180,7 @@ namespace asylo {
         dc->msgType = dcProto->msgtype();
     }
 
-    template <typename T>
-    void CapsuleToCapsule(capsule_pdu<T> *dc_new, const capsule_pdu<T> *dc) {
+    void CapsuleToCapsule(capsule_pdu *dc_new, const capsule_pdu *dc) {
         dc_new->payload_l = dc->payload_l;
 
         dc_new->signature = dc->signature;

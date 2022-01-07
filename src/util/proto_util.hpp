@@ -26,38 +26,28 @@ do {                                                      \
 
 namespace asylo {
 
-template <typename T>
-bool generate_hash(capsule_pdu<T> *dc);
+bool generate_hash(capsule_pdu *dc);
 
-template <typename T>
-bool sign_dc(capsule_pdu<T> *dc, const std::unique_ptr <SigningKey> &signing_key);
+bool sign_dc(capsule_pdu *dc, const std::unique_ptr <SigningKey> &signing_key);
 
-template <typename T>
-bool verify_dc(const capsule_pdu<T> *dc, const std::unique_ptr <VerifyingKey> &verifying_key);
+bool verify_dc(const capsule_pdu *dc, const std::unique_ptr <VerifyingKey> &verifying_key);
 
-template <typename T>
-bool encrypt_payload_l(capsule_pdu<T> *dc);
+bool encrypt_payload_l(capsule_pdu *dc);
 
-template <typename T>
-bool decrypt_payload_l(capsule_pdu<T> *dc);
+bool decrypt_payload_l(capsule_pdu *dc);
 
 void KvToPayload(kvs_payload *payload, const std::string &key, const std::string &value, const int64_t timer,
                     const std::string &msgType);
 
-template <typename T>
-void PayloadListToCapsule(capsule_pdu<T> *dc, const std::vector<T> *payload_l, const int enclave_id);
+void PayloadListToCapsule(capsule_pdu *dc, const std::vector<kvs_payload> *payload_l, const int enclave_id);
 
-template <typename T>
-void CapsuleToProto(const capsule_pdu<T> *dc, hello_world::CapsulePDU *dcProto);
+void CapsuleToProto(const capsule_pdu *dc, hello_world::CapsulePDU *dcProto);
 
-template <typename T>
-void CapsuleFromProto(capsule_pdu<T> *dc, const hello_world::CapsulePDU *dcProto);
+void CapsuleFromProto(capsule_pdu *dc, const hello_world::CapsulePDU *dcProto);
 
-template <typename T>
-void CapsuleToCapsule(capsule_pdu<T> *dc_new, const capsule_pdu<T> *dc);
+void CapsuleToCapsule(capsule_pdu *dc_new, const capsule_pdu *dc);
 
-template <typename T>
-void dumpCapsule(const capsule_pdu<T> *dc);
+void dumpCapsule(const capsule_pdu *dc);
 
 void dumpProtoCapsule(const hello_world::CapsulePDU *dcProto);
 

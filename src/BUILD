@@ -377,6 +377,17 @@ cc_library(
     ]
 )
 
+cc_unsigned_enclave(
+    name="capsuleDB_enclave_unsigned.so",
+    srcs=[
+        "capsuleDBcpp/capsuleDB_enclave.cc"
+    ],
+    backends=sgx.backend_labels,
+    deps=[
+        ":capsuleEngine",
+    ]
+)
+
 # End CapsuleDB build targets
 
 cc_unsigned_enclave(
