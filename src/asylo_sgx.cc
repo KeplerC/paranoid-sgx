@@ -172,7 +172,7 @@ void Asylo_SGX::init(){
     load_config.set_name(this->m_name);
 
     // Create a config that initializes the SGX assertion authority.
-    *load_config.mutable_config()->add_enclave_assertion_authority_configs() = std::move(asylo::CreateSgxLocalAssertionAuthorityConfig("A 16-byte string")).ValueOrDie();
+    *load_config.mutable_config()->add_enclave_assertion_authority_configs() = std::move(asylo::CreateSgxLocalAssertionAuthorityConfig()).ValueOrDie();
 
     // Create an SgxLoadConfig object.
     asylo::SgxLoadConfig sgx_config;
