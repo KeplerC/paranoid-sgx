@@ -195,19 +195,20 @@ namespace asylo {
 
                     std::unique_ptr <Translator::Stub> stub = Translator::NewStub(channel);
 
-                    ::examples::grpc_server::AssertionRequestAsResponse response;
+                    LOGI << "Send assertion request request";
+                    ::examples::grpc_server::AssertionRequestAsResponse assertion_request_as_response;
                      ::grpc::ClientContext context;
                      ASYLO_RETURN_IF_ERROR(
-                             asylo::Status(stub->RetrieveAssertionRequest(&context, client_input.key_pair_request(), &response)));
+                             asylo::Status(stub->RetrieveAssertionRequest(&context, client_input.key_pair_request(), &assertion_request_as_response)));
 
-                    LOGI << "Received assertion request: " << response.assertion_request();
+                    LOGI << "Received assertion request: " << assertion_request_as_response.assertion_request();
 
                      asylo::AssertionRequest received_assertion_request;
-                     received_assertion_request.ParseFromString(response.assertion_request());
+                     received_assertion_request.ParseFromString(assertion_request_as_response.assertion_request());
 
+                     LOGI << "Generating assertion given the assertion request...";
                       std::string age_server_address = "unix:/tmp/assertion_generator_enclave"; // Set this to the address of the AGE's gRPC server.
                       asylo::SgxIdentity age_sgx_identity = asylo::GetSelfSgxIdentity(); // Set this to the AGE's expected identity.
-
                       //initialize generator
                       asylo::SgxAgeRemoteAssertionAuthorityConfig authority_config;
                         authority_config.set_server_address(age_server_address);
@@ -225,22 +226,25 @@ namespace asylo {
                      std::string assertion_in_str;
                      assertion.SerializeToString(&assertion_in_str);
                      LOGI << "Returned assertion: " << assertion_in_str;
-                     LOGI << "Sent to the verifier ... ";
 
 
+                    ::examples::grpc_server::AssertionAsKeyRequest assertion_as_key_request;
+                    assertion_as_key_request.set_assertion(assertion_in_str);
 
-//                    std::string assertion_request;
-//                    ASYLO_ASSIGN_OR_RETURN(
-//                            *assertion_request,
-//                            RetrieveKeyPair(client_input.key_pair_request(), stub.get()) );
 
-//                    RetrieveKeyPairResponse resp = *client_output.mutable_key_pair_response();
-//
-//                    priv_key = resp.private_key();
-//                    pub_key = resp.public_key();
-//
-//                    LOG(INFO) << "Worker enclave configured with private key: " << priv_key << " public key: "
-//                              << pub_key;
+                    RetrieveKeyPairResponse resp;
+                    LOGI << "Sent to the verifier ... ";
+
+                    ::grpc::ClientContext context_for_key_pair;
+
+                    ASYLO_RETURN_IF_ERROR(
+                            asylo::Status(stub->RetrieveKeyPair(&context_for_key_pair, assertion_as_key_request, &resp)));
+
+                    priv_key = resp.private_key();
+                    pub_key = resp.public_key();
+
+                    LOG(INFO) << "Worker enclave configured with private key: " << priv_key;
+                    LOG(INFO) << "Worker enclave configured with public key: " << pub_key;
                 }
 #endif
                 HotMsg *hotmsg = (HotMsg *) input.GetExtension(hello_world::enclave_responder).responder();
