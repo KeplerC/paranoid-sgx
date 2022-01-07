@@ -206,23 +206,19 @@ namespace asylo {
 
                     enclave_key_pair.setPrivKey(bytes_t(_child_priv_key.begin() + 1, _child_priv_key.end()));
                     parent_pub_keychain = Coin::HDKeychain(bytes_t(_parent_pub_key.begin(), _parent_pub_key.end()));
-                    ::examples::grpc_server::AssertionRequest response;
-                     ::grpc::ClientContext context;
-                     ASYLO_RETURN_IF_ERROR(
-                             asylo::Status(stub->RetrieveAssertionRequest(&context, client_input.key_pair_request(), &response)));
-                    ::examples::grpc_server::AssertionRequestAsResponse response;
-                     ::grpc::ClientContext context;
-                     ASYLO_RETURN_IF_ERROR(
-                             asylo::Status(stub->RetrieveAssertionRequest(&context, client_input.key_pair_request(), &response)));
 
-                    LOGI << "Received assertion request: " << response.assertion_request();
+                    LOGI << "Send assertion request request";
+                    ::examples::grpc_server::AssertionRequestAsResponse assertion_request_as_response;
+                     ASYLO_RETURN_IF_ERROR(
+                             asylo::Status(stub->RetrieveAssertionRequest(&context, client_input.key_pair_request(), &assertion_request_as_response)));
+                    LOGI << "Received assertion request: " << assertion_request_as_response.assertion_request();
 
                      asylo::AssertionRequest received_assertion_request;
-                     received_assertion_request.ParseFromString(response.assertion_request());
+                     received_assertion_request.ParseFromString(assertion_request_as_response.assertion_request());
 
+                     LOGI << "Generating assertion given the assertion request...";
                       std::string age_server_address = "unix:/tmp/assertion_generator_enclave"; // Set this to the address of the AGE's gRPC server.
                       asylo::SgxIdentity age_sgx_identity = asylo::GetSelfSgxIdentity(); // Set this to the AGE's expected identity.
-
                       //initialize generator
                       asylo::SgxAgeRemoteAssertionAuthorityConfig authority_config;
                         authority_config.set_server_address(age_server_address);
@@ -240,7 +236,20 @@ namespace asylo {
                      std::string assertion_in_str;
                      assertion.SerializeToString(&assertion_in_str);
                      LOGI << "Returned assertion: " << assertion_in_str;
-                     LOGI << "Sent to the verifier ... ";
+
+
+                    ::examples::grpc_server::AssertionAsKeyRequest assertion_as_key_request;
+                    assertion_as_key_request.set_assertion(assertion_in_str);
+
+
+                    RetrieveKeyPairResponse resp;
+                    LOGI << "Sent to the verifier ... ";
+
+                    ::grpc::ClientContext context_for_key_pair;
+
+                    ASYLO_RETURN_IF_ERROR(
+                            asylo::Status(stub->RetrieveKeyPair(&context_for_key_pair, assertion_as_key_request, &resp)));
+
                 }
 #endif
                 HotMsg *hotmsg = (HotMsg *) input.GetExtension(hello_world::enclave_responder).responder();

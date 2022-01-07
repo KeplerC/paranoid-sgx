@@ -91,6 +91,11 @@ message GrpcClientAssertionRequest {
   optional examples.grpc_server.AssertionRequestAsResponse assertion_request = 1;
 }
 
+// Output for a GrpcClientEnclave.
+message GrpcClientAssertionAsKeyRequest {
+  // The response from the GetTranslation RPC.
+  optional examples.grpc_server.AssertionAsKeyRequest assertion = 1;
+}
 
 // Output for a GrpcClientEnclave.
 message GrpcClientEnclaveOutput {
