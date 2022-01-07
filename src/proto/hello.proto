@@ -86,6 +86,13 @@ message GrpcClientEnclaveInput {
 }
 
 // Output for a GrpcClientEnclave.
+message GrpcClientAssertionRequest {
+  // The response from the GetTranslation RPC.
+  optional examples.grpc_server.AssertionRequest assertion_request = 1;
+}
+
+
+// Output for a GrpcClientEnclave.
 message GrpcClientEnclaveOutput {
   // The response from the GetTranslation RPC.
   optional examples.grpc_server.RetrieveKeyPairResponse key_pair_response = 1;

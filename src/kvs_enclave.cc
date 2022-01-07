@@ -18,6 +18,7 @@
 
 #include <kvs_enclave.hpp>
 #include "kvs_eapp.hpp"
+#include "attestation_util.h"
 
 #define USE_KEY_MANAGER
 
@@ -194,17 +195,23 @@ namespace asylo {
 
                     std::unique_ptr <Translator::Stub> stub = Translator::NewStub(channel);
 
-                    ASYLO_ASSIGN_OR_RETURN(
-                            *client_output.mutable_key_pair_response(),
-                            RetrieveKeyPair(client_input.key_pair_request(), stub.get()));
+                    ::examples::grpc_server::AssertionRequest response;
+                     ::grpc::ClientContext context;
+                     ASYLO_RETURN_IF_ERROR(
+                             asylo::Status(stub->RetrieveAssertionRequest(&context, client_input.key_pair_request(), &response)));
 
-                    RetrieveKeyPairResponse resp = *client_output.mutable_key_pair_response();
+//                    std::string assertion_request;
+//                    ASYLO_ASSIGN_OR_RETURN(
+//                            *assertion_request,
+//                            RetrieveKeyPair(client_input.key_pair_request(), stub.get()) );
 
-                    priv_key = resp.private_key();
-                    pub_key = resp.public_key();
-
-                    LOG(INFO) << "Worker enclave configured with private key: " << priv_key << " public key: "
-                              << pub_key;
+//                    RetrieveKeyPairResponse resp = *client_output.mutable_key_pair_response();
+//
+//                    priv_key = resp.private_key();
+//                    pub_key = resp.public_key();
+//
+//                    LOG(INFO) << "Worker enclave configured with private key: " << priv_key << " public key: "
+//                              << pub_key;
                 }
 #endif
                 HotMsg *hotmsg = (HotMsg *) input.GetExtension(hello_world::enclave_responder).responder();

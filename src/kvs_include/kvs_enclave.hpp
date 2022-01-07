@@ -86,15 +86,23 @@
     const absl::Duration kChannelDeadline = absl::Seconds(5);
 
     // Makes a GetKeyPair RPC with |request| to the server backed by *|stub|.
-    StatusOr<RetrieveKeyPairResponse> RetrieveKeyPair(
-        const RetrieveKeyPairRequest &request, Translator::Stub *stub) {
-    RetrieveKeyPairResponse response;
+//    StatusOr<RetrieveKeyPairResponse> RetrieveKeyPair(
+//        const RetrieveKeyPairRequest &request, Translator::Stub *stub) {
+//        RetrieveKeyPairResponse response;
+//        ::grpc::ClientContext context;
+//        ASYLO_RETURN_IF_ERROR(
+//            asylo::Status(stub->RetrieveKeyPair(&context, request, &response)));
+//        return response;
+//    }
 
-    ::grpc::ClientContext context;
-    ASYLO_RETURN_IF_ERROR(
-        asylo::Status(stub->RetrieveKeyPair(&context, request, &response)));
-    return response;
-    }
+//     StatusOr<RetrieveKeyPairResponse> grpcGetAssertionRequest(
+//             const RetrieveKeyPairRequest &request, Translator::Stub *stub) {
+//         Assertion response;
+//         ::grpc::ClientContext context;
+//         ASYLO_RETURN_IF_ERROR(
+//                 asylo::Status(stub->RetrieveKeyPair(&context, request, &response)));
+//         return response;
+//     }
 
     static duk_ret_t js_print(duk_context *ctx) {
         std::cout << duk_to_string(ctx, 0) << std::endl;
