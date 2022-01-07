@@ -59,7 +59,7 @@ TranslatorServerImpl::TranslatorServerImpl(asylo::IdentityAclPredicate acl):
     ::grpc::Status TranslatorServerImpl::RetrieveAssertionRequest(
             ::grpc::ServerContext *context,
             const grpc_server::RetrieveKeyPairRequest *request,
-            grpc_server::AssertionRequest *response){
+            grpc_server::AssertionRequestAsResponse *response){
 
         std::string age_server_address = "unix:/tmp/assertion_generator_enclave"; // Set this to the address of the AGE's gRPC server.
         asylo::SgxIdentity age_sgx_identity = asylo::GetSelfSgxIdentity(); // Set this to the AGE's expected identity.
@@ -83,13 +83,14 @@ TranslatorServerImpl::TranslatorServerImpl(asylo::IdentityAclPredicate acl):
 
         std::string assertion_req_in_str;
         assertion_request.SerializeToString(&assertion_req_in_str);
+        LOGI << assertion_req_in_str;
         response -> set_assertion_request(assertion_req_in_str);
         return ::grpc::Status::OK;
 
     }
   ::grpc::Status TranslatorServerImpl::RetrieveKeyPair(
           ::grpc::ServerContext *context,
-          const grpc_server::Assertion *request,
+          const grpc_server::AssertionAsKeyRequest *request,
           grpc_server::RetrieveKeyPairResponse *response){
 
       LOG(INFO) << "[KVS Coordinator] Generating Key Pair";

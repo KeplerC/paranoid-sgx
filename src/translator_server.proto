@@ -7,11 +7,11 @@ message RetrieveKeyPairRequest {
     optional string identity = 1;
   }
 
-message AssertionRequest {
-    optional string assertion_request = 1;
+message AssertionRequestAsResponse {
+    optional bytes assertion_request = 1;
 }
 
-message Assertion {
+message AssertionAsKeyRequest{
     optional string assertion = 1;
   }
 
@@ -22,8 +22,8 @@ message RetrieveKeyPairResponse {
   
 service Translator {
 
-    rpc RetrieveAssertionRequest(RetrieveKeyPairRequest) returns (AssertionRequest){}
-    rpc RetrieveKeyPair(Assertion) returns (RetrieveKeyPairResponse) {
+    rpc RetrieveAssertionRequest(RetrieveKeyPairRequest) returns (AssertionRequestAsResponse){}
+    rpc RetrieveKeyPair(AssertionAsKeyRequest) returns (RetrieveKeyPairResponse) {
     }
 }
 
