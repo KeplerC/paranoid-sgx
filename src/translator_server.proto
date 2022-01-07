@@ -7,16 +7,25 @@ message RetrieveKeyPairRequest {
     optional string identity = 1;
   }
 
+message AssertionRequest {
+    optional string assertion_request = 1;
+}
+
+message Assertion {
+    optional string assertion = 1;
+  }
+
 message RetrieveKeyPairResponse {
     optional bytes child_private_key = 1;
     optional bytes parent_public_key = 2;
     required uint32 faas_idx = 3; 
   }
   
-  service Translator {
+service Translator {
 
-    rpc RetrieveKeyPair(RetrieveKeyPairRequest) returns (RetrieveKeyPairResponse) {
+    rpc RetrieveAssertionRequest(RetrieveKeyPairRequest) returns (AssertionRequest){}
+    rpc RetrieveKeyPair(Assertion) returns (RetrieveKeyPairResponse) {
     }
-  }
+}
 
   
