@@ -24,6 +24,7 @@
 #include "absl/strings/str_cat.h"
 #include "asylo/grpc/auth/enclave_auth_context.h"
 #include "include/grpcpp/grpcpp.h"
+#include "attestation_util.h"
 
 namespace examples {
 namespace secure_grpc {
@@ -59,6 +60,30 @@ TranslatorServerImpl::TranslatorServerImpl(asylo::IdentityAclPredicate acl):
             ::grpc::ServerContext *context,
             const grpc_server::RetrieveKeyPairRequest *request,
             grpc_server::AssertionRequest *response){
+
+        std::string age_server_address = "unix:/tmp/assertion_generator_enclave"; // Set this to the address of the AGE's gRPC server.
+        asylo::SgxIdentity age_sgx_identity = asylo::GetSelfSgxIdentity(); // Set this to the AGE's expected identity.
+
+        //initialize generator
+        asylo::SgxAgeRemoteAssertionAuthorityConfig authority_config;
+        authority_config.set_server_address(age_server_address);
+        *authority_config.mutable_intel_root_certificate() = GetFakeIntelRoot();
+        *authority_config.add_root_ca_certificates() = GetAdditionalRoot();
+        std::unique_ptr<asylo::SgxAgeRemoteAssertionGenerator> generator_ = absl::make_unique<asylo::SgxAgeRemoteAssertionGenerator>();
+        std::string config_in_str;
+        authority_config.SerializeToString(&config_in_str);
+        LOGI << config_in_str;
+        generator_->Initialize(config_in_str);
+        LOGI << "Generator is initialized: " << generator_ -> IsInitialized();
+
+        //make assertion request
+        asylo::AssertionRequest assertion_request;
+        //ASYLO_ASSIGN_OR_RETURN(assertion_request, MakeAssertionRequest({GetFakeIntelRoot()}));
+        assertion_request = std::move(MakeAssertionRequest({GetFakeIntelRoot()})).value();
+
+        std::string assertion_req_in_str;
+        assertion_request.SerializeToString(&assertion_req_in_str);
+        response -> set_assertion_request(assertion_req_in_str);
         return ::grpc::Status::OK;
 
     }
@@ -66,6 +91,19 @@ TranslatorServerImpl::TranslatorServerImpl(asylo::IdentityAclPredicate acl):
           ::grpc::ServerContext *context,
           const grpc_server::Assertion *request,
           grpc_server::RetrieveKeyPairResponse *response){
+
+      LOG(INFO) << "[KVS Coordinator] Generating Key Pair";
+      struct key_pair *key_pair = find_free_key_pair_idx();
+
+      if(!key_pair){
+        LOG(INFO) << "[KVS Coordinator] Could not find a free key pair!";
+        return ::grpc::Status::OK;
+      }
+      generate_key_pair(key_pair);
+
+      response->set_private_key("priv kkkkkkey");
+      response->set_public_key("pub kkkkkkey");
+
       return ::grpc::Status::OK;
 
     }

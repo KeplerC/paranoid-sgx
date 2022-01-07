@@ -70,7 +70,7 @@ cc_grpc_library(
 cc_library(
         name = "attestation_util",
         srcs = [],
-        hdrs = ["attestation_util.h"],
+        hdrs = ["attestation_util.h", "common.h"],
         copts = ASYLO_DEFAULT_COPTS,
                 tags = ASYLO_ALL_BACKEND_TAGS,
                 deps = [
