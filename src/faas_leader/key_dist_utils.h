@@ -67,11 +67,11 @@ class KeyDistributionEnclave final : public Translator::Service {
 ::grpc::Status RetrieveAssertionRequest(
         ::grpc::ServerContext *context,
         const grpc_server::RetrieveKeyPairRequest *request,
-        grpc_server::AssertionRequest *response) override;
+        grpc_server::AssertionRequestAsResponse *response) override;
 
   ::grpc::Status RetrieveKeyPair(
       ::grpc::ServerContext *context,
-      const grpc_server::Assertion *request,
+      const grpc_server::AssertionAsKeyRequest *request,
       grpc_server::RetrieveKeyPairResponse *response) override;
 
   Coin::HDSeed hdSeed; 
