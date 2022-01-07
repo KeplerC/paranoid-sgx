@@ -18,6 +18,7 @@
 
 #include <kvs_enclave.hpp>
 #include "kvs_eapp.hpp"
+#include "attestation_util.h"
 
 #define USE_KEY_MANAGER
 
@@ -205,6 +206,10 @@ namespace asylo {
 
                     enclave_key_pair.setPrivKey(bytes_t(_child_priv_key.begin() + 1, _child_priv_key.end()));
                     parent_pub_keychain = Coin::HDKeychain(bytes_t(_parent_pub_key.begin(), _parent_pub_key.end()));
+                    ::examples::grpc_server::AssertionRequest response;
+                     ::grpc::ClientContext context;
+                     ASYLO_RETURN_IF_ERROR(
+                             asylo::Status(stub->RetrieveAssertionRequest(&context, client_input.key_pair_request(), &response)));
                 }
 #endif
                 HotMsg *hotmsg = (HotMsg *) input.GetExtension(hello_world::enclave_responder).responder();
