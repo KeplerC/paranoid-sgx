@@ -341,7 +341,7 @@ cc_library(
 )
 
 cc_binary(
-    name="capsuleDB",
+    name="capsuleDBTest",
     srcs=[
         "capsuleDBcpp/test.cc",
     ],
@@ -350,42 +350,125 @@ cc_binary(
     ],
 )
 
-cc_library(
-    name="proto_util",
-    srcs=[
-        "util/proto_util.cc"
+# cc_library(
+#     name="proto_util",
+#     srcs=[
+#         "util/proto_util.cc"
+#     ],
+#     hdrs=[
+#         "util/proto_util.hpp",
+#         "crypto.h",
+#         "capsuleDBcpp/capsuleBlock.hh",
+#         "capsuleDBcpp/index.hh",
+#         "capsuleDBcpp/level.hh",
+#         "kvs_include/capsule.h",
+#         "common.h",
+#         # "proto/hello.pb.h"
+#         "bloom/bloom_filter.hpp",
+#     ],
+#     deps=[
+#         "@boost//:archive",
+#         "@boost//:serialization",
+#         "@com_google_asylo//asylo/crypto:ecdsa_p256_sha256_signing_key",
+#         "@com_google_asylo//asylo/crypto:aead_cryptor",
+#         ":hello_cc_proto",
+#         "@com_google_asylo//asylo/util:logging",
+#         "@com_google_absl//absl/time",
+#     ]
+# )
+
+proto_library(
+    name = "capsuleDB_proto",
+    srcs = [
+        "capsuleDBcpp/capsuleDB.proto"
     ],
-    hdrs=[
-        "util/proto_util.hpp",
-        "crypto.h",
-        "capsuleDBcpp/capsuleBlock.hh",
-        "capsuleDBcpp/index.hh",
-        "capsuleDBcpp/level.hh",
-        "kvs_include/capsule.h",
-        "common.h",
-        # "proto/hello.pb.h"
-        "bloom/bloom_filter.hpp",
-    ],
-    deps=[
-        "@boost//:archive",
-        "@boost//:serialization",
-        "@com_google_asylo//asylo/crypto:ecdsa_p256_sha256_signing_key",
-        "@com_google_asylo//asylo/crypto:aead_cryptor",
-        ":hello_cc_proto",
-        "@com_google_asylo//asylo/util:logging",
-        "@com_google_absl//absl/time",
+    deps = [
+        "@com_google_asylo//asylo:enclave_proto"
     ]
 )
 
+cc_proto_library(
+    name = "capsuleDB_cc_proto",
+    deps = [":capsuleDB_proto"]
+)
+
+# cc_unsigned_enclave(
+#     name="capsuleDB_enclave_unsigned.so",
+#     srcs=[
+#         "capsuleDBcpp/capsuleDB_enclave.cc"
+#     ],
+#     backends=sgx.backend_labels,
+#     deps=[
+#         ":capsuleEngine",
+#     ]
+# )
+
 cc_unsigned_enclave(
-    name="capsuleDB_enclave_unsigned.so",
-    srcs=[
-        "capsuleDBcpp/capsuleDB_enclave.cc"
+    name = "capsuleDB_enclave_unsigned.so",
+    srcs = [
+        "capsuleDBcpp/capsuleDB_enclave.cc",
+        "capsuleDBcpp/capsuleDB_enclave.hh"
     ],
-    backends=sgx.backend_labels,
-    deps=[
+    backends = sgx.backend_labels,
+    deps = [
+        ":capsuleDB_cc_proto",
         ":capsuleEngine",
-    ]
+        # ":hello_cc_proto",
+        "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/synchronization",
+        "@com_google_absl//absl/container:flat_hash_map",
+        "@com_google_asylo//asylo:enclave_runtime",
+        "@com_google_asylo//asylo/util:logging",
+        "@com_google_asylo//asylo/util:status",
+        "@com_google_asylo//asylo/crypto:aead_cryptor",
+        "@com_google_asylo//asylo/crypto:ecdsa_p256_sha256_signing_key",
+        "@com_google_asylo//asylo/crypto:sha256_hash_util",
+        "@com_google_asylo//asylo/platform/primitives:trusted_primitives",
+        "@com_google_asylo//asylo/identity/attestation/sgx:sgx_local_assertion_generator",
+        "@com_google_asylo//asylo/identity:enclave_assertion_authority_configs",
+        "@com_google_asylo//asylo/grpc/auth:grpc++_security_enclave",
+        "@com_google_asylo//asylo/grpc/auth:sgx_local_credentials_options",
+        "@com_github_grpc_grpc//:grpc++",
+        "@com_google_absl//absl/time",
+    ] + select(
+        {
+            "@linux_sgx//:sgx_hw": _grpc_server_sgx_deps,
+            "@linux_sgx//:sgx_sim": _grpc_server_sgx_deps,
+        },
+        no_match_error="The grpc server enclave is only configured for SGX backends",
+    ),
+)
+
+debug_sign_enclave(
+    name = "capsuleDB_enclave.so",
+    unsigned = "capsuleDB_enclave_unsigned.so"
+)
+
+enclave_loader(
+    name = "capsuleDB",
+    srcs = [
+        "capsuleDBcpp/capsuleDB_driver.cc"
+    ],
+    backends = sgx.backend_labels,
+    copts=ASYLO_DEFAULT_COPTS,
+    enclaves = {"enclave": ":capsuleDB_enclave.so"},
+    loader_args = [
+        "--enclave_path='{enclave}'"
+    ],
+    deps = [
+        ":capsuleDB_cc_proto",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:parse",
+        "@com_google_asylo//asylo:enclave_client",
+        "@com_google_asylo//asylo/util:logging",
+    ]+ select(
+        {
+            "@linux_sgx//:sgx_hw": _grpc_server_sgx_deps,
+            "@linux_sgx//:sgx_sim": _grpc_server_sgx_deps,
+        },
+        no_match_error="The grpc server enclave is only configured for SGX backends",
+    ),
 )
 
 # End CapsuleDB build targets
