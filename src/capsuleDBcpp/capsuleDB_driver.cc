@@ -47,12 +47,12 @@ void SetEnclavePayload(asylo::EnclaveInput *enclave_input,
 void SetEnclaveRequest(asylo::EnclaveInput *enclave_input,
                            std::string key) {
     capsuleDB::DBRequest *user_input = enclave_input->MutableExtension(capsuleDB::capsuleDBEnclaveInput);
-    user_input->set_requestedKey(ley);
+    user_input->set_requestedKey(key);
 }
 
 // Retrieves encrypted message from |output|. Intended to be used by the reader
 // for completing the exercise.
-kvs_payload GetEnclaveOutputMessage(const asylo::EnclaveOutput &output) {
+const kvs_payload GetEnclaveOutputMessage(const asylo::EnclaveOutput &output) {
     return output.GetExtension(capsuleDB::capsuleDBEnclaveOutput).payload();
 }
 
@@ -103,9 +103,9 @@ int main(int argc, char *argv[]) {
     status = client->EnterAndRun(input, &output);
     LOG_IF(QFATAL, !status.ok()) << "EnterAndRun failed with: " << status;
     std::cout << "Encrypted message1 from driver:" << std::endl
-              << GetEnclaveOutputMessage(output) << std::endl;
+              << GetEnclaveOutputMessage(output).key << std::endl;
 
-    kvs_payload retrieved = GetEnclaveOutputMessage(ouput);
+    const kvs_payload retrieved = GetEnclaveOutputMessage(output);
     std::cout << "Key Retrieved: " << retrieved.key << " Value Retrieved: " << retrieved.value << "\n"; 
 
 
