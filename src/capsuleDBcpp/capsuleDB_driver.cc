@@ -26,7 +26,7 @@
 #include "asylo/util/logging.h"
 #include "asylo/platform/primitives/sgx/loader.pb.h"
 
-#include "capsuleDB.pb.h"
+#include "src/capsuleDBcpp/capsuleDB.pb.h"
 #include "../kvs_include/capsule.h"
 
 ABSL_FLAG(std::string, enclave_path, "", "Path to enclave to load");

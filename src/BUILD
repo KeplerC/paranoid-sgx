@@ -412,7 +412,8 @@ cc_unsigned_enclave(
     ],
     copts = ASYLO_DEFAULT_COPTS,
     deps=[
-        ":hello_cc_proto",
+        ":capsuleDB_cc_proto",
+        ":capsuleEngine",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/synchronization",
@@ -441,20 +442,21 @@ debug_sign_enclave(
 enclave_loader(
     name = "capsuleDB",
     srcs = [
-        "capsuleDBcpp/capsuleDB_driver.cc"
+        "capsuleDBcpp/capsuleDB_driver.cc",
+        "kvs_include/capsule.h",
+        "common.h"
     ],
     backends = sgx.backend_labels,  # Has SGX loader dependencies
     copts = ASYLO_DEFAULT_COPTS,
     enclaves = {"enclave": ":capsuleDB_enclave.so"},
     loader_args = ["--enclave_path='{enclave}'"],
     deps=[
-        ":hello_cc_proto",
+        ":capsuleDB_cc_proto",
         "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/flags:parse",
         "@com_google_absl//absl/strings",
         "@com_google_asylo//asylo:enclave_cc_proto",
         "@com_google_asylo//asylo:enclave_client",
-        # "@com_google_asylo//asylo/platform/primitives/sgx:loader_cc_proto",
         "@com_google_asylo//asylo/util:logging",
         "@com_google_asylo//asylo/crypto:sha256_hash_util",
         "@com_google_asylo//asylo/identity:enclave_assertion_authority_configs",

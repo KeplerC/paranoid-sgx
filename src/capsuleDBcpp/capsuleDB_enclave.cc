@@ -6,13 +6,13 @@
 #include "absl/strings/str_cat.h"
 #include "asylo/crypto/aead_cryptor.h"
 #include "asylo/crypto/util/byte_container_view.h"
-#include "asylo/examples/quickstart/solution/demo.pb.h"
 #include "asylo/trusted_application.h"
 #include "asylo/util/cleansing_types.h"
 #include "asylo/util/status_macros.h"
 #include "asylo/util/statusor.h"
 
 #include "engine.hh"
+#include "src/capsuleDBcpp/capsuleDB.pb.h"
 
 namespace asylo {
 namespace {
