@@ -16,12 +16,12 @@ message DBRequest {
     message kvs_payload {
         optional string key = 1;
         optional string value = 2;
-        optional int32 timestamp = 3;
-        optional string messageType = 4;
+        optional int64 timestamp = 3;
+        optional string messagetype = 4;
     }
 
     optional int32 requestingEnclaveID = 1;
-    optional string requestedKey = 2;
+    optional string requestedkey = 2;
     optional kvs_payload payload = 3;
 }  
 

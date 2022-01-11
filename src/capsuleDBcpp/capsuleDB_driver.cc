@@ -39,27 +39,35 @@ ABSL_FLAG(int32_t, blocksize, 5, "The number of pairs per block");
 
 // Populates |enclave_input|->value() with |user_message|.
 void SetEnclavePayload(asylo::EnclaveInput *enclave_input,
-                           kvs_payload payload) {
+                           kvs_payload user_payload) {
     capsuleDB::DBRequest *user_input = enclave_input->MutableExtension(capsuleDB::capsuleDBEnclaveInput);
-    user_input->set_payload(payload);
+    capsuleDB::DBRequest::kvs_payload new_payload = user_input->payload();
+    new_payload.set_key(user_payload.key);
+    new_payload.set_value(user_payload.value);
+    new_payload.set_timestamp(user_payload.txn_timestamp);
 }
 
 void SetEnclaveRequest(asylo::EnclaveInput *enclave_input,
                            std::string key) {
     capsuleDB::DBRequest *user_input = enclave_input->MutableExtension(capsuleDB::capsuleDBEnclaveInput);
-    user_input->set_requestedKey(key);
+    user_input->set_requestedkey(key);
 }
 
 // Retrieves encrypted message from |output|. Intended to be used by the reader
 // for completing the exercise.
-const kvs_payload GetEnclaveOutputMessage(const asylo::EnclaveOutput &output) {
-    return output.GetExtension(capsuleDB::capsuleDBEnclaveOutput).payload();
+kvs_payload GetEnclaveOutputMessage(const asylo::EnclaveOutput &output) {
+    const capsuleDB::DBRequest::kvs_payload& incoming_payload = output.GetExtension(capsuleDB::capsuleDBEnclaveOutput).payload();
+    kvs_payload kvs;
+    kvs.key = incoming_payload.key();
+    kvs.value = incoming_payload.value();
+    kvs.txn_timestamp = incoming_payload.timestamp();
+    return kvs;
 }
 
 int main(int argc, char *argv[]) {
     absl::ParseCommandLine(argc, argv);
 
-    LOG_IF(QFATAL, absl::GetFlag(FLAGS_blocksize).empty())
+    LOG_IF(QFATAL, absl::GetFlag(FLAGS_blocksize) == 0)
         << "Must specify blocksize";
 
     // Part 1: Initialization

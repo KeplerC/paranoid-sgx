@@ -1,3 +1,5 @@
+#include "capsuleDB_enclave.hh"
+
 #include <string>
 
 #include "absl/base/macros.h"
@@ -18,8 +20,6 @@ namespace asylo {
 namespace {
 
 }  // namespace
-
-
 
     Status CapsuleDBClient::Initialize(const EnclaveConfig &config){
             int blocksize = GetEnclaveBlocksize();
@@ -48,23 +48,23 @@ namespace {
         return absl::OkStatus();
     }
 
-    int32_t GetEnclaveBlocksize(const EnclaveConfig &config) {
+    int32_t CapsuleDBClient::GetEnclaveBlocksize(const EnclaveConfig &config) {
         return config.GetExtension(capsuleDB::dbConfig).blocksize();
     }
 
     // Retrieves user message from |input|.
-    const std::string GetEnclaveRequestedKey(const EnclaveInput &input) {
-        return input.GetExtension(capsuleDB::capsuleDBEnclaveInput).requestedKey();
+    const std::string CapsuleDBClient::GetEnclaveRequestedKey(const EnclaveInput &input) {
+        return input.GetExtension(capsuleDB::capsuleDBEnclaveInput).requestedkey();
     }
 
     // Retrieves user action from |input|.
-    kvs_payload GetEnclavePayload(const EnclaveInput &input) {
+    kvs_payload CapsuleDBClient::GetEnclavePayload(const EnclaveInput &input) {
         return input.GetExtension(capsuleDB::capsuleDBEnclaveInput).payload();
     }
 
     // Populates |enclave_output|->value() with |output_message|. Intended to be
     // used by the reader for completing the exercise.
-    void SetEnclaveOutputPayload(EnclaveOutput *enclave_output,
+    void CapsuleDBClient::SetEnclaveOutputPayload(EnclaveOutput *enclave_output,
                                 kvs_payload payload) {
         capsuleDB::DBRequest *output = enclave_output->MutableExtension(capsuleDB::capsuleDBEnclaveInput);
         output->set_payload(payload);

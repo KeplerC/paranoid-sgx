@@ -5,8 +5,8 @@
 
 // Asylo
 #include "absl/base/macros.h"
-#include "src/proto/hello.pb.h"
-#include "src/util/proto_util.hpp"
+// #include "src/proto/hello.pb.h"
+// #include "src/util/proto_util.hpp"
 
 namespace asylo {
     namespace {
@@ -46,6 +46,11 @@ class CapsuleDBClient : public TrustedApplication {
 
         // int HotMsg_requestOCall( HotMsg* hotMsg, int dataID, void *data );
         // void EnclaveMsgStartResponder( HotMsg *hotMsg );
+
+        int32_t CapsuleDBClient::GetEnclaveBlocksize(const EnclaveConfig &config);
+        const std::string CapsuleDBClient::GetEnclaveRequestedKey(const EnclaveInput &input);
+        kvs_payload CapsuleDBClient::GetEnclavePayload(const EnclaveInput &input);
+        void CapsuleDBClient::SetEnclaveOutputPayload(EnclaveOutput *enclave_output, kvs_payload payload);
 }
 
 

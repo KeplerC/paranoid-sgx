@@ -408,7 +408,8 @@ cc_unsigned_enclave(
     name = "capsuleDB_enclave_unsigned.so",
     srcs = [
         "capsuleDBcpp/capsuleDB_enclave.cc",
-        "capsuleDBcpp/capsuleDB_enclave.hh"
+        "capsuleDBcpp/capsuleDB_enclave.hh",
+        # "util/proto_util.hpp"
     ],
     copts = ASYLO_DEFAULT_COPTS,
     deps=[
