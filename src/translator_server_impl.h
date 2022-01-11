@@ -63,7 +63,13 @@ class TranslatorServerImpl final : public Translator::Service {
       const grpc_server::AssertionAsKeyRequest *request,
       grpc_server::RetrieveKeyPairResponse *response) override;
 
-  // A map from words to their translations.
+    ::grpc::Status KeyDistribution(
+            ::grpc::ServerContext *context,
+            const grpc_server::KeyDistributionRequest *request,
+            grpc_server::KeyDistributionRequestResponse *response) override;
+
+
+    // A map from words to their translations.
   absl::flat_hash_map<std::string, std::string> translation_map_;
 
   // An ACL that is enforced on the GetTranslation RPC.
