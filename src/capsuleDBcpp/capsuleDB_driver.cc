@@ -105,7 +105,7 @@ int main(int argc, char *argv[]) {
     std::cout << "Encrypted message1 from driver:" << std::endl
               << GetEnclaveOutputMessage(output).key << std::endl;
 
-    const kvs_payload retrieved = GetEnclaveOutputMessage(output);
+    kvs_payload retrieved = GetEnclaveOutputMessage(output);
     std::cout << "Key Retrieved: " << retrieved.key << " Value Retrieved: " << retrieved.value << "\n"; 
 
 
