@@ -20,12 +20,21 @@ message RetrieveKeyPairResponse {
     optional bytes parent_public_key = 2;
     required uint32 faas_idx = 3; 
   }
-  
-service Translator {
 
+message KeyDistributionRequest{
+    optional bytes assertion_request_for_key_dist = 1;
+    optional string private_key = 2;
+    optional string public_key = 3;
+}
+
+message KeyDistributionRequestResponse{
+    optional bytes assertion=1;
+}
+
+service Translator {
     rpc RetrieveAssertionRequest(RetrieveKeyPairRequest) returns (AssertionRequestAsResponse){}
-    rpc RetrieveKeyPair(AssertionAsKeyRequest) returns (RetrieveKeyPairResponse) {
-    }
+    rpc RetrieveKeyPair(AssertionAsKeyRequest) returns (RetrieveKeyPairResponse) {}
+    rpc KeyDistribution(KeyDistributionRequest) returns (KeyDistributionRequestResponse) {}
 }
 
   

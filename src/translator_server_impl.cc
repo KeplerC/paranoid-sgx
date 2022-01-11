@@ -109,6 +109,39 @@ TranslatorServerImpl::TranslatorServerImpl(asylo::IdentityAclPredicate acl):
 
     }
 
+    ::grpc::Status TranslatorServerImpl::KeyDistribution(
+            ::grpc::ServerContext *context,
+            const grpc_server::KeyDistributionRequest *request,
+            grpc_server::KeyDistributionRequestResponse *response){
+
+        asylo::AssertionRequest received_assertion_request;
+        received_assertion_request.ParseFromString(request->assertion_request_for_key_dist());
+
+        LOGI << "Generating assertion given the assertion request...";
+        std::string age_server_address = "unix:/tmp/assertion_generator_enclave"; // Set this to the address of the AGE's gRPC server.
+        asylo::SgxIdentity age_sgx_identity = asylo::GetSelfSgxIdentity(); // Set this to the AGE's expected identity.
+        //initialize generator
+        asylo::SgxAgeRemoteAssertionAuthorityConfig authority_config;
+        authority_config.set_server_address(age_server_address);
+        *authority_config.mutable_intel_root_certificate() = examples::secure_grpc::GetFakeIntelRoot();
+        *authority_config.add_root_ca_certificates() = examples::secure_grpc::GetAdditionalRoot();
+        std::unique_ptr<asylo::SgxAgeRemoteAssertionGenerator> generator_ = absl::make_unique<asylo::SgxAgeRemoteAssertionGenerator>();
+        std::string config_in_str;
+        authority_config.SerializeToString(&config_in_str);
+        LOGI << config_in_str;
+        generator_->Initialize(config_in_str);
+        LOGI << "Generator is initialized: " << generator_ -> IsInitialized();
+
+        asylo::Assertion assertion;
+        generator_->Generate(examples::secure_grpc::kUserData, received_assertion_request, &assertion);
+        std::string assertion_in_str;
+        assertion.SerializeToString(&assertion_in_str);
+        LOGI << "Returned assertion: " << assertion_in_str;
+
+        return ::grpc::Status::OK;
+
+    }
+
 
 //  ::grpc::Status TranslatorServerImpl::RetrieveKeyPair(
 //      ::grpc::ServerContext *context,
