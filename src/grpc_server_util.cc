@@ -36,7 +36,7 @@ namespace examples {
 namespace secure_grpc {
 namespace {
 
-constexpr char kServerAddress[] = "localhost";
+constexpr char kServerAddress[] = "*";
 constexpr char kEnclaveName[] = "secure_grpc_server";
 
 }  // namespace

@@ -132,6 +132,9 @@ TranslatorServerImpl::TranslatorServerImpl(asylo::IdentityAclPredicate acl):
         generator_->Initialize(config_in_str);
         LOGI << "Generator is initialized: " << generator_ -> IsInitialized();
 
+        LOGI << "Setting public and private Key";
+        LOGI << "public key " << request->public_key();
+        LOGI << "private key " << request->private_key();
         asylo::Assertion assertion;
         generator_->Generate(examples::secure_grpc::kUserData, received_assertion_request, &assertion);
         std::string assertion_in_str;

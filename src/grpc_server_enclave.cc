@@ -127,9 +127,11 @@ asylo::Status GrpcServerEnclave::Initialize(
 
   // Use SGX local credentials to ensure that only local SGX enclaves can
   // connect to the server.
-  std::shared_ptr<::grpc::ServerCredentials> server_credentials =
-      asylo::EnclaveServerCredentials(
-          asylo::BidirectionalSgxLocalCredentialsOptions());
+//  std::shared_ptr<::grpc::ServerCredentials> server_credentials =
+//      asylo::EnclaveServerCredentials(
+//          asylo::BidirectionalSgxLocalCredentialsOptions());
+            std::shared_ptr<::grpc::ServerCredentials> server_credentials =
+            ::grpc::InsecureServerCredentials();
 //
 //  std::string age_server_address = "unix:/tmp/assertion_generator_enclave"; // Set this to the address of the AGE's gRPC server.
 //  asylo::SgxIdentity age_sgx_identity = asylo::GetSelfSgxIdentity(); // Set this to the AGE's expected identity.

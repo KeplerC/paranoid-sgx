@@ -172,8 +172,9 @@ namespace asylo {
                 // enforces that both the client and server authenticate using SGX local
                 // attestation.
                 std::shared_ptr<::grpc::ChannelCredentials> channel_credentials =
-                    EnclaveChannelCredentials(
-                        asylo::BidirectionalSgxLocalCredentialsOptions());
+                        ::grpc::InsecureChannelCredentials();
+//                    EnclaveChannelCredentials(
+//                        asylo::BidirectionalSgxLocalCredentialsOptions());
 
                 // Connect a gRPC channel to the server specified in the EnclaveInput.
                 std::shared_ptr<::grpc::Channel> channel =
