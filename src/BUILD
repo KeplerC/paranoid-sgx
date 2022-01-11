@@ -415,6 +415,8 @@ cc_unsigned_enclave(
     deps=[
         ":capsuleDB_cc_proto",
         ":capsuleEngine",
+        # "@boost//:archive",
+        # "@boost//:serialization",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/synchronization",

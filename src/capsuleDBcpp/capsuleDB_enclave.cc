@@ -2,33 +2,24 @@
 
 #include <string>
 
-#include "absl/base/macros.h"
-#include "absl/status/status.h"
-#include "absl/strings/escaping.h"
-#include "absl/strings/str_cat.h"
-#include "asylo/crypto/aead_cryptor.h"
-#include "asylo/crypto/util/byte_container_view.h"
-#include "asylo/trusted_application.h"
-#include "asylo/util/cleansing_types.h"
-#include "asylo/util/status_macros.h"
-#include "asylo/util/statusor.h"
-
 #include "engine.hh"
 #include "src/capsuleDBcpp/capsuleDB.pb.h"
 
 namespace asylo {
-namespace {
+    namespace {
 
-}  // namespace
+    }  // namespace
 
     Status CapsuleDBClient::Initialize(const EnclaveConfig &config){
-            int blocksize = GetEnclaveBlocksize();
-            db = CapsuleDB(blocksize);
-            return asylo::Status::OkStatus();
-        }
+        LOG(INFO) << "Entered CapsuleDB enclave";
+        // size_t blocksize = GetEnclaveBlocksize(config);
+        size_t blocksize = 50
+        db = CapsuleDB(blocksize);
+        return asylo::Status::OkStatus();
+    }
 
     Status CapsuleDBClient::Run(const EnclaveInput &input, EnclaveOutput *output) {
-        std::string requestedKey = GetEnclaveRequestedKey(input);
+        const std::string requestedKey = GetEnclaveRequestedKey(input);
 
         if (requestedKey == "") {
             kvs_payload payload = GetEnclavePayload(input);
@@ -37,18 +28,11 @@ namespace {
             kvs_payload payload = db.get(requestedKey);
             SetEnclaveOutputPayload(output, payload);
         }
-        }
-        case guide::asylo::Demo::DECRYPT: {
-            CleansingString result;
-            ASYLO_ASSIGN_OR_RETURN(result, DecryptMessage(user_message));
-            SetEnclaveOutputMessage(output, result);
-            break;
-        }
-        
+       
         return absl::OkStatus();
     }
 
-    int32_t CapsuleDBClient::GetEnclaveBlocksize(const EnclaveConfig &config) {
+    int32_t CapsuleDBClient::GetEnclaveBlocksize(const EnclaveLoadConfig &config) {
         return config.GetExtension(capsuleDB::dbConfig).blocksize();
     }
 
@@ -59,18 +43,26 @@ namespace {
 
     // Retrieves user action from |input|.
     kvs_payload CapsuleDBClient::GetEnclavePayload(const EnclaveInput &input) {
-        return input.GetExtension(capsuleDB::capsuleDBEnclaveInput).payload();
+        const capsuleDB::DBRequest::kvs_payload& incoming_payload = input.GetExtension(capsuleDB::capsuleDBEnclaveOutput).payload();
+        kvs_payload kvs;
+        kvs.key = incoming_payload.key();
+        kvs.value = incoming_payload.value();
+        kvs.txn_timestamp = incoming_payload.timestamp();
+        return kvs;
     }
 
     // Populates |enclave_output|->value() with |output_message|. Intended to be
     // used by the reader for completing the exercise.
     void CapsuleDBClient::SetEnclaveOutputPayload(EnclaveOutput *enclave_output,
-                                kvs_payload payload) {
+                                kvs_payload retrieved_payload) {
         capsuleDB::DBRequest *output = enclave_output->MutableExtension(capsuleDB::capsuleDBEnclaveInput);
-        output->set_payload(payload);
+        capsuleDB::DBRequest::kvs_payload new_payload = output->payload();
+        new_payload.set_key(retrieved_payload.key);
+        new_payload.set_value(retrieved_payload.value);
+        new_payload.set_timestamp(retrieved_payload.txn_timestamp);
     }
 
-    TrustedApplication *BuildTrustedApplication() { return new EnclaveDemo; }
+    TrustedApplication *BuildTrustedApplication() { return new CapsuleDBClient; }
 
 }  // namespace asylo
 
