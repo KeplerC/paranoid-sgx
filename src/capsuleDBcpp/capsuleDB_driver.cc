@@ -32,10 +32,10 @@
 ABSL_FLAG(std::string, enclave_path, "", "Path to enclave to load");
 ABSL_FLAG(int32_t, blocksize, 5, "The number of pairs per block");
 
-void SetEnclaveCapsuleDBConfig(asylo::EnclaveLoadConfig *enclave_config, int32_t blocksize) {
-    capsuleDB::CapsuleDBConfig *user_config = enclave_config->MutableExtension(capsuleDB::dbConfig);
-    user_input->set_blocksize(blocksize);
-}
+// void SetEnclaveCapsuleDBConfig(asylo::EnclaveLoadConfig *enclave_config, int32_t blocksize) {
+//     capsuleDB::CapsuleDBConfig *user_config = enclave_config->MutableExtension(capsuleDB::dbConfig);
+//     user_input->set_blocksize(blocksize);
+// }
 
 // Populates |enclave_input|->value() with |user_message|.
 void SetEnclavePayload(asylo::EnclaveInput *enclave_input,
@@ -82,7 +82,7 @@ int main(int argc, char *argv[]) {
     // Set an SGX message extension to load_config.
     *load_config.MutableExtension(asylo::sgx_load_config) = sgx_config;
 
-    SetEnclaveCapsuleDBConfig(load_config, absl::GetFlag(FLAGS_blocksize));
+    // SetEnclaveCapsuleDBConfig(load_config, absl::GetFlag(FLAGS_blocksize));
 
     asylo::EnclaveManager *manager = manager_result.value();
     asylo::Status status = manager->LoadEnclave(load_config);
