@@ -2,16 +2,6 @@ workspace(name = "asylo_examples")
 
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository", "new_git_repository")
-
-git_repository(
-    name = "com_github_nelhage_rules_boost",
-    commit = "fce83babe3f6287bccb45d2df013a309fa3194b8",
-    remote = "https://github.com/nelhage/rules_boost",
-    shallow_since = "1591047380 -0700",
-)
-load("@com_github_nelhage_rules_boost//:boost/boost.bzl", "boost_deps")
-boost_deps()
-
 # Download and use the Asylo SDK.
 
 # http_archive(
@@ -38,19 +28,6 @@ http_archive(
 load("@rules_foreign_cc//foreign_cc:repositories.bzl", "rules_foreign_cc_dependencies")
 
 
-# assimp source code repository
-new_local_repository(
-  name = "assimp",
-  path = "assimp",
-  build_file = "//src:BUILD.assimp",
-)
-
-new_local_repository(
-  name = "fcl",
-  path = "fcl",
-  build_file = "//src:BUILD.fcl",
-)
-
 
 # http_archive(
 #     name = "assimp",
@@ -70,33 +47,6 @@ new_local_repository(
 #     ],
 #     build_file = "//src:BUILD.fcl",
 # )
-
-#eigen3 
-http_archive(
-    name = "eigen",
-    strip_prefix = "eigen-git-mirror-3.3.7",
-    urls = [
-        "https://github.com/eigenteam/eigen-git-mirror/archive/refs/tags/3.3.7.tar.gz",
-    ],
-    sha256 = "a8d87c8df67b0404e97bcef37faf3b140ba467bc060e2b883192165b319cea8d",
-    build_file = "//src:BUILD.eigen",
-)
-
-http_archive(
-    name = "libccd",
-    build_file = "//src:BUILD.libccd",
-    strip_prefix = "libccd-2.1",
-    urls = [
-        "https://github.com/danfis/libccd/archive/refs/tags/v2.1.tar.gz",
-    ],
-)
-
-new_git_repository(
-    name = "nigh",
-    remote = "https://github.com/UNC-Robotics/nigh.git",
-    commit = "157eee0c5748fa6a192c84f46a6d202e10b1710d",
-    build_file = "//src:BUILD.nigh",
-)
 
 http_archive(
     name = "boringssl",
