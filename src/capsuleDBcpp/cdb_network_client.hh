@@ -21,8 +21,7 @@ class CapsuleDBNetworkClient {
         std::unique_ptr <asylo::VerifyingKey> verifying_key;
 
     public:
-        CapsuleDBNetworkClient(size_t blocksize, int id, std::string priv_key, 
-            std::string pub_key, char[] crypto_param); 
+        CapsuleDBNetworkClient(size_t blocksize, int id, char[] crypto_param); 
         void put(hello_world::CapsulePDU inPDU);
         hello_world::CapsulePDU get(std::string requestedKey);
 };

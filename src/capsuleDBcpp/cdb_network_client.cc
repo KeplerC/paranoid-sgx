@@ -10,21 +10,9 @@
 #include "asylo/platform/primitives/trusted_primitives.h"
 
 
-CapsuleDBNetworkClient::CapsuleDBNetworkClient(size_t blocksize, int id, std::string priv_key, 
-    std::string pub_key, char[] seed) {
+CapsuleDBNetworkClient::CapsuleDBNetworkClient(size_t blocksize, int id, char[] seed) {
     db = spawnDB(blocksize);
     this->id = id;
-    this->priv_key = priv_key;
-    this->pub_key = pub_key;
-
-    // ASYLO_ASSIGN_OR_RETURN(
-    //                         *client_output.mutable_key_pair_response(),
-    //                         RetrieveKeyPair(client_input.key_pair_request(), stub.get()));
-
-    //                 RetrieveKeyPairResponse resp = *client_output.mutable_key_pair_response();
-
-    //                 priv_key = resp.private_key();
-    //                 pub_key = resp.public_key();
 
     ASYLO_ASSIGN_OR_RETURN(signing_key, EcdsaP256Sha256SigningKey::CreateFromDer(seed));
     ASYLO_ASSIGN_OR_RETURN(verifying_key, signing_key->GetVerifyingKey());
