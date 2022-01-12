@@ -51,7 +51,7 @@ class CapsuleDBClient : public TrustedApplication {
         const std::string CapsuleDBClient::GetEnclaveRequestedKey(const EnclaveInput &input);
         kvs_payload CapsuleDBClient::GetEnclavePayload(const EnclaveInput &input);
         void CapsuleDBClient::SetEnclaveOutputPayload(EnclaveOutput *enclave_output, kvs_payload payload);
-}
+};
 
 
 } // namespace asylo
