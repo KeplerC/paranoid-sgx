@@ -1,4 +1,5 @@
 #include "zmq_comm.hpp"
+// #define _CAPSULE_DB
 
 [[noreturn]] void zmq_comm::run_server(){
     zmq::context_t context (1);
@@ -80,7 +81,12 @@
             std::string msg = this->recv_string(&socket_from_server);
             // LOG(INFO) << "[Client " << m_addr << "]:  " + msg ;
             // this -> send_string(m_port , socket_send);
+            #ifdef _CAPSULE_DB
+            LOG(INFO) << "[Client " << m_addr << "]:  " + msg ;
+            // this->m_db->handle(dc)
+            #else
             this->m_sgx->send_to_sgx(msg);
+            #endif
         }
     }
 }

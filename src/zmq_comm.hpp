@@ -31,6 +31,8 @@
 // #include "asylo/identity/enclave_assertion_authority_config.proto.h"
 #include "asylo/identity/enclave_assertion_authority_configs.h"
 
+#include "capsuleDBcpp/cdb_network_client.hh"
+
 class zmq_comm {
 public:
     zmq_comm(std::string ip, unsigned thread_id, Asylo_SGX* sgx){
@@ -38,6 +40,13 @@ public:
             m_addr = "tcp://" + ip +":" + m_port;
             m_thread_id = thread_id;
             m_sgx = sgx;
+        }
+
+    zmq_comm(std::string ip, unsigned thread_id, CapsuleDBNetworkClient* db){
+            m_port = std::to_string(NET_CLIENT_BASE_PORT + thread_id);
+            m_addr = "tcp://" + ip +":" + m_port;
+            m_thread_id = thread_id;
+            m_db = db;
         }
 
     [[noreturn]] void run_server();
@@ -51,6 +60,7 @@ private:
     std::string m_seed_server_mcast_port = std::to_string(NET_SERVER_MCAST_PORT);
     unsigned m_thread_id;
     Asylo_SGX* m_sgx;
+    CapsuleDBNetworkClient* m_db;
 
     int m_enclave_seq_number = 0;
     std::vector<std::string> group_addresses;

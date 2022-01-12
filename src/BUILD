@@ -351,6 +351,25 @@ cc_binary(
     ],
 )
 
+# CapsuleDB Integration Targets
+cc_binary(
+    name="capsuleDBIntegTests",
+    srcs=[
+        "zmq_comm.hpp",
+        "zmq_comm.cc",
+        "kvs_include/capsule.h",
+        "util/proto_util.hpp",
+        "util/proto_util.cc",
+        "capsuleDBcpp/test.cc",
+        "common.h",
+        "benchmark.h",
+        "crypto.h",
+    ],
+    deps=[
+        ":networkedCapsuleDB",
+    ],
+)
+
 # cc_library(
 #     name="proto_util",
 #     srcs=[
