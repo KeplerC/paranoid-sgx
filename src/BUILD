@@ -415,6 +415,7 @@ cc_library(
         ":proto_util",
         "@com_google_asylo//asylo/crypto:ecdsa_p256_sha256_signing_key",
         "@com_google_asylo//asylo/crypto:aead_cryptor",
+        "@com_google_asylo//asylo/platform/primitives:trusted_primitives",
     ]
 )
 
