@@ -10,7 +10,7 @@
 
 CapsuleDBNetworkClient::CapsuleDBNetworkClient(size_t blocksize = 50, int id, std::string priv_key, 
     std::string pub_key, std::unique_ptr <asylo::SigningKey> signing_key, std::unique_ptr <asylo::VerifyingKey> verifying_key) {
-    db = CapsuleDB(blocksize);
+    db = spawnDB(blocksize);
     this->id = id;
     this->priv_key = priv_key;
     this->pub_key = pub_key;
@@ -21,24 +21,23 @@ CapsuleDBNetworkClient::CapsuleDBNetworkClient(size_t blocksize = 50, int id, st
 void CapsuleDBNetworkClient::put(const hello_world::CapsulePDU inPDU) {
     // Convert proto to pdu
     capsule_pdu translated;
-    asylo::CapsuleFromProto(translated, inPDU);
+    asylo::CapsuleFromProto(&translated, &inPDU);
     
-    // Verify hashes
-    if(!asylo::verify_hash(&translated)){
-        std::cout << "hash verification failed, not writing to capsuleDB" << endl;
+    // Verify hashe and signature
+    if(!asylo::verify_dc(&translated, &verifying_key)){
+        std::cout << "Verification failed, not writing to CapsuleDB\n";
         return;
     }
 
     // Decrypt pdu paylaod
     if(asylo::decrypt_payload_l(&translated)) {
     // Convert decrypted payload into vector of kvs_payloads
-       for (std::vector<kvs_payload>::iterator it = inPDU->payload_l.begin() ; it != inPDU->payload_l.end(); it++) {
-            // Repeatedly put payloads to db
-             db.put(&it);
-       }
+        for (kvs_payload payload : translated.payload_l) {
+            db.put(&payload);
+        }
     }
     else
-        std::cout <<"Unable to decrypt payload" << endl;
+        std::cout <<"Unable to decrypt payload\n";
     return;
 }
 
@@ -54,7 +53,7 @@ hello_world::CapsulePDU CapsuleDBNetworkClient::get(std::string requestedKey) {
     outgoingVec.push_back(requested);
     
     // Create CapsulePDU
-    capsule_pdu dc* = new capsule_pdu();
+    capsule_pdu* dc = new capsule_pdu();
     asylo::PayloadListToCapsule(dc, &outgoingVec, id);
 
     // Encrypt
@@ -62,7 +61,7 @@ hello_world::CapsulePDU CapsuleDBNetworkClient::get(std::string requestedKey) {
     if (!success) {
         std::cout << "Payload_l encryption failed\n";
         delete dc;
-        return;
+        return nullptr;
     }
 
     // Hash
@@ -70,7 +69,7 @@ hello_world::CapsulePDU CapsuleDBNetworkClient::get(std::string requestedKey) {
     if (!success) {
         std::cout << "Hash generation failed\n";
         delete dc;
-        return;
+        return nullptr;
     }
 
     // Sign
@@ -78,7 +77,7 @@ hello_world::CapsulePDU CapsuleDBNetworkClient::get(std::string requestedKey) {
     if (!success) {
         std::cout << "DC signing failed!\n";
         delete dc;
-        return;
+        return nullptr;
     }
 
     // Convert to proto and return
