@@ -2,13 +2,14 @@
 
 #include <vector>
 #include <iostream>
+#include <memory>
 
 #include "../util/proto_util.hpp"
 #include "../kvs_include/capsule.h"
 
 
 CapsuleDBNetworkClient::CapsuleDBNetworkClient(size_t blocksize = 50, int id, std::string priv_key, 
-    std::string pub_key, std::unique_ptr signing_key, std::unique_ptr <VerifyingKey> verifying_key) {
+    std::string pub_key, std::unique_ptr <asylo::SigningKey> signing_key, std::unique_ptr <asylo::VerifyingKey> verifying_key) {
     db = CapsuleDB(blocksize);
     this->id = id;
     this->priv_key = priv_key;

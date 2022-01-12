@@ -5,6 +5,7 @@
 #include <memory>
 
 #include "asylo/crypto/ecdsa_p256_sha256_signing_key.h"
+#include "asylo/crypto/aead_cryptor.h"
 
 #include "src/proto/hello.pb.h"
 #include "engine.hh"
@@ -16,13 +17,13 @@ class CapsuleDBNetworkClient {
         int id;
         std::string priv_key;
         std::string pub_key;
-        std::unique_ptr <SigningKey> signing_key;
-        std::unique_ptr <VerifyingKey> verifying_key;
+        std::unique_ptr <asylo::SigningKey> signing_key;
+        std::unique_ptr <asylo::VerifyingKey> verifying_key;
 
     public:
         CapsuleDBNetworkClient(size_t blocksize = 50, int id, std::string priv_key, 
-            std::string pub_key, std::unique_ptr signing_key, 
-            std::unique_ptr <VerifyingKey> verifying_key); 
+            std::string pub_key, std::unique_ptr <asylo::SigningKey> signing_key, 
+            std::unique_ptr <asylo::VerifyingKey> verifying_key); 
         void put(hello_world::CapsulePDU inPDU);
         hello_world::CapsulePDU get(std::string requestedKey);
 };
