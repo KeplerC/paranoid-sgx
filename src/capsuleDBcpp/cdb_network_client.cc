@@ -24,7 +24,7 @@ void CapsuleDBNetworkClient::put(const hello_world::CapsulePDU inPDU) {
     asylo::CapsuleFromProto(&translated, &inPDU);
     
     // Verify hashe and signature
-    if(!asylo::verify_dc(&translated, &verifying_key)){
+    if(!asylo::verify_dc(&translated, verifying_key)){
         std::cout << "Verification failed, not writing to CapsuleDB\n";
         return;
     }
@@ -42,6 +42,8 @@ void CapsuleDBNetworkClient::put(const hello_world::CapsulePDU inPDU) {
 }
 
 hello_world::CapsulePDU CapsuleDBNetworkClient::get(std::string requestedKey) {
+    hello_world::CapsulePDU protoDC;
+    
     // Get requested payload from CapsuleDB
     kvs_payload requested = db.get(requestedKey);
     if (requested.key == "") {
@@ -61,7 +63,7 @@ hello_world::CapsulePDU CapsuleDBNetworkClient::get(std::string requestedKey) {
     if (!success) {
         std::cout << "Payload_l encryption failed\n";
         delete dc;
-        return nullptr;
+        return protoDC;
     }
 
     // Hash
@@ -69,7 +71,7 @@ hello_world::CapsulePDU CapsuleDBNetworkClient::get(std::string requestedKey) {
     if (!success) {
         std::cout << "Hash generation failed\n";
         delete dc;
-        return nullptr;
+        return protoDC;
     }
 
     // Sign
@@ -77,11 +79,10 @@ hello_world::CapsulePDU CapsuleDBNetworkClient::get(std::string requestedKey) {
     if (!success) {
         std::cout << "DC signing failed!\n";
         delete dc;
-        return nullptr;
+        return protoDC;
     }
 
     // Convert to proto and return
-    hello_world::CapsulePDU protoDC;
     asylo::CapsuleToProto(dc, &protoDC);
     delete dc;
     return protoDC;

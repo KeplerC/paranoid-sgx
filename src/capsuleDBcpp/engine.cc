@@ -20,9 +20,7 @@
 
 // using namespace asylo;
 
-CapsuleDB::CapsuleDB() {
-
-}
+CapsuleDB::CapsuleDB() {}
 
 /*
  * This function creates a new CapsuleDB instance.  It takes in information about the sizes of levels and other metadata to establish compaction rules.
