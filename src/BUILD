@@ -306,6 +306,8 @@ enclave_loader(
     linkopts = [ "-L/usr/local/lib", "-lzmq" ],
     deps = [
         ":hello_cc_proto",
+        ":translator_server",
+        ":attestation_util",
         "@bip32//:bip32",
         "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/flags:parse",
@@ -317,6 +319,8 @@ enclave_loader(
         "@com_google_asylo//asylo/crypto:sha256_hash_util",
         "@com_google_asylo//asylo/identity:enclave_assertion_authority_configs",
         "@com_google_asylo//asylo/crypto:aead_cryptor",
+        "@com_google_asylo//asylo/grpc/auth:enclave_auth_context",
+        "@com_google_asylo//asylo/grpc/auth:grpc++_security_enclave",
     ],
 )
 
@@ -335,6 +339,8 @@ enclave_loader(
         ":mpl_data",
         ":hello_cc_proto",
         "@bip32//:bip32",
+        ":translator_server",
+        ":attestation_util",
         "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/flags:parse",
         "@com_google_absl//absl/strings",

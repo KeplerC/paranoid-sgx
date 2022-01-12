@@ -57,6 +57,15 @@
 // #include "asylo/identity/enclave_assertion_authority_config.proto.h"
 #include "asylo/identity/enclave_assertion_authority_configs.h"
 
+#include "src/translator_server.grpc.pb.h"
+#include "asylo/grpc/auth/enclave_channel_credentials.h"
+#include "include/grpcpp/grpcpp.h"
+#include "attestation_util.h"
+
+using examples::grpc_server::Translator;
+using examples::grpc_server::RetrieveKeyPairResponse;
+using examples::grpc_server::RetrieveKeyPairRequest;
+
 enum mode_type { RUN_BOTH_CLIENT_AND_SERVER, RUN_CLIENT_ONLY, LISTENER_MODE, COORDINATOR_MODE, JS_MODE, USER_MODE,WORKER_MODE, ROUTER_MODE };
 
 #define PORT_NUM 1234
@@ -446,37 +455,83 @@ unsigned long int get_current_time(){
     return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 }
 int run_user(){
-    zmq::context_t context (1);
-    // socket for join requests
-    std::vector <std::thread> worker_threads;
-    worker_threads.push_back(std::thread(thread_user_receiving_result));
 
-    zmq::socket_t* socket_send  = new  zmq::socket_t( context, ZMQ_PUSH);
-    socket_send -> connect ("tcp://" + std::string(NET_JS_TASK_COORDINATOR_IP) + ":" + std::to_string(NET_COORDINATOR_FROM_USER_PORT));
-//    std::ifstream t("/opt/my-project/src/input.js");
-//    std::stringstream buffer;
-//    buffer << t.rdbuf();
-//    std::string code = buffer.str();
-//    socket_send->send(string_to_message(code));
-    std::string cmd;
-    std::string cmd_buffer = "";
-    bool first_cmd_wait = false;
-    unsigned long int now =get_current_time();
-    while(std::getline(std::cin, cmd)){
-        cmd_buffer += cmd;
-        cmd_buffer += "\n";
-        //buffer the message to reduce traffic
-        if(get_current_time() - now > 5){
-            if(cmd_buffer == cmd && !first_cmd_wait){
-                first_cmd_wait = true;
-                continue;
-            }
-            socket_send->send(string_to_message(cmd_buffer));
-            cmd_buffer = "";
-            first_cmd_wait = true;
-        }
-        now = get_current_time();
-    }
+    std::string server_addr = "localhost:3001";
+    std::shared_ptr<::grpc::ChannelCredentials> channel_credentials =
+            ::grpc::InsecureChannelCredentials();
+
+    // Connect a gRPC channel to the server specified in the EnclaveInput.
+    std::shared_ptr<::grpc::Channel> channel =
+            ::grpc::CreateChannel(server_addr, channel_credentials);
+
+    ::examples::grpc_server::KeyDistributionRequest key_dist_request;
+    key_dist_request.set_private_key("priv_keyyy");
+    key_dist_request.set_public_key("pub_keyyy");
+
+    LOGI << "Generating assertion given the assertion request...";
+    std::string age_server_address = "unix:/tmp/assertion_generator_enclave"; // Set this to the address of the AGE's gRPC server.
+    asylo::SgxIdentity age_sgx_identity = asylo::GetSelfSgxIdentity(); // Set this to the AGE's expected identity.
+    //initialize generator
+    asylo::SgxAgeRemoteAssertionAuthorityConfig authority_config;
+    authority_config.set_server_address(age_server_address);
+    *authority_config.mutable_intel_root_certificate() = examples::secure_grpc::GetFakeIntelRoot();
+    *authority_config.add_root_ca_certificates() = examples::secure_grpc::GetAdditionalRoot();
+    std::unique_ptr<asylo::SgxAgeRemoteAssertionGenerator> generator_ = absl::make_unique<asylo::SgxAgeRemoteAssertionGenerator>();
+    std::string config_in_str;
+    authority_config.SerializeToString(&config_in_str);
+    LOGI << config_in_str;
+    generator_->Initialize(config_in_str);
+    LOGI << "Generator is initialized: " << generator_ -> IsInitialized();
+
+    //make assertion request
+    asylo::AssertionRequest assertion_request;
+    //ASYLO_ASSIGN_OR_RETURN(assertion_request, MakeAssertionRequest({GetFakeIntelRoot()}));
+    assertion_request = std::move(examples::secure_grpc::MakeAssertionRequest({examples::secure_grpc::GetFakeIntelRoot()})).value();
+    std::string assertion_req_in_str;
+    assertion_request.SerializeToString(&assertion_req_in_str);
+    key_dist_request.set_assertion_request_for_key_dist(assertion_req_in_str);
+
+
+    std::unique_ptr <Translator::Stub> stub = Translator::NewStub(channel);
+    LOGI << "Send assertion request";
+    ::grpc::ClientContext context;
+    ::examples::grpc_server::KeyDistributionRequestResponse response;
+
+    stub->KeyDistribution(&context, key_dist_request, &response);
+    sleep(10);
+    return 0;
+//
+//    zmq::context_t context (1);
+//    // socket for join requests
+//    std::vector <std::thread> worker_threads;
+//    worker_threads.push_back(std::thread(thread_user_receiving_result));
+//
+//    zmq::socket_t* socket_send  = new  zmq::socket_t( context, ZMQ_PUSH);
+//    socket_send -> connect ("tcp://" + std::string(NET_JS_TASK_COORDINATOR_IP) + ":" + std::to_string(NET_COORDINATOR_FROM_USER_PORT));
+////    std::ifstream t("/opt/my-project/src/input.js");
+////    std::stringstream buffer;
+////    buffer << t.rdbuf();
+////    std::string code = buffer.str();
+////    socket_send->send(string_to_message(code));
+//    std::string cmd;
+//    std::string cmd_buffer = "";
+//    bool first_cmd_wait = false;
+//    unsigned long int now =get_current_time();
+//    while(std::getline(std::cin, cmd)){
+//        cmd_buffer += cmd;
+//        cmd_buffer += "\n";
+//        //buffer the message to reduce traffic
+//        if(get_current_time() - now > 5){
+//            if(cmd_buffer == cmd && !first_cmd_wait){
+//                first_cmd_wait = true;
+//                continue;
+//            }
+//            socket_send->send(string_to_message(cmd_buffer));
+//            cmd_buffer = "";
+//            first_cmd_wait = true;
+//        }
+//        now = get_current_time();
+//    }
 }
 
 int run_local_dispatcher(){
