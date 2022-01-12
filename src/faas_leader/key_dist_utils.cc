@@ -26,7 +26,7 @@
 #include "include/grpcpp/grpcpp.h"
 #include <hdkeys.h>
 #include <Base58Check.h>
-#include "attestation_util.h"
+#include "../attestation_util.h"
 
 namespace examples {
 namespace secure_grpc {
@@ -43,7 +43,7 @@ KeyDistributionEnclave::KeyDistributionEnclave(asylo::IdentityAclPredicate acl):
    ::grpc::Status KeyDistributionEnclave::RetrieveAssertionRequest(
             ::grpc::ServerContext *context,
             const grpc_server::RetrieveKeyPairRequest *request,
-            grpc_server::AssertionRequest *response){
+            grpc_server::AssertionRequestAsResponse *response){
 
         std::string age_server_address = "unix:/tmp/assertion_generator_enclave"; // Set this to the address of the AGE's gRPC server.
         asylo::SgxIdentity age_sgx_identity = asylo::GetSelfSgxIdentity(); // Set this to the AGE's expected identity.
@@ -74,39 +74,8 @@ KeyDistributionEnclave::KeyDistributionEnclave(asylo::IdentityAclPredicate acl):
 
   ::grpc::Status KeyDistributionEnclave::RetrieveKeyPair(
       ::grpc::ServerContext *context,
-      const grpc_server::RetrieveKeyPairRequest *request,
+      const grpc_server::AssertionAsKeyRequest *request,
       grpc_server::RetrieveKeyPairResponse *response){
-
-    // First, access the authentication properties of the connection through
-    // EnclaveAuthContext.
-    auto auth_context_result = asylo::EnclaveAuthContext::CreateFromAuthContext(
-        *context->auth_context());
-    if (!auth_context_result.ok()) {
-      LOG(ERROR) << "Failed to access authentication context: "
-                << auth_context_result.status();
-      return ::grpc::Status(::grpc::StatusCode::INTERNAL,
-                            "Failed to access authentication context");
-    }
-
-
-    asylo::EnclaveAuthContext auth_context = auth_context_result.ValueOrDie();
-
-    // Now, check whether the peer is authorized to call this RPC.
-    std::string explanation;
-    auto authorized_result = auth_context.EvaluateAcl(acl_, &explanation);
-    if (!authorized_result.ok()) {
-      LOG(INFO) << authorized_result.status();
-      return ::grpc::Status(::grpc::StatusCode::INTERNAL,
-                            "Error occurred while evaluating ACL");
-    }
-
-    if (!authorized_result.ValueOrDie()) {
-    std::string combined_error =
-        absl::StrCat("Peer is unauthorized for GetTranslation: ", explanation);
-    std::cout << combined_error << std::endl;
-    return ::grpc::Status(::grpc::StatusCode::PERMISSION_DENIED,
-                          combined_error);
-    }
         
       LOG(INFO) << "[KVS Coordinator] Generating Key Pair for " << request->identity();
       std::string identity = request->identity();
@@ -135,6 +104,39 @@ KeyDistributionEnclave::KeyDistributionEnclave(asylo::IdentityAclPredicate acl):
       response->set_faas_idx(faas_idx); 
 
       return ::grpc::Status::OK;        
+
+    }
+
+     ::grpc::Status KeyDistributionEnclave::KeyDistribution(
+            ::grpc::ServerContext *context,
+            const grpc_server::KeyDistributionRequest *request,
+            grpc_server::KeyDistributionRequestResponse *response){
+
+        asylo::AssertionRequest received_assertion_request;
+        received_assertion_request.ParseFromString(request->assertion_request_for_key_dist());
+
+        LOGI << "Generating assertion given the assertion request...";
+        std::string age_server_address = "unix:/tmp/assertion_generator_enclave"; // Set this to the address of the AGE's gRPC server.
+        asylo::SgxIdentity age_sgx_identity = asylo::GetSelfSgxIdentity(); // Set this to the AGE's expected identity.
+        //initialize generator
+        asylo::SgxAgeRemoteAssertionAuthorityConfig authority_config;
+        authority_config.set_server_address(age_server_address);
+        *authority_config.mutable_intel_root_certificate() = examples::secure_grpc::GetFakeIntelRoot();
+        *authority_config.add_root_ca_certificates() = examples::secure_grpc::GetAdditionalRoot();
+        std::unique_ptr<asylo::SgxAgeRemoteAssertionGenerator> generator_ = absl::make_unique<asylo::SgxAgeRemoteAssertionGenerator>();
+        std::string config_in_str;
+        authority_config.SerializeToString(&config_in_str);
+        LOGI << config_in_str;
+        generator_->Initialize(config_in_str);
+        LOGI << "Generator is initialized: " << generator_ -> IsInitialized();
+
+        asylo::Assertion assertion;
+        generator_->Generate(examples::secure_grpc::kUserData, received_assertion_request, &assertion);
+        std::string assertion_in_str;
+        assertion.SerializeToString(&assertion_in_str);
+        LOGI << "Returned assertion: " << assertion_in_str;
+
+        return ::grpc::Status::OK;
 
     }
 

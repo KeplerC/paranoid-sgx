@@ -1,2 +1,2 @@
 #!/bin/bash
-bazel run //src:hello_world_sgx_hw -- --mode=6
+bazel run //src:hello_world_sgx_sim --copt=-O3 -- --mode=6

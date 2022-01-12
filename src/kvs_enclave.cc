@@ -171,8 +171,7 @@ namespace asylo {
                 // enforces that both the client and server authenticate using SGX local
                 // attestation.
                 std::shared_ptr<::grpc::ChannelCredentials> channel_credentials =
-                    EnclaveChannelCredentials(
-                        asylo::BidirectionalSgxLocalCredentialsOptions());
+                    ::grpc::InsecureChannelCredentials(); 
 
                 // Connect a gRPC channel to the server specified in the EnclaveInput.
                 std::shared_ptr<::grpc::Channel> channel =
@@ -194,21 +193,9 @@ namespace asylo {
 
                     std::unique_ptr <Translator::Stub> stub = Translator::NewStub(channel);
 
-                    ASYLO_ASSIGN_OR_RETURN(
-                            *client_output.mutable_key_pair_response(),
-                            RetrieveKeyPair(client_input.key_pair_request(), stub.get()));
-
-                    RetrieveKeyPairResponse resp = *client_output.mutable_key_pair_response();
-
-                    std::string _child_priv_key = resp.child_private_key();
-                    std::string _parent_pub_key = resp.parent_public_key();
-                    faas_idx = resp.faas_idx();  
-
-                    enclave_key_pair.setPrivKey(bytes_t(_child_priv_key.begin() + 1, _child_priv_key.end()));
-                    parent_pub_keychain = Coin::HDKeychain(bytes_t(_parent_pub_key.begin(), _parent_pub_key.end()));
-
                     LOGI << "Send assertion request request";
                     ::examples::grpc_server::AssertionRequestAsResponse assertion_request_as_response;
+                    ::grpc::ClientContext context; 
                      ASYLO_RETURN_IF_ERROR(
                              asylo::Status(stub->RetrieveAssertionRequest(&context, client_input.key_pair_request(), &assertion_request_as_response)));
                     LOGI << "Received assertion request: " << assertion_request_as_response.assertion_request();
@@ -241,15 +228,21 @@ namespace asylo {
                     ::examples::grpc_server::AssertionAsKeyRequest assertion_as_key_request;
                     assertion_as_key_request.set_assertion(assertion_in_str);
 
-
-                    RetrieveKeyPairResponse resp;
                     LOGI << "Sent to the verifier ... ";
 
                     ::grpc::ClientContext context_for_key_pair;
-
+                    RetrieveKeyPairResponse resp;
                     ASYLO_RETURN_IF_ERROR(
                             asylo::Status(stub->RetrieveKeyPair(&context_for_key_pair, assertion_as_key_request, &resp)));
 
+                    std::string _child_priv_key = resp.child_private_key();
+                    std::string _parent_pub_key = resp.parent_public_key();
+                    faas_idx = resp.faas_idx();  
+
+                    enclave_key_pair.setPrivKey(bytes_t(_child_priv_key.begin() + 1, _child_priv_key.end()));
+                    parent_pub_keychain = Coin::HDKeychain(bytes_t(_parent_pub_key.begin(), _parent_pub_key.end()));
+
+                    LOGI << "Keys are generated!";
                 }
 #endif
                 HotMsg *hotmsg = (HotMsg *) input.GetExtension(hello_world::enclave_responder).responder();

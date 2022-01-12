@@ -306,6 +306,7 @@ enclave_loader(
     linkopts = [ "-L/usr/local/lib", "-lzmq" ],
     deps = [
         ":hello_cc_proto",
+        "@bip32//:bip32",
         "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/flags:parse",
         "@com_google_absl//absl/strings",

@@ -1,3 +1,4 @@
+#pragma once
 //
 // Created by keplerc on 1/6/22.
 //

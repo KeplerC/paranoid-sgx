@@ -13,6 +13,7 @@ message AssertionRequestAsResponse {
 
 message AssertionAsKeyRequest{
     optional bytes assertion = 1;
+    optional string identity = 2;
   }
 
 message RetrieveKeyPairResponse {

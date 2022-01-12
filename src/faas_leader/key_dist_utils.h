@@ -74,6 +74,11 @@ class KeyDistributionEnclave final : public Translator::Service {
       const grpc_server::AssertionAsKeyRequest *request,
       grpc_server::RetrieveKeyPairResponse *response) override;
 
+  ::grpc::Status KeyDistribution(
+            ::grpc::ServerContext *context,
+            const grpc_server::KeyDistributionRequest *request,
+            grpc_server::KeyDistributionRequestResponse *response) override; 
+
   Coin::HDSeed hdSeed; 
   // An ACL that is enforced on the GetTranslation RPC.
   asylo::IdentityAclPredicate acl_;
