@@ -8,7 +8,7 @@
 #include "../kvs_include/capsule.h"
 
 
-CapsuleDBNetworkClient::CapsuleDBNetworkClient(size_t blocksize = 50, int id, std::string priv_key, 
+CapsuleDBNetworkClient::CapsuleDBNetworkClient(size_t blocksize, int id, std::string priv_key, 
     std::string pub_key, std::unique_ptr <asylo::SigningKey> signing_key, std::unique_ptr <asylo::VerifyingKey> verifying_key) {
     db = spawnDB(blocksize);
     this->id = id;
