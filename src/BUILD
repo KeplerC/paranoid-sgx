@@ -378,6 +378,20 @@ cc_binary(
 #     ]
 # )
 
+cc_library(
+    name="networkedCapsuleDB",
+    srcs=[
+        "capsuleDBcpp/cdb_network_client.cc"
+    ],
+    hdrs = [
+        "capsuleDBcpp/cdb_network_client.hh",
+        "src/proto/capsule.pb.h",
+    ],
+    deps=[
+        ":capsuleEngine"
+    ]
+)
+
 proto_library(
     name = "capsuleDB_proto",
     srcs = [
