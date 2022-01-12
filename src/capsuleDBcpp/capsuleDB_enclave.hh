@@ -27,7 +27,6 @@ namespace asylo {
             Status Initialize(const EnclaveConfig &config);
             Status Run(const asylo::EnclaveInput &input, asylo::EnclaveOutput *output);
 
-        
         private:
             // int m_enclave_id;
             // int64_t m_lamport_timer;

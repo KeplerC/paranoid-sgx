@@ -4,7 +4,7 @@
 /*
  * This file manages the database as well as read/write requests.  
  */
-
+#include <iostream>
 #include <string>
 #include <vector>
 #include <map>

@@ -370,32 +370,32 @@ cc_binary(
     ],
 )
 
-# cc_library(
-#     name="proto_util",
-#     srcs=[
-#         "util/proto_util.cc"
-#     ],
-#     hdrs=[
-#         "util/proto_util.hpp",
-#         "crypto.h",
-#         "capsuleDBcpp/capsuleBlock.hh",
-#         "capsuleDBcpp/index.hh",
-#         "capsuleDBcpp/level.hh",
-#         "kvs_include/capsule.h",
-#         "common.h",
-#         # "proto/hello.pb.h"
-#         "bloom/bloom_filter.hpp",
-#     ],
-#     deps=[
-#         "@boost//:archive",
-#         "@boost//:serialization",
-#         "@com_google_asylo//asylo/crypto:ecdsa_p256_sha256_signing_key",
-#         "@com_google_asylo//asylo/crypto:aead_cryptor",
-#         ":hello_cc_proto",
-#         "@com_google_asylo//asylo/util:logging",
-#         "@com_google_absl//absl/time",
-#     ]
-# )
+cc_library(
+    name="proto_util",
+    srcs=[
+        "util/proto_util.cc"
+    ],
+    hdrs=[
+        "util/proto_util.hpp",
+        "crypto.h",
+        "capsuleDBcpp/capsuleBlock.hh",
+        "capsuleDBcpp/index.hh",
+        "capsuleDBcpp/level.hh",
+        "kvs_include/capsule.h",
+        "common.h",
+        # "proto/hello.pb.h"
+        "bloom/bloom_filter.hpp",
+    ],
+    deps=[
+        "@boost//:archive",
+        "@boost//:serialization",
+        "@com_google_asylo//asylo/crypto:ecdsa_p256_sha256_signing_key",
+        "@com_google_asylo//asylo/crypto:aead_cryptor",
+        ":hello_cc_proto",
+        "@com_google_asylo//asylo/util:logging",
+        "@com_google_absl//absl/time",
+    ]
+)
 
 cc_library(
     name="networkedCapsuleDB",

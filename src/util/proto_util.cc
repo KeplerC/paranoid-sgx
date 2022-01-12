@@ -89,14 +89,14 @@ namespace asylo {
         // verify hash matches
         bool hash_result = verify_hash(dc);
         if (!hash_result) {
-            LOGI << "hash verification failed!!!";
+            std::cout << "hash verification failed!!!";
             return false;
         }
         // LOG(INFO) << "after verify_hash";
         // verify signature
         bool sig_result = verify_signature(dc, verifying_key);
         if (!sig_result) {
-            LOGI << "signature verification failed!!!";
+            std::cout << "signature verification failed!!!";
             return false;
         }
 
@@ -104,14 +104,14 @@ namespace asylo {
         // if (dc->prevHash == "init") return true; // sender's first pdu
         // auto got = m_eoe_hashes->find(dc->sender);
         // if (got == m_eoe_hashes->end()){
-        //     LOGI << "prevHash verification failed!!! expected prevHash not found.";
+        //     std::cout << "prevHash verification failed!!! expected prevHash not found.";
         //     return false;
         // } else {
         //     bool prev_hash_result = got->second.first == dc->prevHash;
         //     if (!prev_hash_result) {
-        //         LOGI << "prevHash verification failed!!!";
-        //         LOGI << "expected: " << got->second.first;
-        //         LOGI << "received: " << dc->prevHash;
+        //         std::cout << "prevHash verification failed!!!";
+        //         std::cout << "expected: " << got->second.first;
+        //         std::cout << "received: " << dc->prevHash;
         //         return false;
         //     }
         // }
@@ -195,7 +195,7 @@ namespace asylo {
     }
 
     void dumpProtoCapsule(const hello_world::CapsulePDU *dcProto){
-        LOGI << "Sender: "<< dcProto->sender() << ", payload_in_transit: " << dcProto->payload_in_transit() << ", Timestamp: " << (int64_t) dcProto->timestamp()
+        std::cout << "Sender: "<< dcProto->sender() << ", payload_in_transit: " << dcProto->payload_in_transit() << ", Timestamp: " << (int64_t) dcProto->timestamp()
                   << ", hash: " << dcProto->hash() << ", prevHash: " << dcProto->prevhash()
                   << ", signature: " << dcProto->signature() << " message type: " << dcProto->msgtype();
     }
