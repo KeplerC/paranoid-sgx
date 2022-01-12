@@ -1,17 +1,28 @@
 #ifndef CDB_NETWORK_CLIENT_H
 #define CDB_NETWORK_CLIENT_H
 
+#include <string>
+#include <memory>
+
+#include "asylo/crypto/ecdsa_p256_sha256_signing_key.h"
+
 #include "src/proto/capsule.pb.h"
 #include "engine.hh"
 
-// Not sure if we need an object here to actually hold a db instance?
 
 class CapsuleDBNetworkClient {
     private:
         CapsuleDB db;
+        int id;
+        std::string priv_key;
+        std::string pub_key;
+        std::unique_ptr <SigningKey> signing_key;
+        std::unique_ptr <VerifyingKey> verifying_key;
 
     public:
-        CapsuleDBNetworkClient(size_t blocksize = 50);
+        CapsuleDBNetworkClient(size_t blocksize = 50, int id, std::string priv_key, 
+            std::string pub_key, std::unique_ptr signing_key, 
+            std::unique_ptr <VerifyingKey> verifying_key); 
         void put(hello_world::CapsulePDU inPDU);
         hello_world::CapsulePDU get(std::string requestedKey);
 };
