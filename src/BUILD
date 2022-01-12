@@ -378,6 +378,22 @@ cc_library(
     ]
 )
 
+cc_library(
+    name="networkedCapsuleDB",
+    srcs=[
+        "capsuleDBcpp/cdb_network_client.cc"
+    ],
+    hdrs = [
+        "capsuleDBcpp/cdb_network_client.hh",
+        "src/proto/capsule.pb.h",
+        "capsuleDBcpp/engine.hh"
+    ],
+    deps=[
+        ":capsuleEngine",
+        ":hello_cc_proto"
+    ]
+)
+
 proto_library(
     name = "capsuleDB_proto",
     srcs = [
@@ -415,6 +431,8 @@ cc_unsigned_enclave(
     deps=[
         ":capsuleDB_cc_proto",
         ":capsuleEngine",
+        # "@boost//:archive",
+        # "@boost//:serialization",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/synchronization",

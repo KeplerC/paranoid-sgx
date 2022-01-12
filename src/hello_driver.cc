@@ -56,7 +56,7 @@
 // #include "asylo/identity/enclave_assertion_authority_config.proto.h"
 #include "asylo/identity/enclave_assertion_authority_configs.h"
 
-enum mode_type { RUN_BOTH_CLIENT_AND_SERVER, RUN_CLIENT_ONLY, LISTENER_MODE, COORDINATOR_MODE, JS_MODE };
+enum mode_type { RUN_BOTH_CLIENT_AND_SERVER, RUN_CLIENT_ONLY, LISTENER_MODE, COORDINATOR_MODE, JS_MODE, CAPSULEDB };
 
 #define PORT_NUM 1234
 
@@ -422,6 +422,10 @@ int run_js() {
     return 0; 
 }
 
+int run_capsuleDB() {
+    return 0;
+}
+
 int main(int argc, char *argv[]) {
   // Part 0: Setup
     absl::ParseCommandLine(argc, argv);
@@ -444,6 +448,9 @@ int main(int argc, char *argv[]) {
         case JS_MODE:
             run_js();
             break; 
+        case CAPSULEDB:
+            run_capsuleDB();
+            break;
         default:
             printf("Mode %d is incorrect\n", mode); 
             return 0; 
