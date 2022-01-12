@@ -386,9 +386,11 @@ cc_library(
     hdrs = [
         "capsuleDBcpp/cdb_network_client.hh",
         "src/proto/capsule.pb.h",
+        "capsuleDBcpp/engine.hh"
     ],
     deps=[
-        ":capsuleEngine"
+        ":capsuleEngine",
+        ":hello_cc_proto"
     ]
 )
 
