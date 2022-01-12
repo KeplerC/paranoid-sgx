@@ -9,13 +9,23 @@
 
 
 CapsuleDBNetworkClient::CapsuleDBNetworkClient(size_t blocksize, int id, std::string priv_key, 
-    std::string pub_key, std::unique_ptr <asylo::SigningKey> signing_key, std::unique_ptr <asylo::VerifyingKey> verifying_key) {
+    std::string pub_key, byte[] crypto_param) {
     db = spawnDB(blocksize);
     this->id = id;
     this->priv_key = priv_key;
     this->pub_key = pub_key;
-    this->signing_key = signing_key;
-    this->verifying_key = verifying_key;
+
+    ASYLO_ASSIGN_OR_RETURN(
+                            *client_output.mutable_key_pair_response(),
+                            RetrieveKeyPair(client_input.key_pair_request(), stub.get()));
+
+                    RetrieveKeyPairResponse resp = *client_output.mutable_key_pair_response();
+
+                    priv_key = resp.private_key();
+                    pub_key = resp.public_key();
+
+    ASYLO_ASSIGN_OR_RETURN(signing_key, EcdsaP256Sha256SigningKey::CreateFromDer(crypto_param));
+    ASYLO_ASSIGN_OR_RETURN(verifying_key, signing_key->GetVerifyingKey());
 }
 
 void CapsuleDBNetworkClient::put(const hello_world::CapsulePDU inPDU) {

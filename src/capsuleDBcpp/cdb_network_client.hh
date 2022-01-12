@@ -22,8 +22,7 @@ class CapsuleDBNetworkClient {
 
     public:
         CapsuleDBNetworkClient(size_t blocksize, int id, std::string priv_key, 
-            std::string pub_key, std::unique_ptr <asylo::SigningKey> signing_key, 
-            std::unique_ptr <asylo::VerifyingKey> verifying_key); 
+            std::string pub_key, byte[] crypto_param); 
         void put(hello_world::CapsulePDU inPDU);
         hello_world::CapsulePDU get(std::string requestedKey);
 };
