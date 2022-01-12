@@ -1,6 +1,7 @@
 #include "cdb_network_client.hh"
 
 #include <vector>
+#include <iostream>
 
 #include "../util/proto_util.hpp"
 #include "../kvs_include/capsule.h"
@@ -16,14 +17,19 @@ CapsuleDBNetworkClient::CapsuleDBNetworkClient(size_t blocksize = 50, int id, st
     this->verifying_key = verifying_key;
 }
 
-void CapsuleDBNetworkClient::put(hello_world::CapsulePDU inPDU) {
+void CapsuleDBNetworkClient::put(const hello_world::CapsulePDU inPDU) {
+    // Convert proto to pdu
+    capsule_pdu translated;
+    asylo::CapsuleFromProto(translated, inPDU);
+    
     // Verify hashes
-     if(!asylo::verify_hash(&inPDU)){
+    if(!asylo::verify_hash(&translated)){
         std::cout << "hash verification failed, not writing to capsuleDB" << endl;
         return;
-     }
-    // Decrypt pdu paylaod (Need to update header file to include key (can just hardcode it))
-    if(asylo::decrypt_payload_l(&inPDU)) {
+    }
+
+    // Decrypt pdu paylaod
+    if(asylo::decrypt_payload_l(&translated)) {
     // Convert decrypted payload into vector of kvs_payloads
        for (std::vector<kvs_payload>::iterator it = inPDU->payload_l.begin() ; it != inPDU->payload_l.end(); it++) {
             // Repeatedly put payloads to db
@@ -51,25 +57,25 @@ hello_world::CapsulePDU CapsuleDBNetworkClient::get(std::string requestedKey) {
     asylo::PayloadListToCapsule(dc, &outgoingVec, id);
 
     // Encrypt
-    bool success = encrypt_payload_l(dc);
+    bool success = asylo::encrypt_payload_l(dc);
     if (!success) {
-        LOGI << "payload_l encryption failed!!!";
+        std::cout << "Payload_l encryption failed\n";
         delete dc;
         return;
     }
 
     // Hash
-    success = generate_hash(dc);
+    success = asylo::generate_hash(dc);
     if (!success) {
-        LOGI << "hash generation failed!!!";
+        std::cout << "Hash generation failed\n";
         delete dc;
         return;
     }
 
     // Sign
-    success = sign_dc(dc, signing_key);
+    success = asylo::sign_dc(dc, signing_key);
     if (!success) {
-        LOGI << "sign dc failed!!!";
+        std::cout << "DC signing failed!\n";
         delete dc;
         return;
     }

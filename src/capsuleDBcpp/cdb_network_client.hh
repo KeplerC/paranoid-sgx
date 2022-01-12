@@ -6,7 +6,7 @@
 
 #include "asylo/crypto/ecdsa_p256_sha256_signing_key.h"
 
-#include "src/proto/capsule.pb.h"
+#include "src/proto/hello.pb.h"
 #include "engine.hh"
 
 

@@ -404,10 +404,10 @@ cc_library(
     ],
     hdrs = [
         "capsuleDBcpp/cdb_network_client.hh",
-        "src/proto/capsule.pb.h",
+        # "proto/hello.pb.h",
         "capsuleDBcpp/engine.hh",
         "kvs_include/capsule.h",
-        "asylo/crypto/ecdsa_p256_sha256_signing_key.h", # Might not need this entry?
+        # "asylo/crypto/ecdsa_p256_sha256_signing_key.h", # Might not need this entry?
     ],
     deps=[
         ":capsuleEngine",
