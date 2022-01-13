@@ -1,15 +1,20 @@
+/* 
+ * This file defines a network interface for CapsuleDB.  It does not include an enclave version of CapsuleDB.
+ */
+
+
 #include "cdb_network_client.hh"
 
 #include <vector>
 #include <iostream>
 #include <memory>
 
+#include "asylo/platform/primitives/trusted_primitives.h"
+#include "absl/strings/string_view.h"
+
 #include "../util/proto_util.hpp"
 #include "../kvs_include/capsule.h"
 #include "engine.hh"
-// #include "asylo/crypto/util/byte_container_view.h"
-#include "asylo/platform/primitives/trusted_primitives.h"
-#include "absl/strings/string_view.h"
 
 
 CapsuleDBNetworkClient::CapsuleDBNetworkClient(size_t blocksize, int id, char seed[]) {
@@ -18,8 +23,6 @@ CapsuleDBNetworkClient::CapsuleDBNetworkClient(size_t blocksize, int id, char se
     this->id = id;
 
     this->setKeys(seed);
-    // signing_key = std::move().value();
-    // ASYLO_ASSIGN_OR_RETURN(verifying_key, signing_key->GetVerifyingKey());
 }
 
 asylo::Status CapsuleDBNetworkClient::setKeys(char seed[]) {
