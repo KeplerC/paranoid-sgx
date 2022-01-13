@@ -6,6 +6,7 @@
 
 #include "../util/proto_util.hpp"
 #include "../kvs_include/capsule.h"
+#include "engine.hh"
 // #include "asylo/crypto/util/byte_container_view.h"
 #include "asylo/platform/primitives/trusted_primitives.h"
 
