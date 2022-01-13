@@ -21,6 +21,8 @@ class CapsuleDBNetworkClient {
         std::unique_ptr <asylo::SigningKey> signing_key;
         std::unique_ptr <asylo::VerifyingKey> verifying_key;
 
+        asylo::Status setKeys(char seed[]);
+
     public:
         CapsuleDBNetworkClient(size_t blocksize, int id, char seed[]); 
         void put(hello_world::CapsulePDU inPDU);

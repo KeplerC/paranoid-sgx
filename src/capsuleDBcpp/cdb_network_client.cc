@@ -9,6 +9,7 @@
 #include "engine.hh"
 // #include "asylo/crypto/util/byte_container_view.h"
 #include "asylo/platform/primitives/trusted_primitives.h"
+#include "absl/strings/string_view.h"
 
 
 CapsuleDBNetworkClient::CapsuleDBNetworkClient(size_t blocksize, int id, char seed[]) {
@@ -16,8 +17,14 @@ CapsuleDBNetworkClient::CapsuleDBNetworkClient(size_t blocksize, int id, char se
     this->db = &instance;
     this->id = id;
 
-    ASYLO_ASSIGN_OR_RETURN(signing_key, asylo::EcdsaP256Sha256SigningKey::CreateFromDer(seed));
-    ASYLO_ASSIGN_OR_RETURN(verifying_key, signing_key->GetVerifyingKey());
+    this->setKeys(seed);
+    // signing_key = std::move().value();
+    // ASYLO_ASSIGN_OR_RETURN(verifying_key, signing_key->GetVerifyingKey());
+}
+
+asylo::Status CapsuleDBNetworkClient::setKeys(char seed[]) {
+    ASYLO_ASSIGN_OR_RETURN(this->signing_key, asylo::EcdsaP256Sha256SigningKey::CreateFromDer(seed));
+    ASYLO_ASSIGN_OR_RETURN(this->verifying_key, signing_key->GetVerifyingKey());
 }
 
 void CapsuleDBNetworkClient::put(const hello_world::CapsulePDU inPDU) {
