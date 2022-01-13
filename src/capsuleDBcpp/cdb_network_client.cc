@@ -11,7 +11,7 @@
 
 
 CapsuleDBNetworkClient::CapsuleDBNetworkClient(size_t blocksize, int id, char seed[]) {
-    db = spawnDB(blocksize);
+    this->db = spawnDB(blocksize);
     this->id = id;
 
     ASYLO_ASSIGN_OR_RETURN(signing_key, asylo::EcdsaP256Sha256SigningKey::CreateFromDer(seed));
