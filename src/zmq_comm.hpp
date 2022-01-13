@@ -26,21 +26,29 @@
 #include "src/proto/hello.pb.h"
 #include "src/util/proto_util.hpp"
 
-#include "asylo_sgx.hpp"
+#define _CAPSULE_DB
+
+#ifndef _CAPSULE_DB
+    #include "asylo_sgx.hpp"
+#else
+    #include "capsuleDBcpp/cdb_network_client.hh"
+#endif
 
 // #include "asylo/identity/enclave_assertion_authority_config.proto.h"
 #include "asylo/identity/enclave_assertion_authority_configs.h"
 
-#include "capsuleDBcpp/cdb_network_client.hh"
+
 
 class zmq_comm {
 public:
+    #ifndef _CAPSULE_DB
     zmq_comm(std::string ip, unsigned thread_id, Asylo_SGX* sgx){
             m_port = std::to_string(NET_CLIENT_BASE_PORT + thread_id);
             m_addr = "tcp://" + ip +":" + m_port;
             m_thread_id = thread_id;
             m_sgx = sgx;
         }
+    #else
 
     zmq_comm(std::string ip, unsigned thread_id, CapsuleDBNetworkClient* db){
             m_port = std::to_string(NET_CLIENT_BASE_PORT + thread_id);
@@ -48,6 +56,7 @@ public:
             m_thread_id = thread_id;
             m_db = db;
         }
+    #endif
 
     [[noreturn]] void run_server();
     [[noreturn]] void run_client();
@@ -59,8 +68,11 @@ private:
     std::string m_seed_server_join_port = std::to_string(NET_SERVER_JOIN_PORT);
     std::string m_seed_server_mcast_port = std::to_string(NET_SERVER_MCAST_PORT);
     unsigned m_thread_id;
-    Asylo_SGX* m_sgx;
-    CapsuleDBNetworkClient* m_db;
+    #ifndef _CAPSULE_DB
+        Asylo_SGX* m_sgx;
+    #else
+        CapsuleDBNetworkClient* m_db;
+    #endif
 
     int m_enclave_seq_number = 0;
     std::vector<std::string> group_addresses;

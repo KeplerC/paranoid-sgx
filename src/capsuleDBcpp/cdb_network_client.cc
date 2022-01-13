@@ -32,14 +32,17 @@ asylo::Status CapsuleDBNetworkClient::setKeys(char seed[]) {
 
 void CapsuleDBNetworkClient::put(const hello_world::CapsulePDU inPDU) {
     // Convert proto to pdu
+    std::cout << "Got into capsuleDB put function" << std::endl;
     capsule_pdu translated;
     asylo::CapsuleFromProto(&translated, &inPDU);
     
     // Verify hashe and signature
+    /*
     if(!asylo::verify_dc(&translated, verifying_key)){
         std::cout << "Verification failed, not writing to CapsuleDB\n";
         return;
     }
+    */
 
     // Decrypt pdu paylaod
     if(asylo::decrypt_payload_l(&translated)) {
@@ -98,4 +101,38 @@ hello_world::CapsulePDU CapsuleDBNetworkClient::get(std::string requestedKey) {
     asylo::CapsuleToProto(dc, &protoDC);
     delete dc;
     return protoDC;
+}
+
+/*
+ * One example of a handler that may or may not be what we want. 
+ */
+void CapsuleDBNetworkClient::handle(const hello_world::CapsulePDU inPDU) {
+    // Convert proto to pdu
+    std::cout << "Got into capsuleDB handle function" << std::endl;
+    capsule_pdu translated;
+    asylo::CapsuleFromProto(&translated, &inPDU);
+    
+    // Verify hash and signature
+    /*
+    if(!asylo::verify_dc(&translated, verifying_key)){
+        std::cout << "Verification failed, not writing to CapsuleDB\n";
+        return;
+    }
+    */
+
+    // Decrypt pdu paylaod
+    if(asylo::decrypt_payload_l(&translated)) {
+    // Convert decrypted payload into vector of kvs_payloads
+        for (kvs_payload payload : translated.payload_l) {
+            if (payload.txn_msgType == "PUT") {
+                db->put(&payload);
+            } else if (payload.txn_msgType == "GET") {
+                // Note: I don't have a backward connection from capsuleDB -> testing coordinator for now, so the return value will be unused.
+                get(payload.key);
+            }
+        }
+    }
+    else
+        std::cout <<"Unable to decrypt payload\n";
+    return;
 }

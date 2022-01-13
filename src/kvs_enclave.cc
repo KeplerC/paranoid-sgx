@@ -57,7 +57,7 @@ namespace asylo {
             // generate hash for update_hash and/or ocall
             bool success = encrypt_payload_l(dc);
             if (!success) {
-                LOGI << "payload_l encryption failed!!!";
+                std::cout << "payload_l encryption failed!!!";
                 delete dc;
                 return;
             }
@@ -65,7 +65,7 @@ namespace asylo {
             // generate hash and update prev_hash
             success = generate_hash(dc);
             if (!success) {
-                LOGI << "hash generation failed!!!";
+                std::cout << "hash generation failed!!!";
                 delete dc;
                 return;
             }
@@ -75,7 +75,7 @@ namespace asylo {
             // sign dc
             success = sign_dc(dc, signing_key);
             if (!success) {
-                LOGI << "sign dc failed!!!";
+                std::cout << "sign dc failed!!!";
                 delete dc;
                 return;
             }
@@ -205,7 +205,7 @@ namespace asylo {
                 return asylo::Status::OkStatus();
             }
             else if (input.HasExtension(hello_world::is_coordinator)) {
-                LOGI << "[Coordinator] Up and Running";
+                std::cout << "[Coordinator] Up and Running";
                 LOG(INFO) << "[Coordinator running]";
                 m_enclave_id = 1;
                 buffer = (HotMsg *) input.GetExtension(hello_world::is_coordinator).circ_buffer();
@@ -347,7 +347,7 @@ namespace asylo {
 
                 numRetries++;
                 if( numRetries > MAX_RETRIES ){
-                    LOGI << "exceeded tries\n";
+                    std::cout << "exceeded tries\n";
                     sgx_spin_unlock( &data_ptr->spinlock );
                     return -1;
                 }
@@ -394,17 +394,17 @@ namespace asylo {
                     m_lamport_timer = std::max(m_lamport_timer, dc->timestamp) + 1;
                     switch(arg->ecall_id){
                         case ECALL_PUT:
-                            LOGI << "[CICBUF-ECALL] transmitted a data capsule pdu";
+                            std::cout << "[CICBUF-ECALL] transmitted a data capsule pdu";
                             if (verify_dc(dc, verifying_key)) {
-                                LOGI << "dc verification successful.";
+                                std::cout << "dc verification successful.";
                             } else {
-                                LOGI << "dc verification failed!!!";
+                                std::cout << "dc verification failed!!!";
                             }
                             // decrypt payload_l
                             if (decrypt_payload_l(dc)) {
-                                LOGI << "dc payload_l decryption successful";
+                                std::cout << "dc payload_l decryption successful";
                             } else {
-                                LOGI << "dc payload_l decryption failed!!!";
+                                std::cout << "dc payload_l decryption failed!!!";
                                 break;
                             }
                             DUMP_CAPSULE(dc);
@@ -421,7 +421,7 @@ namespace asylo {
                                 m_eoe_hashes[dc->sender] = p;
                                 // if EOE from all enclaves received, start sync 
                                 if(m_eoe_hashes.size() == TOTAL_THREADS - 2) { //minus 2 for server thread and coordinator thread
-                                    LOGI << "coordinator received all EOEs, sending report" << serialize_eoe_hashes();
+                                    std::cout << "coordinator received all EOEs, sending report" << serialize_eoe_hashes();
                                     put(COORDINATOR_SYNC_TYPE, serialize_eoe_hashes(), COORDINATOR_SYNC_TYPE);
                                     // clear this epoch's EOE
                                     m_eoe_hashes.clear();
@@ -429,7 +429,7 @@ namespace asylo {
                             }
                             else if (dc->msgType == COORDINATOR_SYNC_TYPE && !is_coordinator ){
                                 compare_eoe_hashes_from_string(dc->payload_l[0].value);
-                                LOGI << "Received the sync report " << serialize_eoe_hashes();
+                                std::cout << "Received the sync report " << serialize_eoe_hashes();
                                 m_prev_hash = dc -> hash;
                                 // the following writes hash points to the prev sync point
                                 std::pair<std::string, int64_t> p;
@@ -448,7 +448,7 @@ namespace asylo {
                             duk_eval_string(ctx, code);
                             break;
                         default:
-                            LOGI << "Invalid ECALL id: %d\n", arg->ecall_id;
+                            std::cout << "Invalid ECALL id: %d\n", arg->ecall_id;
                     }
                     delete dc;
                     primitives::TrustedPrimitives::UntrustedLocalFree(arg);

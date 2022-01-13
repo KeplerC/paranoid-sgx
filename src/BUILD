@@ -355,18 +355,18 @@ cc_binary(
 cc_binary(
     name="capsuleDBIntegTests",
     srcs=[
+        "cdb_test.cc",
         "zmq_comm.hpp",
         "zmq_comm.cc",
         "kvs_include/capsule.h",
-        "util/proto_util.hpp",
-        "util/proto_util.cc",
-        "capsuleDBcpp/test.cc",
         "common.h",
         "benchmark.h",
         "crypto.h",
         "hot_msg_pass.h",
         "sgx_spinlock.h",
+        "asylo_sgx.hpp",
     ],
+    linkopts=["-L/usr/local/lib", "-lzmq"],
     deps=[
         ":networkedCapsuleDB",
         ":capsuleDB_cc_proto",

@@ -9,6 +9,7 @@
     // socket for new mcast messages
     zmq::socket_t socket_msg (context, ZMQ_PULL);
     socket_msg.bind ("tcp://*:" + std::to_string(NET_SERVER_MCAST_PORT));
+    std::cout << "Bound multicast port" << std::endl;
 
 
     //poll join and mcast messages
@@ -37,7 +38,7 @@
         //receive new message to mcast
         if (pollitems[1].revents & ZMQ_POLLIN){
             std::string msg = this->recv_string(&socket_msg);
-            LOGI << "[SERVER] Mcast Message: " + msg ;
+            LOG(INFO) << "[SERVER] Mcast Message: " + msg ;
             //mcast to all the clients
             for (zmq::socket_t* socket : this -> group_sockets) {
                 this->send_string(msg, socket);
@@ -79,13 +80,15 @@
         if (pollitems[0].revents & ZMQ_POLLIN) {
             //Get the address
             std::string msg = this->recv_string(&socket_from_server);
-            // LOG(INFO) << "[Client " << m_addr << "]:  " + msg ;
-            // this -> send_string(m_port , socket_send);
-            #ifdef _CAPSULE_DB
             LOG(INFO) << "[Client " << m_addr << "]:  " + msg ;
-            // this->m_db->handle(dc)
+            #ifdef _CAPSULE_DB
+                // Convert message to protobuf
+                hello_world::CapsulePDU in_dc;
+                in_dc.ParseFromString(msg);
+                // TODO: Change to generic handler instead of only put
+                this->m_db->handle(in_dc);
             #else
-            this->m_sgx->send_to_sgx(msg);
+                this->m_sgx->send_to_sgx(msg);
             #endif
         }
     }

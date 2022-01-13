@@ -71,9 +71,9 @@ void CapsuleDB::put(const kvs_payload *payload)
  */
 kvs_payload CapsuleDB::get(const std::string &key, bool isMulticast /* default is already false from function declaration in engine.hh */)
 {
-    #ifdef DEBUG
+    // #ifdef DEBUG
     std::cout << "GET key=" << key << "\n";
-    #endif
+    // #endif
 
     int level_info;
     std::string block_info, k;
