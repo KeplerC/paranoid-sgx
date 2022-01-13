@@ -35,14 +35,16 @@ class ServerTask(threading.Thread):
                         logs += ("\nrecv," + str(time.time()))
                     if "end" in msg:
                         logs += ("\ndone," + str(time.time()))
+                    if "dcr" in msg:
+                        logs += ("\nack," + str(time.time()))
                     
 
 def serialize_message(code):
     return (return_addr + delimiter + code).encode()
 
 def get_code_from_load():
-    print("running trace A")
-    with open("../YCSB_traces/tracea_load_a.txt") as f:
+    print("running trace A2")
+    with open("../YCSB_traces/tracea_load_a2.txt") as f:
         lines = f.read().split("\n")
     cmd = "print(\"start\"); "
     for line in lines:

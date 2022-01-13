@@ -226,9 +226,11 @@ void Asylo_SGX::send_to_sgx(std::string message){
         LOGI << "Replication Ack received for enclave: " << this->m_name << ", hash: " << in_dc.hash();
         // After receiving ack, worker can discard the dc pdu
         // do nothing for now
-        return; 
+        if (in_dc.hash() != "END_HASH") {
+            return; 
+        }
     }
-    if(in_dc.sender() == std::stoi(this->m_name)){
+    else if(in_dc.sender() == std::stoi(this->m_name) || in_dc.msgtype() == REPLICATION_ACK){
         return;
     }
     capsule_pdu *dc = new capsule_pdu();

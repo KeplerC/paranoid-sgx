@@ -37,6 +37,10 @@ namespace asylo {
 
         void KVSClient::put(std::string key, std::string value, std::string msgType = "") {
             m_lamport_timer += 1;
+            if (key == "6546342200096381") {
+                msgType = "Benchmark_End";
+            }
+
             kvs_payload payload;
             asylo::KvToPayload(&payload, key, value, m_lamport_timer, msgType);
             DUMP_PAYLOAD((&payload));
@@ -106,6 +110,10 @@ namespace asylo {
             if(update_hash)
                 update_client_hash(dc);
 
+            if (dc->msgType == "Benchmark_End") {
+                dc->hash = "END_HASH";
+            }
+ 
             // send dc
             put_ocall(dc);
             
@@ -410,6 +418,11 @@ namespace asylo {
                             case ECALL_PUT:
                                 LOGI << "[CICBUF-ECALL] transmitted a data capsule pdu";
 				DUMP_CAPSULE(dc);
+                                if (dc->msgType == REPLICATION_ACK && dc->hash == "END_HASH") {
+                                    put("psl_return", "dcr_ack", "PSL_RET");
+                                    break;
+                                }
+
                                 if (verify_dc(dc, verifying_key)) {
                                     LOGI << "dc verification successful.";
                                 } else {
