@@ -9,6 +9,7 @@
 
 #include "src/proto/hello.pb.h"
 #include "engine.hh"
+#include "asylo/client.h"
 
 
 class CapsuleDBNetworkClient {
