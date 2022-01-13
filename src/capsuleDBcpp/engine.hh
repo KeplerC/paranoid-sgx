@@ -35,7 +35,7 @@ class CapsuleDB {
         Memtable memtable;
         CapsuleIndex index;
         
-        CapsuleDB();
+        CapsuleDB() {}
         kvs_payload get(const std::string &key, bool isMulticast = false);
         void put(const kvs_payload *payload);
         

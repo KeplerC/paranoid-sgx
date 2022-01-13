@@ -14,7 +14,7 @@
 
 class CapsuleDBNetworkClient {
     private:
-        CapsuleDB db;
+        CapsuleDB* db;
         int id;
         std::string priv_key;
         std::string pub_key;

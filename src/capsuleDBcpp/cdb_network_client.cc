@@ -11,7 +11,8 @@
 
 
 CapsuleDBNetworkClient::CapsuleDBNetworkClient(size_t blocksize, int id, char seed[]) {
-    this->db = spawnDB(blocksize);
+    CapsuleDB instance = spawnDB(blocksize);
+    this->db = &instance;
     this->id = id;
 
     ASYLO_ASSIGN_OR_RETURN(signing_key, asylo::EcdsaP256Sha256SigningKey::CreateFromDer(seed));
@@ -33,7 +34,7 @@ void CapsuleDBNetworkClient::put(const hello_world::CapsulePDU inPDU) {
     if(asylo::decrypt_payload_l(&translated)) {
     // Convert decrypted payload into vector of kvs_payloads
         for (kvs_payload payload : translated.payload_l) {
-            db.put(&payload);
+            db->put(&payload);
         }
     }
     else
@@ -45,7 +46,7 @@ hello_world::CapsulePDU CapsuleDBNetworkClient::get(std::string requestedKey) {
     hello_world::CapsulePDU protoDC;
     
     // Get requested payload from CapsuleDB
-    kvs_payload requested = db.get(requestedKey);
+    kvs_payload requested = db->get(requestedKey);
     if (requested.key == "") {
         std::cout << "Key not present in CapsuleDB\n";
     }
