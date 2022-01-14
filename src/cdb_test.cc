@@ -109,7 +109,7 @@ int run_capsuleDB() {
     // TODO: Add benchmark here
     // Can run benchmark function generated from the YCSB traces!
     // benchmark();
-    // benchmark_put("testkey", "testvalue");
+    benchmark_put("testkey", "testvalue");
     benchmark_get("testkey");
 
     sleep(1 * 1000 * 1000);

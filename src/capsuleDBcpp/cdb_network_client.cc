@@ -26,7 +26,16 @@ CapsuleDBNetworkClient::CapsuleDBNetworkClient(size_t blocksize, int id, char se
 }
 
 asylo::Status CapsuleDBNetworkClient::setKeys(char seed[]) {
-    ASYLO_ASSIGN_OR_RETURN(this->signing_key, asylo::EcdsaP256Sha256SigningKey::CreateFromDer(seed));
+    const absl::string_view signing_key_pem = {
+                R"pem(-----BEGIN EC PRIVATE KEY-----
+    MHcCAQEEIF0Z0yrz9NNVFQU1754rHRJs+Qt04mr3vEgNok8uyU8QoAoGCCqGSM49
+    AwEHoUQDQgAE2M/ETD1FV9EFzZBB1+emBFJuB1eh2/XyY3ZdNrT8lq7FQ0Z6ENdm
+    oG+ldQH94d6FPkRWOMwY+ppB+SQ8XnUFRA==
+    -----END EC PRIVATE KEY-----)pem"
+    };
+
+    // signing_key = asylo::EcdsaP256Sha256SigningKey::CreateFromPem(signing_key_pem);
+    ASYLO_ASSIGN_OR_RETURN(this->signing_key, asylo::EcdsaP256Sha256SigningKey::CreateFromPem(signing_key_pem));
     ASYLO_ASSIGN_OR_RETURN(this->verifying_key, signing_key->GetVerifyingKey());
 }
 
