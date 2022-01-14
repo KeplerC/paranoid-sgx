@@ -47,6 +47,38 @@ After entering the docker, run the application:
 ```
 The dockerfile for building `keplerc/paranoid-asylo:latest` is located in `./docker`.  
 
+### Run simple JS in SGX 
+After entering the docker, run 
+```bash
+bazel run //src:hello_world_sgx_sim -- --mode 4 --input_file "/opt/my-project/src/input.js"
+```
+
+### Run JS demo with PSL stack
+It's better to start three terminals with the same docker container using 
+```bash
+docker exec -it YOURCONTAINERNAME bash
+```
+the name can be found using `docker ps`. 
+
+Then you can start  
+```
+(four different terminals)
+# start sync server
+bazel run //src:hello_world_sgx_sim -- --mode=7
+
+# start workers 
+bazel run //src:hello_world_sgx_sim -- --mode=6
+
+# start job dispatcher 
+bazel run //src:hello_world_sgx_sim -- --mode=3
+
+# run benchmark
+apt install python3-pip
+pip3 install zmq
+cd frontend 
+python3 run_benchmark.py
+```
+
 
 ## Introduction
 

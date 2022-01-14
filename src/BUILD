@@ -30,93 +30,6 @@ package(
     default_visibility = ["//visibility:public"],
 )
 
-cc_library(
-    name = "mpl_data",
-    data = [
-        "src/mplambda/resources/se3/Twistycool_env.dae",
-        "src/mplambda/resources/se3/Twistycool_robot.dae"
-    ],
-)
-
-cc_library(
-    name = "mpl_hdrs",
-    hdrs = glob(["mplambda/include/**"]),
-    includes = ["mplambda/include", "kvs_include"],
-)
-
-cc_binary(
-    name = "mp_coordinator.so",
-    srcs = [
-        "mplambda/src/mpl_coordinator.cpp",
-        "mplambda/src/mpl/write_queue.cpp",
-    ],
-    copts = ["-std=c++17"],
-    deps = [
-        ":mpl_hdrs",
-        "@eigen//:eigen3",
-    ]
-)
-
-debug_sign_enclave(
-    name = "mp_lambda_enclave.so",
-    config = ":grpc_client_config",
-    unsigned = "mp_lambda.so",
-)
-
-cc_unsigned_enclave(
-    name = "mp_lambda.so",
-    srcs = [
-        "mplambda/src/mpl_lambda_pseudo.cpp",
-        "mplambda/src/mpl/comm.cpp",
-        "mplambda/src/mpl/write_queue.cpp",
-        "mplambda/src/mpl/demo/lambda_common.cpp",
-        "mplambda/src/mpl/demo/app_options.cpp",
-        ],
-    deps = [
-        ":hello_cc_proto",
-        "@com_google_asylo//asylo:enclave_runtime",
-        ":mpl_hdrs",
-        "@eigen//:eigen3",
-        "@nigh//:nigh",
-        "@libccd//:libccd",
-        "@fcl//:fcl",
-        "@assimp//:assimp",
-    ],
-    copts = ASYLO_DEFAULT_COPTS,
-)
-
-enclave_loader(
-    name = "lambda_driver",
-    srcs = ["lambda_driver.cc"],
-    copts = ASYLO_DEFAULT_COPTS,
-    enclaves = {"enclave": ":mp_lambda_enclave.so"},
-    loader_args = [
-        "--enclave_path='{enclave}'",
-        "--coordinator=localhost",
-        "--algorithm=rrt", 
-        "--scenario se3",
-        "--start=0,0,0,1,270,160,-200",
-        "--goal=0,0,0,1,270,160,-400",
-        "--min=53.46,-21.25,-476.86",
-        "--max=402.96,269.25,-91.0",
-        "--robot Twistycool_robot.dae",
-        "--time_limit 60",
-        "--env Twistycool_env.dae",
-        ],
-    deps = [
-        ":hello_cc_proto",
-        "@com_google_asylo//asylo:enclave_client",
-        "@com_google_asylo//asylo/identity/platform/sgx:sgx_identity_cc_proto",
-        "@com_google_asylo//asylo/util:logging",
-        "@com_google_asylo//asylo/util:proto_flag",
-        "@com_google_asylo//asylo/util:status",
-        "@com_google_absl//absl/flags:flag",
-        "@com_google_absl//absl/flags:parse",
-        "@com_google_absl//absl/time",
-        "@com_google_protobuf//:protobuf",
-    ],
-)
-
 # Example for using the Asylo framework.
 
 proto_library(
@@ -464,6 +377,7 @@ cc_proto_library(
 #     ]
 # )
 
+
 cc_unsigned_enclave(
     name = "capsuleDB_enclave_unsigned.so",
     srcs = [
@@ -535,42 +449,35 @@ enclave_loader(
 
 # End CapsuleDB build targets
 
+cc_library( 
+    name = "mpl_hdrs",
+    includes = ["mplambda/include", "kvs_include"],
+)
+
 cc_unsigned_enclave(
-    name="hello_enclave_unsigned.so",
-    srcs=[
-        "kvs_enclave.cc",
-        "kvs_include/kvs_enclave.hpp",
-        "kvs_eapp.cc",
-        "kvs_eapp.hpp",
-        "memtable.hpp",
-        "memtable.cc",
-        "kvs_include/capsule.h",
-        "util/proto_util.hpp",
-        "util/proto_util.cc",
-        "hot_msg_pass.h",
-        "common.h",
-        "benchmark.h",
-        "crypto.h",
-        "pqueue.hpp",
-        "pqueue.cc"] + [
-        #"mplambda/src/mpl_lambda_pseudo.cpp",
-        "mplambda/src/mpl/comm.cpp",
-        "mplambda/src/mpl/write_queue.cpp",
-        "mplambda/src/mpl/demo/lambda_common.cpp",
-        "mplambda/src/mpl/demo/app_options.cpp",
-    ],
-    backends=sgx.backend_labels,  # Has SGX identity dependencies
-    deps=[
+    name = "hello_enclave_unsigned.so",
+    srcs = [
+        "kvs_enclave.cc", 
+        "kvs_include/kvs_enclave.hpp", 
+        "kvs_eapp.cc", 
+        "kvs_eapp.hpp", 
+        "memtable.hpp", 
+        "memtable.cc", 
+        "kvs_include/capsule.h", 
+        "util/proto_util.hpp", 
+        "util/proto_util.cc", 
+        "hot_msg_pass.h", 
+        "common.h", 
+        "benchmark.h", 
+        "crypto.h", 
+        "pqueue.hpp", 
+        "pqueue.cc"],
+    backends = sgx.backend_labels,  # Has SGX identity dependencies
+    deps = [
         ":hello_cc_proto",
-        ":mpl_hdrs",
-        ":mpl_data",
-        "@eigen//:eigen3",
-        "@nigh//:nigh",
-        "@libccd//:libccd",
-        "@fcl//:fcl",
-        "@assimp//:assimp",
         ":duktape",
         ":translator_server",
+        "mpl_hdrs",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/synchronization",
@@ -589,7 +496,7 @@ cc_unsigned_enclave(
         "@com_google_asylo//asylo/grpc/auth:sgx_local_credentials_options",
         "@com_github_grpc_grpc//:grpc++",
         "@com_google_absl//absl/time",
-    ],
+    ], 
 )
 
 debug_sign_enclave(
@@ -673,24 +580,10 @@ enclave_loader(
     loader_args=[
         "--enclave_path='{enclave}'",
         "--mode=3",
-        "--hosts=localhost,35.247.29.237",
-
-        # Fetch params
-        "--scenario fetch",
-        "--algorithm cforest",
-        "--coordinator=localhost",
-        "--env AUTOLAB.dae",
-        "--env_frame=0.57,-0.90,0.00,0,0,-1.570796326794897",
-        "--goal=-1.07,0.16,0.88,0,0,0",
-        "--goal_radius=0.01,0.01,0.01,0.01,0.01,3.141592653589793",
-        "--start=0.1,1.570796326794897,1.570796326794897,0,1.570796326794897,0,1.570796326794897,0",
-        "--time_limit 300",
-        "--check_resolution 0.01",
-        "--jobs 1",
-    ],
-    linkopts=["-L/usr/local/lib", "-lzmq"],
-    deps=[
-        ":mpl_data",
+        "--hosts=localhost,35.247.29.237", 
+        ],
+    linkopts = [ "-L/usr/local/lib", "-lzmq" ],
+    deps = [
         ":hello_cc_proto",
         "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/flags:parse",
@@ -712,11 +605,10 @@ enclave_loader(
     enclaves={"enclave": ":hello_enclave.so"},
     loader_args=[
         "--enclave_path='{enclave}'",
-        "--mode=2",
-    ],
-    linkopts=["-L/usr/local/lib", "-lzmq"],
-    deps=[
-        ":mpl_data",
+        "--mode=2", 
+        ],
+    linkopts = [ "-L/usr/local/lib", "-lzmq" ],
+    deps = [
         ":hello_cc_proto",
         "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/flags:parse",
@@ -739,11 +631,10 @@ enclave_loader(
     enclaves={"enclave": ":hello_enclave.so"},
     loader_args=[
         "--enclave_path='{enclave}'",
-        "--mode=4",
-    ],
-    linkopts=["-L/usr/local/lib", "-lzmq"],
-    deps=[
-        ":mpl_data",
+        "--mode=4", 
+        ],
+    linkopts = [ "-L/usr/local/lib", "-lzmq" ],
+    deps = [
         ":hello_cc_proto",
         "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/flags:parse",

@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: psl
+  labels:
+    app: psl
+spec:
+  containers:
+  - name: server
+    image: keplerc/paranoid-asylo:standalone
+    args:
+    - "./scripts/run-server.sh"
+    imagePullPolicy: IfNotPresent
+  - name: coordinator
+    image: keplerc/paranoid-asylo:standalone
+    args:
+    - "./scripts/run-coordinator.sh"
+    imagePullPolicy: IfNotPresent
+    ports:
+      - containerPort: 3005
+  - name: worker
+    image: keplerc/paranoid-asylo:standalone
+    args:
+    - "./scripts/run-worker.sh"
+    imagePullPolicy: IfNotPresent

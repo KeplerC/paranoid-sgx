@@ -4,7 +4,7 @@
 #include "asylo/crypto/util/byte_container_util.h"
  
  ABSL_FLAG(std::string, enclave_path, "", "Path to enclave to load");
- ABSL_FLAG(std::string, input_file, "", "JS input file to execute!");
+
 
 static void* StartEnclaveResponder( void* hotMsgAsVoidP ) {
 
@@ -42,10 +42,14 @@ static void *StartOcallResponder( void *arg ) {
     zmq::context_t context (1);
     // to router
     zmq::socket_t* socket_ptr  = new  zmq::socket_t( context, ZMQ_PUSH);
-    socket_ptr -> connect ("tcp://" + std::string(NET_SEED_SERVER_IP) + ":6667");
+    socket_ptr -> connect ("tcp://" + std::string(NET_SEED_ROUTER_IP) + ":6667");
     // to sync server
     zmq::socket_t* socket_ptr_to_sync  = new  zmq::socket_t( context, ZMQ_PUSH);
-    socket_ptr_to_sync -> connect ("tcp://" + std::string(NET_SYNC_SERVER_IP) +":" + std::to_string(NET_SYNC_SERVER_PORT));
+    socket_ptr_to_sync -> connect ("tcp://" + std::string(NET_SEED_ROUTER_IP) +":" + std::to_string(NET_SYNC_SERVER_PORT));
+
+    zmq::socket_t* socket_ptr_for_result  = new  zmq::socket_t( context, ZMQ_PUSH);
+    socket_ptr_for_result -> connect ("tcp://" + std::string(NET_SEED_ROUTER_IP) +":" + std::to_string(NET_SERVER_RESULT_PORT));
+
 
     while( true )
     {
@@ -62,12 +66,15 @@ static void *StartOcallResponder( void *arg ) {
 
         if(data_ptr->data){
             //Message exists!
+            LOGI << "[CICBUF-OCALL] received data";
+
             std::string in_s((char *) data_ptr->data, data_ptr->size);
             free(data_ptr->data); // allocated using malloc
 
             hello_world::CapsulePDU in_dc;
             in_dc.ParseFromString(in_s);
-
+            capsule_pdu *dc = new capsule_pdu();
+            asylo::CapsuleFromProto(dc, &in_dc);
             switch(data_ptr->ocall_id){
             case OCALL_PUT: {
                 // TODO: we do everything inside of the lock, this is slow
@@ -81,7 +88,12 @@ static void *StartOcallResponder( void *arg ) {
                 memcpy(msg.data(), out_s.c_str(), out_s.size());
                 if(in_dc.msgtype() == COORDINATOR_EOE_TYPE){
                     socket_ptr_to_sync->send(msg);
-                }else {
+                }
+                if(in_dc.msgtype() == "PSL_RET"){
+                    LOGI << "Sending PSL_RET " << out_s;
+                    socket_ptr_for_result -> send(msg);
+                }
+                else {
                     socket_ptr->send(msg);
                 }
                 break;
@@ -129,12 +141,14 @@ unsigned long int Asylo_SGX::getTimeStamp(){
 }
 
 void Asylo_SGX::run_code(std::string *code){
+    LOGI << "Preparing JS arguments";
     EcallParams *args = (EcallParams *) malloc(sizeof(OcallParams));
     args->ecall_id = ECALL_RUN;
     args->data = (char *) code->c_str(); 
     args->data = (char *) calloc(code->size()+1, sizeof(char));
-    memcpy(args->data, code->c_str(), code->size()); 
+    memcpy(args->data, code->c_str(), code->size());
     HotMsg_requestECall( circ_buffer_enclave, requestedCallID++, args);
+    LOGI << "run code routine end";
 }
 
 void Asylo_SGX::put_ecall(capsule_pdu *dc) {
@@ -250,20 +264,22 @@ void Asylo_SGX::execute_mpl(){
     }
 }
 
-void Asylo_SGX::execute_js(){
-
-    std::string input_js = absl::GetFlag(FLAGS_input_file);
+void Asylo_SGX::execute_js_file(std::string input_file){
+    //
+    std::string input_js = input_file;
     std::ifstream t(input_js);
     std::stringstream buffer;
     buffer << t.rdbuf();
-
     std::string code = buffer.str();
-
-    LOG(INFO) << code; 
-
     // Execute JS file 
     run_code(&code);
+    //Sleep so that threads have time to process ALL requests
+    sleep(1);
+    return;
+}
 
+void Asylo_SGX::execute_js_code(std::string code){
+    run_code(&code);
     //Sleep so that threads have time to process ALL requests
     sleep(1);
     return;
@@ -278,19 +294,20 @@ void Asylo_SGX::execute(){
     input.MutableExtension(hello_world::buffer)->set_buffer((long int) circ_buffer_host);
     input.MutableExtension(hello_world::buffer)->set_enclave_id(m_name);
     *(input.MutableExtension(hello_world::crypto_param)->mutable_key()) = asylo::CopyToByteContainer<std::string>(serialized_signing_key);
+    //Load server/port
+    input.MutableExtension(hello_world::kvs_server_config)->set_server_address(NET_KEY_DIST_SERVER_IP);
+    input.MutableExtension(hello_world::kvs_server_config)->set_port(NET_KEY_DIST_SERVER_PORT);
 
-
+    LOGI << "executing fake client";
     asylo::Status status = this->client->EnterAndRun(input, &output);
     if (!status.ok()) {
         LOG(QFATAL) << "EnterAndRun failed: " << status;
     }
 
-    //Load server/port
-    input.MutableExtension(hello_world::kvs_server_config)->set_server_address(NET_KEY_DIST_SERVER_IP);
-    input.MutableExtension(hello_world::kvs_server_config)->set_port(NET_KEY_DIST_SERVER_PORT);
 
     //Sleep so that threads have time to process ALL requests
     sleep(1);
+
 }
 
 void Asylo_SGX::finalize(){

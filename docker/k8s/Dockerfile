@@ -18,7 +18,8 @@ RUN apt-get update && \
         ocaml-nox \
         ocamlbuild \
         protobuf-compiler \
-        python \
+        python3 \
+        python3-pip \
         wget && \
     tar -C /tmp -xzf /tmp/sgx_2.4.tar.gz && \
     cd /tmp/linux-sgx-sgx_2.4 && \
@@ -50,9 +51,10 @@ ENV PATH=${PATH}:/opt/intel/sgxsdk/bin:/opt/intel/sgxsdk/bin/x64
 
 RUN apt-get install -y libzmq3-dev
 
+RUN pip3 install zmq
 
 WORKDIR /
-RUN git clone https://${USER}:${PASS}@github.com/KeplerC/paranoid-sgx.git -b dev-mpl
+ADD paranoid-sgx /paranoid-sgx
 WORKDIR /paranoid-sgx
-
-CMD ["/bin/bash"]
+RUN bazel build //src:hello_world_sgx_sim  -- 
+CMD ["./scripts/run-worker.sh"]

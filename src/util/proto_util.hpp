@@ -32,7 +32,7 @@ bool sign_dc(capsule_pdu *dc, const std::unique_ptr <SigningKey> &signing_key);
 
 bool verify_dc(const capsule_pdu *dc, const std::unique_ptr <VerifyingKey> &verifying_key);
 
-bool encrypt_payload_l(capsule_pdu *dc);
+bool encrypt_payload_l(capsule_pdu *dc, bool encryption_need);
 
 bool decrypt_payload_l(capsule_pdu *dc);
 
