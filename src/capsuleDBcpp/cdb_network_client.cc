@@ -83,7 +83,7 @@ hello_world::CapsulePDU CapsuleDBNetworkClient::get(std::string requestedKey) {
     asylo::PayloadListToCapsule(dc, &outgoingVec, id);
 
     // Encrypt
-    bool success = asylo::encrypt_payload_l(dc);
+    bool success = asylo::encrypt_payload_l(dc, true);
     if (!success) {
         std::cout << "Payload_l encryption failed\n";
         delete dc;

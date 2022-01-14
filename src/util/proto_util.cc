@@ -5,6 +5,7 @@
 // TODO: currently we get timestamp by ocall, we need optimization here
 #include <sys/time.h>
 #include "../crypto.h"
+#include "../common.h"
 
 std::string delim_str = "@@@";
 char delim = ';';
