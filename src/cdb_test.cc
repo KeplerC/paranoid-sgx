@@ -19,12 +19,14 @@ std::unique_ptr <asylo::SigningKey> signing_key;
 zmq::message_t gen_payload(const std::string &key, const std::string &value, bool isPut) {
     kvs_payload payload;
     std::vector<kvs_payload> payload_l;
+    int64_t currTime = std::chrono::system_clock::to_time_t(
+                           std::chrono::system_clock::now());
 
     // TODO: Formally define msgType
     if (isPut) {
-        asylo::KvToPayload(&payload, key, value, 0, "PUT");
+        asylo::KvToPayload(&payload, key, value, currTime, "PUT");
     } else {
-        asylo::KvToPayload(&payload, key, value, 0, "GET");
+        asylo::KvToPayload(&payload, key, value, currTime, "GET");
     }
     payload_l.push_back(payload);
 
@@ -110,7 +112,7 @@ int run_capsuleDB() {
     // Can run benchmark function generated from the YCSB traces!
     // benchmark();
     // benchmark_put("testkey", "testvalue");
-    benchmark_get("testkey");
+	benchmark_get("3945957134849834");
 
     sleep(1 * 1000 * 1000);
     return 0; 
