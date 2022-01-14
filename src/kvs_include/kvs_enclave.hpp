@@ -39,6 +39,7 @@
 
 #include "../pqueue.hpp"
  
+ using examples::grpc_server::Translator;
  namespace asylo {
    
    class KVSClient : public asylo::TrustedApplication {
@@ -70,7 +71,10 @@
         Coin::HDKeychain parent_pub_keychain;
         uint32_t faas_idx; 
         std::unordered_map<int, secp256k1_key> enclave_worker_keys;
+        uint8_t encryption_key[16];
 
+        asylo::Status ConnectKDE(std::string server_addr, int32_t port);
+        asylo::Status InitializeKeys(std::string identity,  std::shared_ptr<::grpc::Channel> channel);
 
         void put_internal(capsule_pdu *dc, bool to_memtable, bool update_hash, bool to_network);
         std::string serialize_eoe_hashes();

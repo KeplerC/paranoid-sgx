@@ -22,6 +22,7 @@
 
 #define USE_KEY_MANAGER
 
+ using examples::grpc_server::Translator;
 namespace asylo {
         // void KVSClient::put(std::string key, std::string value, bool to_memtable = true, bool update_hash = true, bool to_network = true) {
         //     m_lamport_timer += 1;
@@ -64,7 +65,7 @@ namespace asylo {
                 encryption_needed = false;
             }
 
-            success = encrypt_payload_l(dc, encryption_needed);
+            success = encrypt_payload_l(dc, encryption_needed, encryption_key);
             if (!success) {
                 LOGI << "payload_l encryption failed!!!";
                 delete dc;
@@ -82,6 +83,7 @@ namespace asylo {
             m_prev_hash = dc->hash;
             // sign dc
             success = sign_dc(dc, enclave_key_pair, faas_idx);
+            LOGI << "sign_dc: " << faas_idx;
             if (!success) {
                 LOGI << "sign dc failed!!!";
                 delete dc;
@@ -135,6 +137,107 @@ namespace asylo {
             return asylo::Status::OkStatus();
         }
 
+        asylo::Status KVSClient::InitializeKeys(std::string identity, std::shared_ptr<::grpc::Channel> channel){
+
+            hello_world::GrpcClientEnclaveInput client_input;
+            std::unique_ptr <Translator::Stub> stub = Translator::NewStub(channel);
+
+            LOGI << "Send assertion request request";
+            ::examples::grpc_server::AssertionRequestAsResponse assertion_request_as_response;
+            ::grpc::ClientContext context; 
+                ASYLO_RETURN_IF_ERROR(
+                        asylo::Status(stub->RetrieveAssertionRequest(&context, client_input.key_pair_request(), &assertion_request_as_response)));
+            LOGI << "Received assertion request: ";
+
+            asylo::AssertionRequest received_assertion_request;
+            received_assertion_request.ParseFromString(assertion_request_as_response.assertion_request());
+
+            LOGI << "Generating assertion given the assertion request...";
+            std::string age_server_address = "unix:/tmp/assertion_generator_enclave"; // Set this to the address of the AGE's gRPC server.
+            asylo::SgxIdentity age_sgx_identity = asylo::GetSelfSgxIdentity(); // Set this to the AGE's expected identity.
+            //initialize generator
+            asylo::SgxAgeRemoteAssertionAuthorityConfig authority_config;
+                authority_config.set_server_address(age_server_address);
+                *authority_config.mutable_intel_root_certificate() = examples::secure_grpc::GetFakeIntelRoot();
+                *authority_config.add_root_ca_certificates() = examples::secure_grpc::GetAdditionalRoot();
+            std::unique_ptr<asylo::SgxAgeRemoteAssertionGenerator> generator_ = absl::make_unique<asylo::SgxAgeRemoteAssertionGenerator>();
+            std::string config_in_str;
+            authority_config.SerializeToString(&config_in_str);
+            generator_->Initialize(config_in_str);
+            LOGI << "Generator is initialized: " << generator_ -> IsInitialized();
+
+            asylo::Assertion assertion;
+            generator_->Generate(examples::secure_grpc::kUserData, received_assertion_request, &assertion);
+            std::string assertion_in_str;
+            assertion.SerializeToString(&assertion_in_str);
+
+            ::examples::grpc_server::AssertionAsKeyRequest assertion_as_key_request;
+            assertion_as_key_request.set_assertion(assertion_in_str);
+            assertion_as_key_request.set_identity(identity);
+
+            LOGI << "Sent to the verifier ... ";
+
+            ::grpc::ClientContext context_for_key_pair;
+            RetrieveKeyPairResponse resp;
+            ASYLO_RETURN_IF_ERROR(
+                    asylo::Status(stub->RetrieveKeyPair(&context_for_key_pair, assertion_as_key_request, &resp)));
+
+            std::string _child_priv_key = resp.child_private_key();
+            std::string _parent_pub_key = resp.parent_public_key();
+            std::string _encryption_key = resp.encryption_key();
+            std::vector<uint8_t> enc_key_vec(_encryption_key.begin(), _encryption_key.end());
+
+            faas_idx = resp.faas_idx();  
+
+            enclave_key_pair.setPrivKey(bytes_t(_child_priv_key.begin() + 1, _child_priv_key.end()));
+            parent_pub_keychain = Coin::HDKeychain(bytes_t(_parent_pub_key.begin(), _parent_pub_key.end()));
+
+            //Initialize encryption key
+            assert(enc_key_vec.size() == 16);
+            for(int i = 0; i < 16; i++){
+                encryption_key[i] = enc_key_vec[i];
+            }
+
+            LOGI << "Keys are generated!";
+            return asylo::Status::OkStatus();
+        }
+
+        asylo::Status KVSClient::ConnectKDE(std::string server_addr, int32_t port){
+
+            if (server_addr.empty()) {
+                return absl::InvalidArgumentError(
+                    "Input must provide a non-empty server address");
+            }
+
+            server_addr = absl::StrCat(server_addr, ":", port);
+
+            LOG(INFO) << "Configured with KVS Address: " << server_addr;
+
+            // The ::grpc::ChannelCredentials object configures the channel authentication
+            // mechanisms used by the client and server. This particular configuration
+            // enforces that both the client and server authenticate using SGX local
+            // attestation.
+            std::shared_ptr<::grpc::ChannelCredentials> channel_credentials =
+                ::grpc::InsecureChannelCredentials(); 
+
+            // Connect a gRPC channel to the server specified in the EnclaveInput.
+            std::shared_ptr<::grpc::Channel> channel =
+                ::grpc::CreateChannel(server_addr, channel_credentials);
+
+            gpr_timespec absolute_deadline = gpr_time_add(
+                gpr_now(GPR_CLOCK_REALTIME),
+                gpr_time_from_micros(absl::ToInt64Microseconds(kChannelDeadline),
+                                    GPR_TIMESPAN));
+            if (!channel->WaitForConnected(absolute_deadline)) {
+                LOG(INFO) << "Failed to connect to server";  
+                return absl::InternalError("Failed to connect to server");
+            } else {
+                LOG(INFO) << "Successfully connected to server";
+                InitializeKeys("client", channel);
+            }
+            return asylo::Status::OkStatus();
+        }
+
         // Fake client
         asylo::Status KVSClient::Run(const asylo::EnclaveInput &input,
                           asylo::EnclaveOutput *output) {
@@ -155,95 +258,8 @@ namespace asylo {
                 
 #ifdef USE_KEY_MANAGER
                 std::string server_addr = input.GetExtension(hello_world::kvs_server_config).server_address();
-        
-                if (server_addr.empty()) {
-                    return absl::InvalidArgumentError(
-                        "Input must provide a non-empty server address");
-                }
-
                 int32_t port = input.GetExtension(hello_world::kvs_server_config).port();
-                server_addr = absl::StrCat(server_addr, ":", port);
-
-                LOG(INFO) << "Configured with KVS Address: " << server_addr;
-
-                // The ::grpc::ChannelCredentials object configures the channel authentication
-                // mechanisms used by the client and server. This particular configuration
-                // enforces that both the client and server authenticate using SGX local
-                // attestation.
-                std::shared_ptr<::grpc::ChannelCredentials> channel_credentials =
-                    ::grpc::InsecureChannelCredentials(); 
-
-                // Connect a gRPC channel to the server specified in the EnclaveInput.
-                std::shared_ptr<::grpc::Channel> channel =
-                    ::grpc::CreateChannel(server_addr, channel_credentials);
-
-                gpr_timespec absolute_deadline = gpr_time_add(
-                    gpr_now(GPR_CLOCK_REALTIME),
-                    gpr_time_from_micros(absl::ToInt64Microseconds(kChannelDeadline),
-                                        GPR_TIMESPAN));
-                if (!channel->WaitForConnected(absolute_deadline)) {
-                    LOG(INFO) << "Failed to connect to server";  
-
-                    //return absl::InternalError("Failed to connect to server");
-                } else {
-                    LOG(INFO) << "Successfully connected to server";
-
-                    hello_world::GrpcClientEnclaveInput client_input;
-                    hello_world::GrpcClientEnclaveOutput client_output;
-
-                    std::unique_ptr <Translator::Stub> stub = Translator::NewStub(channel);
-
-                    LOGI << "Send assertion request request";
-                    ::examples::grpc_server::AssertionRequestAsResponse assertion_request_as_response;
-                    ::grpc::ClientContext context; 
-                     ASYLO_RETURN_IF_ERROR(
-                             asylo::Status(stub->RetrieveAssertionRequest(&context, client_input.key_pair_request(), &assertion_request_as_response)));
-                    LOGI << "Received assertion request: " << assertion_request_as_response.assertion_request();
-
-                     asylo::AssertionRequest received_assertion_request;
-                     received_assertion_request.ParseFromString(assertion_request_as_response.assertion_request());
-
-                     LOGI << "Generating assertion given the assertion request...";
-                      std::string age_server_address = "unix:/tmp/assertion_generator_enclave"; // Set this to the address of the AGE's gRPC server.
-                      asylo::SgxIdentity age_sgx_identity = asylo::GetSelfSgxIdentity(); // Set this to the AGE's expected identity.
-                      //initialize generator
-                      asylo::SgxAgeRemoteAssertionAuthorityConfig authority_config;
-                        authority_config.set_server_address(age_server_address);
-                        *authority_config.mutable_intel_root_certificate() = examples::secure_grpc::GetFakeIntelRoot();
-                        *authority_config.add_root_ca_certificates() = examples::secure_grpc::GetAdditionalRoot();
-                      std::unique_ptr<asylo::SgxAgeRemoteAssertionGenerator> generator_ = absl::make_unique<asylo::SgxAgeRemoteAssertionGenerator>();
-                      std::string config_in_str;
-                      authority_config.SerializeToString(&config_in_str);
-                      LOGI << config_in_str;
-                      generator_->Initialize(config_in_str);
-                      LOGI << "Generator is initialized: " << generator_ -> IsInitialized();
-
-                     asylo::Assertion assertion;
-                     generator_->Generate(examples::secure_grpc::kUserData, received_assertion_request, &assertion);
-                     std::string assertion_in_str;
-                     assertion.SerializeToString(&assertion_in_str);
-                     LOGI << "Returned assertion: " << assertion_in_str;
-
-
-                    ::examples::grpc_server::AssertionAsKeyRequest assertion_as_key_request;
-                    assertion_as_key_request.set_assertion(assertion_in_str);
-
-                    LOGI << "Sent to the verifier ... ";
-
-                    ::grpc::ClientContext context_for_key_pair;
-                    RetrieveKeyPairResponse resp;
-                    ASYLO_RETURN_IF_ERROR(
-                            asylo::Status(stub->RetrieveKeyPair(&context_for_key_pair, assertion_as_key_request, &resp)));
-
-                    std::string _child_priv_key = resp.child_private_key();
-                    std::string _parent_pub_key = resp.parent_public_key();
-                    faas_idx = resp.faas_idx();  
-
-                    enclave_key_pair.setPrivKey(bytes_t(_child_priv_key.begin() + 1, _child_priv_key.end()));
-                    parent_pub_keychain = Coin::HDKeychain(bytes_t(_parent_pub_key.begin(), _parent_pub_key.end()));
-
-                    LOGI << "Keys are generated!";
-                }
+                ConnectKDE(server_addr, port);
 #endif
                 HotMsg *hotmsg = (HotMsg *) input.GetExtension(hello_world::enclave_responder).responder();
                 EnclaveMsgStartResponder(hotmsg);
@@ -258,6 +274,12 @@ namespace asylo {
                 // ideally, coordinator is a special form of client
                 // it does not keep special information, it should maintain the same level of information as other clients
 
+#ifdef USE_KEY_MANAGER
+                std::string server_addr = input.GetExtension(hello_world::kvs_server_config).server_address();
+                int32_t port = input.GetExtension(hello_world::kvs_server_config).port();
+                ConnectKDE(server_addr, port);
+                LOG(INFO) << "[Coordinator finished] " << faas_idx;
+#endif
                 sleep(3);
 
                 while (true){
@@ -456,10 +478,10 @@ namespace asylo {
                                 if (verify_dc(enclave_worker_keys, dc, parent_pub_keychain)) {
                                     LOGI << "dc verification successful.";
                                 } else {
-                                    LOGI << "dc verification failed!!!";
+                                    LOGI << "dc verification failed!!!" << " " << "faas_idx: " << faas_idx << " dc->faas_idx: " << dc->faas_idx;
                                 }
                                 // decrypt payload_l
-                                if (decrypt_payload_l(dc)) {
+                                if (decrypt_payload_l(dc, encryption_key)) {
                                     LOGI << "dc payload_l decryption successful";
                                 } else {
                                     LOGI << "dc payload_l decryption failed!!!";

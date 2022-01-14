@@ -451,6 +451,38 @@ void thread_user_receiving_result(){
     }
 }
 
+int run_worker(){
+    std::unique_ptr <asylo::SigningKey> signing_key(std::move(asylo::EcdsaP256Sha256SigningKey::CreateFromPem(
+            signing_key_pem)).ValueOrDie());
+
+    // std::unique_ptr <asylo::SigningKey> signing_key = asylo::EcdsaP256Sha256SigningKey::Create().ValueOrDie();
+    asylo::CleansingVector<uint8_t> serialized_signing_key;
+    ASSIGN_OR_RETURN(serialized_signing_key,
+                     signing_key->SerializeToDer());
+
+    std::vector <std::thread> worker_threads;
+    //unsigned long int now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+
+    int num_threads = 4; //# of worker = num_threads - 2
+
+    worker_threads.push_back(std::thread(thread_run_zmq_router, 0));
+
+    for (unsigned thread_id = START_CLIENT_ID; thread_id < num_threads; thread_id++) {
+        //unsigned thread_id = 2;
+        Asylo_SGX* sgx = new Asylo_SGX( std::to_string(thread_id), serialized_signing_key);
+        sgx->init();
+        sleep(2);
+
+        worker_threads.push_back(std::thread(thread_start_coordinator, sgx));
+        worker_threads.push_back(std::thread(thread_run_zmq_js_client, thread_id, sgx));
+        worker_threads.push_back(std::thread(thread_start_fake_client, sgx));
+        sleep(1);
+    }
+    sleep(1000);
+
+    return 0;
+}
+
 unsigned long int get_current_time(){
     return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 }
@@ -464,9 +496,16 @@ int run_user(){
     std::shared_ptr<::grpc::Channel> channel =
             ::grpc::CreateChannel(server_addr, channel_credentials);
 
+    constexpr uint8_t kAesKey128[] = {0x1, 0x01, 0x02, 0x03, 0x04, 0x05,
+                                        0x06, 0x07, 0x08, 0x09, 0x10, 0x11,
+                                        0x12, 0x13, 0x14, 0x15};
+    std::string encryption_key(kAesKey128, kAesKey128+16); 
+
+    // Initialize request to 3rd party coordinator
     ::examples::grpc_server::KeyDistributionRequest key_dist_request;
-    key_dist_request.set_private_key("priv_keyyy");
-    key_dist_request.set_public_key("pub_keyyy");
+    key_dist_request.set_owner_private_key("fffcf9f6f3f0edeae7e4e1dedbd8d5d2cfccc9c6c3c0bdbab7b4b1aeaba8a5a29f9c999693908d8a8784817e7b7875726f6c696663605d5a5754514e4b484542");
+    key_dist_request.set_encryption_key(encryption_key);
+    key_dist_request.set_identity("client");
 
     LOGI << "Generating assertion given the assertion request...";
     std::string age_server_address = "unix:/tmp/assertion_generator_enclave"; // Set this to the address of the AGE's gRPC server.
@@ -498,6 +537,7 @@ int run_user(){
     ::examples::grpc_server::KeyDistributionRequestResponse response;
 
     stub->KeyDistribution(&context, key_dist_request, &response);
+    run_worker(); 
     sleep(10);
     return 0;
 //
@@ -607,42 +647,6 @@ int run_local_dispatcher(){
         }
 
     }
-
-    return 0;
-}
-
-int run_worker(){
-//    std::unique_ptr <asylo::SigningKey> signing_key = asylo::EcdsaP256Sha256SigningKey::Create().ValueOrDie();
-//    asylo::CleansingVector<uint8_t> serialized_signing_key;
-//    ASSIGN_OR_RETURN(serialized_signing_key,
-//                     signing_key->SerializeToDer());
-    std::unique_ptr <asylo::SigningKey> signing_key(std::move(asylo::EcdsaP256Sha256SigningKey::CreateFromPem(
-            signing_key_pem)).ValueOrDie());
-
-    // std::unique_ptr <asylo::SigningKey> signing_key = asylo::EcdsaP256Sha256SigningKey::Create().ValueOrDie();
-    asylo::CleansingVector<uint8_t> serialized_signing_key;
-    ASSIGN_OR_RETURN(serialized_signing_key,
-                     signing_key->SerializeToDer());
-
-    std::vector <std::thread> worker_threads;
-    //unsigned long int now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-
-    int num_threads = 4; //# of worker = num_threads - 2
-
-    worker_threads.push_back(std::thread(thread_run_zmq_router, 0));
-
-    for (unsigned thread_id = START_CLIENT_ID; thread_id < num_threads; thread_id++) {
-        //unsigned thread_id = 2;
-        Asylo_SGX* sgx = new Asylo_SGX( std::to_string(thread_id), serialized_signing_key);
-        sgx->init();
-        sleep(2);
-
-//        worker_threads.push_back(std::thread(thread_start_coordinator, sgx));
-        worker_threads.push_back(std::thread(thread_run_zmq_js_client, thread_id, sgx));
-        worker_threads.push_back(std::thread(thread_start_fake_client, sgx));
-        sleep(1);
-    }
-    sleep(1000);
 
     return 0;
 }

@@ -35,8 +35,8 @@ const uchar_vector SEED("fffcf9f6f3f0edeae7e4e1dedbd8d5d2cfccc9c6c3c0bdbab7b4b1a
 
 KeyDistributionEnclave::KeyDistributionEnclave(asylo::IdentityAclPredicate acl): 
       Service(),
-      acl_(std::move(acl)),
-      hdSeed(SEED) {
+      acl_(std::move(acl))
+      {
         Coin::HDKeychain::setVersions(0x0488ADE4, 0x0488B21E);
       }
 
@@ -80,16 +80,18 @@ KeyDistributionEnclave::KeyDistributionEnclave(asylo::IdentityAclPredicate acl):
       LOG(INFO) << "[KVS Coordinator] Generating Key Pair for " << request->identity();
       std::string identity = request->identity();
 
-      if(client_state.find(identity) == client_state.end()) {
-        // Initialize client state if not found
-        client_state[identity] = {hdSeed.getMasterKey(), hdSeed.getMasterChainCode(), {}, {}, {}, {}, 0, 0 };
-
+      if(client_state.find(identity) != client_state.end() && !client_state[identity].initialized) {
+        // Client state found
+        Coin::HDSeed hdSeed(client_state[identity].owner_private_key);
+        client_state[identity].master_key = hdSeed.getMasterKey();
+        client_state[identity].master_chain_code = hdSeed.getMasterChainCode();
         client_state[identity].kde_prv = Coin::HDKeychain(client_state[identity].master_key, client_state[identity].master_chain_code);
         client_state[identity].kde_pub = client_state[identity].kde_prv.getPublic();
 
         client_state[identity].hardened_prv_child = client_state[identity].kde_prv.getChild(P(client_state[identity].hardened_child_index++));
         client_state[identity].hardened_pub_child = client_state[identity].hardened_prv_child.getPublic(); 
-      }
+        client_state[identity].initialized = true; 
+      } 
 
       int faas_idx = client_state[identity].grand_child_index++;
       Coin::HDKeychain grand_child = client_state[identity].hardened_prv_child.getChild(faas_idx);
@@ -98,9 +100,11 @@ KeyDistributionEnclave::KeyDistributionEnclave(asylo::IdentityAclPredicate acl):
 
       std::vector<unsigned char> serialized_parent_key = client_state[identity].hardened_pub_child.extkey();
       std::string pub_key(serialized_parent_key.begin(), serialized_parent_key.end());
+      std::string encryption_key(client_state[identity].encryption_key, client_state[identity].encryption_key + 16);
 
       response->set_child_private_key(prv_key);        
       response->set_parent_public_key(pub_key);
+      response->set_encryption_key(encryption_key);
       response->set_faas_idx(faas_idx); 
 
       return ::grpc::Status::OK;        
@@ -135,6 +139,24 @@ KeyDistributionEnclave::KeyDistributionEnclave(asylo::IdentityAclPredicate acl):
         std::string assertion_in_str;
         assertion.SerializeToString(&assertion_in_str);
         LOGI << "Returned assertion: " << assertion_in_str;
+
+        std::string owner_private_key = request->owner_private_key(); 
+        std::string identity = request->identity();
+        std::string encryption_key = request->encryption_key(); 
+        std::vector<uint8_t> myVector(encryption_key.begin(), encryption_key.end());
+
+        if(client_state.find(identity) == client_state.end()) {
+          client_state[identity] = {bytes_t(owner_private_key.begin(), owner_private_key.end()), {}, {}, {}, {}, {}, {}, 0, 0, {}, false};
+
+          //Initialize encryption key
+          assert(myVector.size() == 16);
+          for(int i = 0; i < 16; i++){
+            client_state[identity].encryption_key[i] = myVector[i];
+          }
+
+        } else {
+          LOG(INFO) << "CLIENT " << identity << " ALREADY CREATED!"; 
+        }
 
         return ::grpc::Status::OK;
 

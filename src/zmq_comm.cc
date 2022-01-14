@@ -128,8 +128,8 @@
     zmq::socket_t socket_code (context, ZMQ_PULL);
     socket_code.bind ("tcp://*:" + m_recv_code_port);
 
-    LOG(INFO) << "tcp://" + m_seed_server_ip + ":" + m_seed_server_mcast_port;
-    LOG(INFO) << "tcp://" + m_seed_server_ip + ":" + m_seed_server_join_port;
+    LOGI << "tcp://" + m_seed_server_ip + ":" + m_seed_server_mcast_port;
+    LOGI << "tcp://" + m_seed_server_ip + ":" + m_seed_server_join_port;
 
     // poll for new messages
     std::vector<zmq::pollitem_t> pollitems = {

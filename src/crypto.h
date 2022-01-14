@@ -10,11 +10,6 @@
 #include "asylo/crypto/sha256_hash.h"
 
 namespace asylo{
-    // Dummy 128-bit AES key.
-    constexpr uint8_t kAesKey128[] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05,
-    0x06, 0x07, 0x08, 0x09, 0x10, 0x11,
-    0x12, 0x13, 0x14, 0x15};
-
     // Helper function that adapts absl::BytesToHexString, allowing it to be used
     // with ByteContainerView.
     std::string BytesToHexString(ByteContainerView bytes) {
@@ -50,7 +45,7 @@ namespace asylo{
 
     // Encrypts a message against `kAesKey128` and returns a 12-byte nonce followed
     // by authenticated ciphertext, encoded as a hex string.
-    const StatusOr <std::string> EncryptMessage(const std::string &message) {
+    const StatusOr <std::string> EncryptMessage(const std::string &message, const asylo::ByteContainerView kAesKey128) {
        std::unique_ptr <AeadCryptor> cryptor;
        ASYLO_ASSIGN_OR_RETURN(cryptor,
                               AeadCryptor::CreateAesGcmSivCryptor(kAesKey128));
@@ -68,7 +63,8 @@ namespace asylo{
     }
     
     const StatusOr <std::string> DecryptMessage(
-           const std::string &nonce_and_ciphertext) {
+           const std::string &nonce_and_ciphertext, 
+           const asylo::ByteContainerView kAesKey128) {
        std::string input_bytes = absl::HexStringToBytes(nonce_and_ciphertext);
     
        std::unique_ptr <AeadCryptor> cryptor;

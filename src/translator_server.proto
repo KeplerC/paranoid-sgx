@@ -20,12 +20,14 @@ message RetrieveKeyPairResponse {
     optional bytes child_private_key = 1;
     optional bytes parent_public_key = 2;
     required uint32 faas_idx = 3; 
+    optional string encryption_key = 4;
   }
 
 message KeyDistributionRequest{
     optional bytes assertion_request_for_key_dist = 1;
-    optional string private_key = 2;
-    optional string public_key = 3;
+    required string owner_private_key = 2;
+    optional string encryption_key = 3;
+    required string identity = 4; 
 }
 
 message KeyDistributionRequestResponse{

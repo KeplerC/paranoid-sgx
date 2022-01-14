@@ -35,9 +35,9 @@ bool verify_dc_hd_wallet(std::unordered_map<int, secp256k1_key> enclave_worker_k
 
 bool verify_dc(std::unordered_map<int, secp256k1_key> enclave_worker_keys, const capsule_pdu *dc, const Coin::HDKeychain& key);
 
-bool encrypt_payload_l(capsule_pdu *dc, bool encryption_need);
+bool encrypt_payload_l(capsule_pdu *dc, bool encryption_needed, const asylo::ByteContainerView kAesKey128);
 
-bool decrypt_payload_l(capsule_pdu *dc);
+bool decrypt_payload_l(capsule_pdu *dc, const asylo::ByteContainerView kAesKey128);
 
 void KvToPayload(kvs_payload *payload, const std::string &key, const std::string &value, const int64_t timer,
                     const std::string &msgType);

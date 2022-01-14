@@ -44,6 +44,7 @@ enum key_state {KEY_PAIR_INVALID,  KEY_PAIR_VALID};
 
 
 struct key_pair {
+    bytes_t owner_private_key; 
     bytes_t master_key;
     bytes_t master_chain_code;
     //Master keypair 
@@ -55,6 +56,9 @@ struct key_pair {
     //Index for child/grandchild kids 
     uint64_t hardened_child_index; 
     uint64_t grand_child_index; 
+
+    uint8_t encryption_key[16];
+    bool initialized; 
 };
 
 class KeyDistributionEnclave final : public Translator::Service {
@@ -79,7 +83,6 @@ class KeyDistributionEnclave final : public Translator::Service {
             const grpc_server::KeyDistributionRequest *request,
             grpc_server::KeyDistributionRequestResponse *response) override; 
 
-  Coin::HDSeed hdSeed; 
   // An ACL that is enforced on the GetTranslation RPC.
   asylo::IdentityAclPredicate acl_;
   std::unordered_map<std::string, struct key_pair> client_state;
