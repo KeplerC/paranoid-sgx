@@ -33,7 +33,7 @@ zmq::message_t gen_payload(const std::string &key, const std::string &value, boo
     // Create and encrypt DC
     capsule_pdu *dc = new capsule_pdu();
     asylo::PayloadListToCapsule(dc, &payload_l, 0);
-    asylo::encrypt_payload_l(dc);
+    asylo::encrypt_payload_l(dc, true);
     asylo::generate_hash(dc);
     // The line below seg faults (:
     // asylo::sign_dc(dc, signing_key);
@@ -70,12 +70,12 @@ void benchmark_get(const std::string &key) {
 
 // Spawn various network clients
 void thread_run_zmq_server(unsigned thread_id){
-    zmq_comm zs = zmq_comm(NET_SEED_SERVER_IP, thread_id, nullptr);
+    zmq_comm zs = zmq_comm(NET_SEED_SERVER_IP, thread_id, nullptr, nullptr);
     zs.run_server();
 }
 
 void thread_run_zmq_client(unsigned thread_id, CapsuleDBNetworkClient* db){
-    zmq_comm zs = zmq_comm(NET_CLIENT_IP, thread_id, db);
+    zmq_comm zs = zmq_comm(NET_CLIENT_IP, thread_id, db, nullptr);
     zs.run_client();
 }
 

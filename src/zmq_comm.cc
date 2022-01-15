@@ -1,5 +1,5 @@
 #include "zmq_comm.hpp"
-// #define _CAPSULE_DB
+#define _CAPSULE_DB
 
 [[noreturn]] void zmq_comm::run_server(){
     zmq::context_t context (1);

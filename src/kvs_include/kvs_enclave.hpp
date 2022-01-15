@@ -20,7 +20,9 @@
 #include "../common.h"
 #include "../duktape/duktape.h"
 #include "../pqueue.hpp"
-#include "../capsuleDBcpp/memtable_new.hpp"
+#include "../memtable.hpp"
+
+// #include "../capsuleDBcpp/memtable_new.hpp"
 
 #include "src/proto/hello.pb.h"
 #include "src/util/proto_util.hpp"

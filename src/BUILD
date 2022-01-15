@@ -277,7 +277,9 @@ cc_binary(
         "crypto.h",
         "hot_msg_pass.h",
         "sgx_spinlock.h",
+        "spinlock.c", 
         "asylo_sgx.hpp",
+        "asylo_sgx.cc",
     ],
     linkopts=["-L/usr/local/lib", "-lzmq"],
     deps=[
@@ -287,13 +289,27 @@ cc_binary(
         ":proto_util",
         "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/flags:parse",
+        "@com_google_absl//absl/strings",
+        "@com_google_asylo//asylo:enclave_cc_proto",
         "@com_google_asylo//asylo:enclave_client",
-        "@com_google_asylo//asylo/crypto:sha256_hash_util",
-        "@com_google_asylo//asylo/crypto:ecdsa_p256_sha256_signing_key",
-        "@com_google_asylo//asylo/crypto:aead_cryptor",
-        "@com_google_asylo//asylo/identity:enclave_assertion_authority_configs",
-        "@com_google_asylo//asylo/platform/primitives:trusted_primitives",
+        "@com_google_asylo//asylo/platform/primitives/sgx:loader_cc_proto",
         "@com_google_asylo//asylo/util:logging",
+        "@com_google_asylo//asylo/crypto:sha256_hash_util",
+        "@com_google_asylo//asylo/identity:enclave_assertion_authority_configs",
+        "@com_google_asylo//asylo/crypto:aead_cryptor",
+    ],
+)
+
+cc_binary(
+    name="capsuleDB_driver",
+    srcs=[
+        "cdb_driver.cc",
+    ],
+    linkopts=["-L/usr/local/lib", "-lzmq"],
+    deps=[
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:parse",
+        "@com_google_absl//absl/strings",
     ],
 )
 
@@ -584,6 +600,8 @@ enclave_loader(
         ],
     linkopts = [ "-L/usr/local/lib", "-lzmq" ],
     deps = [
+        ":networkedCapsuleDB",
+        ":capsuleDB_cc_proto",
         ":hello_cc_proto",
         "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/flags:parse",
