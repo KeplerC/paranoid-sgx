@@ -89,8 +89,7 @@ static void *StartOcallResponder( void *arg ) {
                 if(in_dc.msgtype() == COORDINATOR_EOE_TYPE){
                     socket_ptr_to_sync->send(msg);
                 }
-                if(in_dc.msgtype() == "PSL_RET"){
-                    LOGI << "Sending PSL_RET " << out_s;
+                else if(in_dc.msgtype() == "PSL_RET"){
                     socket_ptr_for_result -> send(msg);
                 }
                 else {
