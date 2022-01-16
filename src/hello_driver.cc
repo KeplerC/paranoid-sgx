@@ -53,10 +53,12 @@
 #include <netinet/in.h>
 #include <netdb.h>
 
+#include "capsuleDBcpp/cdb_network_client.hh"
+
 // #include "asylo/identity/enclave_assertion_authority_config.proto.h"
 #include "asylo/identity/enclave_assertion_authority_configs.h"
 
-enum mode_type { RUN_BOTH_CLIENT_AND_SERVER, RUN_CLIENT_ONLY, LISTENER_MODE, COORDINATOR_MODE, JS_MODE, USER_MODE, WORKER_MODE, CAPSULEDB };
+enum mode_type { RUN_BOTH_CLIENT_AND_SERVER, RUN_CLIENT_ONLY, LISTENER_MODE, COORDINATOR_MODE, JS_MODE, USER_MODE, WORKER_MODE, CAPSULEDB_MODE };
 
 #define PORT_NUM 1234
 
@@ -113,6 +115,12 @@ void thread_run_zmq_js_client(unsigned thread_id, Asylo_SGX* sgx){
     LOG(INFO) << "[thread_run_zmq_client_worker]";
     zmq_comm zs = zmq_comm(NET_WORKER_IP, thread_id, sgx);
     zs.run_js_client();
+}
+
+void thread_run_zmq_cdb_client(unsigned thread_id, CapsuleDBNetworkClient* db){
+    // TODO: Individual cdb worker ip for future simulations?
+    zmq_comm zs = zmq_comm(NET_WORKER_IP, thread_id, db, nullptr);
+    zs.run_cdb_client();
 }
 
 void thread_run_zmq_router(unsigned thread_id){
@@ -619,7 +627,17 @@ int run_js() {
 }
 
 int run_capsuleDB() {
-    return 0;
+    std::vector <std::thread> worker_threads;
+
+    //start clients
+    int num_threads = TOTAL_THREADS;
+    for (unsigned thread_id = START_CLIENT_ID; thread_id < num_threads; thread_id++) {
+        CapsuleDBNetworkClient* cdb = new CapsuleDBNetworkClient(50, thread_id, signing_key_pem);
+        worker_threads.push_back(std::thread(thread_run_zmq_cdb_client, thread_id, cdb));
+        sleep(1);
+    }
+    sleep(1 * 1000 * 1000);
+    return 0; 
 }
 
 int main(int argc, char *argv[]) {
@@ -655,7 +673,7 @@ int main(int argc, char *argv[]) {
             LOGI << "running in worker mode";
             run_worker();
             break;
-        case CAPSULEDB:
+        case CAPSULEDB_MODE:
             run_capsuleDB();
             break;
         default:

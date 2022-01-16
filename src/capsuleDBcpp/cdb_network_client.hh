@@ -21,10 +21,10 @@ class CapsuleDBNetworkClient {
         std::unique_ptr <asylo::SigningKey> signing_key;
         std::unique_ptr <asylo::VerifyingKey> verifying_key;
 
-        asylo::Status setKeys(char seed[]);
+        asylo::Status setKeys(absl::string_view signing_key_pem_unused);
 
     public:
-        CapsuleDBNetworkClient(size_t blocksize, int id, char seed[]); 
+        CapsuleDBNetworkClient(size_t blocksize, int id, absl::string_view signing_key_pem); 
         void put(hello_world::CapsulePDU inPDU);
         void handle(hello_world::CapsulePDU inPDU);
         hello_world::CapsulePDU get(std::string requestedKey);

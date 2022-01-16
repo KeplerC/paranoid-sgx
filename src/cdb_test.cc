@@ -11,7 +11,13 @@
 // #include "src/util/proto_util.hpp"
 
 zmq::socket_t* mcast_socket;
-char seed[] = "testSeed";
+const absl::string_view signing_key_pem = {
+            R"pem(-----BEGIN EC PRIVATE KEY-----
+MHcCAQEEIF0Z0yrz9NNVFQU1754rHRJs+Qt04mr3vEgNok8uyU8QoAoGCCqGSM49
+AwEHoUQDQgAE2M/ETD1FV9EFzZBB1+emBFJuB1eh2/XyY3ZdNrT8lq7FQ0Z6ENdm
+oG+ldQH94d6FPkRWOMwY+ppB+SQ8XnUFRA==
+-----END EC PRIVATE KEY-----)pem"
+};
 std::unique_ptr <asylo::SigningKey> signing_key;
 
 
@@ -76,11 +82,18 @@ void thread_run_zmq_server(unsigned thread_id){
 
 void thread_run_zmq_client(unsigned thread_id, CapsuleDBNetworkClient* db){
     zmq_comm zs = zmq_comm(NET_CLIENT_IP, thread_id, db, nullptr);
-    zs.run_client();
+    zs.run_cdb_client();
 }
 
 asylo::Status setSignKey() {
-    ASYLO_ASSIGN_OR_RETURN(signing_key, asylo::EcdsaP256Sha256SigningKey::CreateFromDer(seed));
+    const absl::string_view signing_key_pem = {
+                R"pem(-----BEGIN EC PRIVATE KEY-----
+    MHcCAQEEIF0Z0yrz9NNVFQU1754rHRJs+Qt04mr3vEgNok8uyU8QoAoGCCqGSM49
+    AwEHoUQDQgAE2M/ETD1FV9EFzZBB1+emBFJuB1eh2/XyY3ZdNrT8lq7FQ0Z6ENdm
+    oG+ldQH94d6FPkRWOMwY+ppB+SQ8XnUFRA==
+    -----END EC PRIVATE KEY-----)pem"
+    };
+    ASYLO_ASSIGN_OR_RETURN(signing_key, asylo::EcdsaP256Sha256SigningKey::CreateFromPem(signing_key_pem));
 }
 
 /* 
@@ -101,18 +114,23 @@ int run_capsuleDB() {
     zmq::context_t context (1);
     mcast_socket = new zmq::socket_t(context, ZMQ_PUSH);
     mcast_socket -> connect ("tcp://LOCALHOST:6667");
+    sleep(3);
 
     // Start worker instances, connects to coordinator
+    /*
     std::cout << "New client" << std::endl;
-    CapsuleDBNetworkClient* instance = new CapsuleDBNetworkClient(50, 0, seed);
+    CapsuleDBNetworkClient* instance = new CapsuleDBNetworkClient(50, 0, signing_key_pem);
     worker_threads.push_back(std::thread(thread_run_zmq_client, thread_id, instance));
-    sleep(3);
+    */
 
     // TODO: Add benchmark here
     // Can run benchmark function generated from the YCSB traces!
     // benchmark();
     // benchmark_put("testkey", "testvalue");
-	benchmark_get("3945957134849834");
+    while (true) {
+        benchmark_get("3945957134849834");
+    sleep(5);
+    }
 
     sleep(1 * 1000 * 1000);
     return 0; 

@@ -46,6 +46,7 @@ public:
         }
 
     // TODO: TEMP FIX CHANGE LATER
+    // Overloaded constructor for CapsuleDB instance (no enclave) 
     zmq_comm(std::string ip, unsigned thread_id, CapsuleDBNetworkClient* db, char*){
             m_port = std::to_string(NET_CLIENT_BASE_PORT + thread_id);
             m_recv_code_port = std::to_string(NET_WORKER_LISTEN_FOR_TASK_BASE_PORT + thread_id);
@@ -58,6 +59,7 @@ public:
     [[noreturn]] void run_server();
     [[noreturn]] void run_client();
     [[noreturn]] void run_js_client();
+    [[noreturn]] void run_cdb_client();
 private:
     std::string m_port;
     std::string m_recv_code_port;

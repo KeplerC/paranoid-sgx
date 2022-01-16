@@ -17,15 +17,16 @@
 #include "engine.hh"
 
 
-CapsuleDBNetworkClient::CapsuleDBNetworkClient(size_t blocksize, int id, char seed[]) {
+CapsuleDBNetworkClient::CapsuleDBNetworkClient(size_t blocksize, int id, absl::string_view signing_key_pem) {
     CapsuleDB instance = spawnDB(blocksize);
     this->db = &instance;
     this->id = id;
 
-    this->setKeys(seed);
+    this->setKeys(signing_key_pem);
 }
 
-asylo::Status CapsuleDBNetworkClient::setKeys(char seed[]) {
+asylo::Status CapsuleDBNetworkClient::setKeys(absl::string_view signing_key_pem_unused) {
+    // Not sure why using the function param key causes seg fault. fix later? 
     const absl::string_view signing_key_pem = {
                 R"pem(-----BEGIN EC PRIVATE KEY-----
     MHcCAQEEIF0Z0yrz9NNVFQU1754rHRJs+Qt04mr3vEgNok8uyU8QoAoGCCqGSM49
