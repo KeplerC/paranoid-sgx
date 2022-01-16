@@ -79,6 +79,24 @@ cd frontend
 python3 run_benchmark.py
 ```
 
+### Run JS demo with PSL stack
+You can start two terminals with the same docker container using 
+```bash
+docker exec -it YOURCONTAINERNAME bash
+```
+the name can be found using `docker ps`. 
+
+```
+(two instances of same docker container)
+# start CapusleDB worker
+bazel run //src:hello_world_sgx_sim -- --mode=7
+
+# start multicast coordinator, clients
+bazel run //src:capsuleDBIntegTests
+```
+
+Or you can put it as a background job and run both in the same instance. 
+
 
 ## Introduction
 
