@@ -410,6 +410,7 @@ namespace asylo {
                         switch (arg->ecall_id) {
                             case ECALL_PUT:
                                 LOGI << "[CICBUF-ECALL] transmitted a data capsule pdu";
+				DUMP_CAPSULE(dc);
                                 if (verify_dc(dc, verifying_key)) {
                                     LOGI << "dc verification successful.";
                                 } else {
