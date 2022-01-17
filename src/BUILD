@@ -176,6 +176,7 @@ cc_library(
     hdrs=[
         "capsuleDBcpp/fakeCapsule.hh",
         "common.h",
+        "benchmark.h",
         "kvs_include/capsule.h",
         "capsuleDBcpp/capsuleBlock.hh",
         "crypto.h"
@@ -226,6 +227,7 @@ cc_library(
         "capsuleDBcpp/memtable_new.hpp",
         "kvs_include/capsule.h",
         "common.h",
+        "benchmark.h",
     ],
     deps=[
         ":capsuleBlock",
@@ -245,7 +247,8 @@ cc_library(
     hdrs=[
         "capsuleDBcpp/engine.hh", 
         "kvs_include/capsule.h",
-        "common.h"
+        "common.h",
+        "benchmark.h",
     ],
     deps=[
         ":memtable_new",
@@ -326,6 +329,7 @@ cc_library(
         "capsuleDBcpp/level.hh",
         "kvs_include/capsule.h",
         "common.h",
+        "benchmark.h",
         # "proto/hello.pb.h"
         "bloom/bloom_filter.hpp",
     ],
@@ -437,7 +441,8 @@ enclave_loader(
     srcs = [
         "capsuleDBcpp/capsuleDB_driver.cc",
         "kvs_include/capsule.h",
-        "common.h"
+        "common.h",
+        "benchmark.h",
     ],
     backends = sgx.backend_labels,  # Has SGX loader dependencies
     copts = ASYLO_DEFAULT_COPTS,

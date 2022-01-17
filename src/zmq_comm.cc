@@ -63,7 +63,7 @@
 
         if (pollitems[3].revents & ZMQ_POLLIN){
             std::string result = this->recv_string(&socket_result);
-            LOGI << "[SERVER] REV result Message: " + result ;
+            LOG(INFO) << "[SERVER] REV result Message: " + result ;
             zmq::socket_t* socket_ptr  = new  zmq::socket_t( context, ZMQ_PUSH);
             socket_ptr -> connect (this->m_coordinator+ std::to_string(NET_COORDINATOR_RECV_RESULT_PORT));
             this->send_string(result, socket_ptr);
@@ -196,7 +196,6 @@
             std::string msg = this->recv_string(&socket_from_server);
             LOG(INFO) << "[CapsuleDB client " << m_addr << "]:  " + msg ;
             // Convert message to protobuf
-            LOG(INFO) << "Got here lol";
             hello_world::CapsulePDU in_dc;
             in_dc.ParseFromString(msg);
             // TODO: Change to generic handler instead of only put

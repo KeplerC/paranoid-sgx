@@ -494,7 +494,8 @@ namespace asylo {
             duk_put_global_string(ctx, "ctx");
         }
 
-        M_BENCHMARK_CODE
+        // TODO: No idea how to fix build issues if I uncomment this...
+        // M_BENCHMARK_CODE
 
         TrustedApplication *BuildTrustedApplication() { return new KVSClient; }
 

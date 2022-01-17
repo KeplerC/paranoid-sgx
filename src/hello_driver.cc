@@ -519,7 +519,7 @@ int run_local_dispatcher(){
             std::vector<std::string> splitted_messages = absl::StrSplit(message_to_string(message), GROUP_ADDR_DELIMIT, absl::SkipEmpty());
             return_addr = splitted_messages[0];
             code = splitted_messages[1];
-            LOGI << "[Client " << return_addr << "]:  " + code ;
+            LOG(INFO) << "[Client " << return_addr << "]:  " + code ;
 
             //aloha to query for available worker nodes
             zmq::socket_t* socket_ptr  = new  zmq::socket_t( context, ZMQ_PUSH);
@@ -606,8 +606,8 @@ int run_sync_server(){
     Asylo_SGX* sgx = new Asylo_SGX( std::to_string(thread_id), serialized_signing_key);
     sgx->init();
     sleep(2);
-    worker_threads.push_back(std::thread(thread_run_zmq_js_client, thread_id, sgx));
-    worker_threads.push_back(std::thread(thread_start_coordinator, sgx));
+    // worker_threads.push_back(std::thread(thread_run_zmq_js_client, thread_id, sgx));
+    // worker_threads.push_back(std::thread(thread_start_coordinator, sgx));
 
     sleep(1000);
     return 0;
@@ -644,7 +644,7 @@ int run_capsuleDB() {
         worker_threads.push_back(std::thread(thread_run_zmq_cdb_client, thread_id, cdb));
         sleep(1);
     }
-    sleep(1 * 1000 * 1000);
+    sleep(1000);
     return 0; 
 }
 
@@ -652,7 +652,7 @@ int main(int argc, char *argv[]) {
     absl::ParseCommandLine(argc, argv);
 
     uint32_t mode = absl::GetFlag(FLAGS_mode);
-    LOGI << "Current Mode: "<< mode;
+    LOG(INFO) << "Current Mode: "<< mode;
     switch(mode){
         case RUN_BOTH_CLIENT_AND_SERVER:
             run_client_and_router();
@@ -670,21 +670,22 @@ int main(int argc, char *argv[]) {
             run_js();
             break; 
         case USER_MODE:
-            LOGI << "running in user mode";
+            LOG(INFO) << "running in user mode";
             run_user();
             break;
         case COORDINATOR_MODE:
-            LOGI << "running in coordinator mode";
+            LOG(INFO) << "running in coordinator mode";
             run_local_dispatcher();
             break;
         case WORKER_MODE:
-            LOGI << "running in worker mode";
+            LOG(INFO) << "running in worker mode";
             run_worker();
             break;
         case SYNC_SERVER_MODE:
-            LOGI << "running sync server";
+            LOG(INFO) << "running sync server";
             run_sync_server();
         case CAPSULEDB_MODE:
+            LOG(INFO) << "running CapsuleDB server";
             run_capsuleDB();
             break;
         default:

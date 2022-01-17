@@ -102,8 +102,10 @@ int run_capsuleDB() {
     setSignKey();
 
     // Start central coordinator
+    /*
     worker_threads.push_back(std::thread(thread_run_zmq_server, 0));
     sleep(3);
+    */
 
     // Connect to multicast port
     zmq::context_t context (1);
@@ -120,7 +122,6 @@ int run_capsuleDB() {
     */
 
     // TODO: Add benchmark here
-    // Can run benchmark function generated from the YCSB traces!
     // benchmark();
     // benchmark_put("testkey", "testvalue");
     while (true) {
