@@ -55,20 +55,22 @@ bazel run //src:hello_world_sgx_sim -- --mode 4 --input_file "/opt/my-project/sr
 ```
 
 ### Run JS demo with PSL stack
-It's better to start three terminals with the same docker container using 
-```bash
-docker exec -it YOURCONTAINERNAME bash
 ```
-the name can be found using `docker ps`. 
+MY_PROJECT=~/paranoid-sgx
+sudo docker run -it --rm \
+    --net=host \
+    -v bazel-cache:/root/.cache/bazel \
+    -v "${MY_PROJECT}":/opt/my-project \
+    -w /opt/my-project \
+    keplerc/paranoid-asylo:latest 
+fogrobotics
 
-Then you can start  
-```
 (four different terminals)
 # start sync server
 bazel run //src:hello_world_sgx_sim -- --mode=7
 
 # start workers 
-bazel run //src:hello_world_sgx_sim -- --mode=6
+bazel run //src:hello_world_sgx_sim  --copt=-O3 -- --mode=6
 
 # start job dispatcher 
 bazel run //src:hello_world_sgx_sim -- --mode=3
@@ -78,6 +80,7 @@ apt install python3-pip
 pip3 install zmq
 cd frontend 
 python3 run_benchmark.py
+
 ```
 
 
