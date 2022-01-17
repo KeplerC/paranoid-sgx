@@ -34,6 +34,7 @@ Next, use Docker to build and run the `paranoid-sgx` application, using a
 simulated enclave backend:
 
 ```bash
+MY_PROJECT=~/paranoid-sgx
 docker run -it --rm \
     -v bazel-cache:/root/.cache/bazel \
     -v "${MY_PROJECT}":/opt/my-project \
