@@ -59,7 +59,7 @@
 #define EPOCH_TIME 20
 #define PERFORMANCE_MEASUREMENT_NUM_REPEATS 10
 #define NUM_CRYPTO_ACTORS 2
-#define BATCH_SIZE 2
+#define BATCH_SIZE 1000
 // #define RUN_BOTH_CLIENT_AND_SERVER true
 
 //router ports

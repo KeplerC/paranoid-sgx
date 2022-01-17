@@ -43,8 +43,8 @@ def serialize_message(code):
     return (return_addr + delimiter + code).encode()
 
 def get_code_from_load():
-    print("running trace A2")
-    with open("../YCSB_traces/tracea_load_a2.txt") as f:
+    print("running trace A")
+    with open("../YCSB_traces/tracea_load_a.txt") as f:
         lines = f.read().split("\n")
     cmd = "print(\"start\"); "
     for line in lines:
@@ -65,7 +65,7 @@ def main():
     zmq_socket.connect(local_dispatcher_addr)
     zmq_socket.send(serialize_message(code))
     logs += ("starting time," + str( time.time()))
-    time.sleep(10)
+    time.sleep(20)
     print(logs)
 
 

@@ -28,6 +28,7 @@
 
 
 #include <stdbool.h>
+#include <math.h>
 #include "common.h"
 #include "sgx_spinlock.h"
 #include "kvs_include/capsule.h"
@@ -81,7 +82,7 @@ static inline void _mm_sleep(void)
 static inline int HotMsg_requestECall( HotMsg* hotMsg, int dataID, void *data )
 {
     int i = 0;
-    const uint32_t MAX_RETRIES = 10;
+    const uint32_t MAX_RETRIES = 20;
     uint32_t numRetries = 0;
     int data_index = dataID % (MAX_QUEUE_LENGTH - 1);
     //Request call
@@ -107,7 +108,7 @@ static inline int HotMsg_requestECall( HotMsg* hotMsg, int dataID, void *data )
             return -1;
         }
 
-        for( i = 0; i<3; ++i)
+        for( i = 0; i<pow(2, numRetries); ++i)
             _mm_sleep();
     }
 

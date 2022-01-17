@@ -17,6 +17,7 @@
  */
 
 #include <kvs_enclave.hpp>
+#include <math.h>
 #include "kvs_eapp.hpp"
 
 #define USE_KEY_MANAGER
@@ -46,7 +47,7 @@ namespace asylo {
             DUMP_PAYLOAD((&payload));
             // enqueue to pqueue
             pqueue.enqueue(&payload);
-            handle();
+            // handle();
         }
 
         void KVSClient::handle() {
@@ -331,7 +332,7 @@ namespace asylo {
 
     int KVSClient::HotMsg_requestOCall( HotMsg* hotMsg, int dataID, void *data ) {
             int i = 0;
-            const uint32_t MAX_RETRIES = 10;
+            const uint32_t MAX_RETRIES = 20;
             uint32_t numRetries = 0;
             int data_index = dataID % (MAX_QUEUE_LENGTH - 1);
             //Request call
@@ -366,7 +367,7 @@ namespace asylo {
                     return -1;
                 }
 
-                for( i = 0; i<3; ++i)
+                for( i = 0; i<pow(2, numRetries); ++i)
                     _mm_sleep();
             }
 

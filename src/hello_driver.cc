@@ -134,6 +134,7 @@ void thread_start_coordinator(Asylo_SGX* sgx){
 }
 
 void thread_crypt_actor_thread(Asylo_SGX* sgx){
+    LOG(INFO) << "[thread_crypt_actor_thread]"; 
     sgx->start_crypt_actor_thread();
 }
 
@@ -155,6 +156,8 @@ int run_clients_only(){
         sleep(1);
         worker_threads.push_back(std::thread(thread_run_zmq_client, thread_id, sgx));
         worker_threads.push_back(std::thread(thread_start_fake_client, sgx));
+        for(int i = 0; i < NUM_CRYPTO_ACTORS; i++)
+            worker_threads.push_back(std::thread(thread_crypt_actor_thread, sgx));
     }
     sleep(1 * 1000 * 1000);
     return 0; 
@@ -184,9 +187,13 @@ int run_client_and_router() {
         if(thread_id == 1){
             worker_threads.push_back(std::thread(thread_run_zmq_client, thread_id, sgx));
             worker_threads.push_back(std::thread(thread_start_coordinator, sgx));
+            for(int i = 0; i < NUM_CRYPTO_ACTORS; i++)
+                worker_threads.push_back(std::thread(thread_crypt_actor_thread, sgx));
         } else{
             worker_threads.push_back(std::thread(thread_run_zmq_client, thread_id, sgx));
             worker_threads.push_back(std::thread(thread_start_fake_client, sgx));
+            for(int i = 0; i < NUM_CRYPTO_ACTORS; i++)
+                worker_threads.push_back(std::thread(thread_crypt_actor_thread, sgx));
         }
 
     }
@@ -578,6 +585,8 @@ int run_worker(){
         worker_threads.push_back(std::thread(thread_start_fake_client, sgx));
 	//worker_threads.push_back(std::thread(thread_start_coordinator, sgx));
         worker_threads.push_back(std::thread(thread_run_zmq_js_client, thread_id+2, sgx));
+        for(int i = 0; i < NUM_CRYPTO_ACTORS; i++)
+            worker_threads.push_back(std::thread(thread_crypt_actor_thread, sgx));
         sleep(1);
     }
     sleep(1000);
@@ -600,6 +609,8 @@ int run_sync_server(){
     sleep(2);
     worker_threads.push_back(std::thread(thread_run_zmq_js_client, thread_id, sgx));
     worker_threads.push_back(std::thread(thread_start_coordinator, sgx));
+    for(int i = 0; i < NUM_CRYPTO_ACTORS; i++)
+            worker_threads.push_back(std::thread(thread_crypt_actor_thread, sgx));
 
     sleep(1000);
     return 0;
