@@ -80,11 +80,6 @@ void thread_run_zmq_server(unsigned thread_id){
     zs.run_server();
 }
 
-void thread_run_zmq_client(unsigned thread_id, CapsuleDBNetworkClient* db){
-    zmq_comm zs = zmq_comm(NET_CLIENT_IP, thread_id, db, nullptr);
-    zs.run_cdb_client();
-}
-
 asylo::Status setSignKey() {
     const absl::string_view signing_key_pem = {
                 R"pem(-----BEGIN EC PRIVATE KEY-----
@@ -95,6 +90,7 @@ asylo::Status setSignKey() {
     };
     ASYLO_ASSIGN_OR_RETURN(signing_key, asylo::EcdsaP256Sha256SigningKey::CreateFromPem(signing_key_pem));
 }
+
 
 /* 
  * Runs a simple test of CapsuleDB connected to ZMQ client, making use of the current multicast tree implementation.
@@ -109,11 +105,11 @@ int run_capsuleDB() {
     worker_threads.push_back(std::thread(thread_run_zmq_server, 0));
     sleep(3);
 
-    // Connect to multicast port (hardcoded)
-    // TODO: Use ports from common.h
+    // Connect to multicast port
     zmq::context_t context (1);
+    std::string coordinator_ip = NET_SEED_ROUTER_IP;
     mcast_socket = new zmq::socket_t(context, ZMQ_PUSH);
-    mcast_socket -> connect ("tcp://LOCALHOST:6667");
+    mcast_socket -> connect ("tcp://" + coordinator_ip + ":6667");
     sleep(3);
 
     // Start worker instances, connects to coordinator
@@ -129,7 +125,7 @@ int run_capsuleDB() {
     // benchmark_put("testkey", "testvalue");
     while (true) {
         benchmark_get("3945957134849834");
-    sleep(5);
+        sleep(5);
     }
 
     sleep(1 * 1000 * 1000);
