@@ -115,6 +115,14 @@ namespace asylo {
         kvs_payload KVSClient::get(const std::string &key){
             //TODO: Handle get via capsuleDB
             return memtable.get(key);
+            // PSUEDO CODE
+            /*
+            while (true) {
+                if (memtable.contains(key)) {
+                    return memtable.get(key);
+                }
+            }
+            */
         }
 
         std::string KVSClient::serialize_eoe_hashes(){

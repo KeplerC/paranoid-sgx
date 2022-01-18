@@ -272,6 +272,7 @@ cc_binary(
     name="capsuleDBIntegTests",
     srcs=[
         "cdb_test.cc",
+        "cdb_test.hh",
         "zmq_comm.hpp",
         "zmq_comm.cc",
         "kvs_include/capsule.h",

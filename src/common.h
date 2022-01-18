@@ -43,6 +43,8 @@
 #define NET_SYNC_SERVER_IP "localhost"
 // // ip of key distribution server
 #define NET_KEY_DIST_SERVER_IP "localhost"
+// // ip of CDB test client 
+#define NET_CDB_TEST_CLIENT_IP "localhost"
 
 // Key for coordinator Request To Send(RTS)
 #define COORDINATOR_RTS_TYPE "PARANOID_RTS"
@@ -76,6 +78,9 @@
 #define NET_COORDINATOR_RECV_RESULT_PORT 3011
 #define NET_WORKER_LISTEN_FOR_TASK_BASE_PORT 3012
 #define NET_USER_RECV_RESULT_PORT 3007
+
+// CDB test ports
+#define NET_CDB_TEST_RESULT_PORT 7001
 
 #define GROUP_ADDR_DELIMIT "@@@"
 
