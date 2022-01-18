@@ -83,19 +83,28 @@ python3 run_benchmark.py
 
 ```
 
-### Run JS demo with PSL stack
-You can start two terminals with the same docker container using 
-```bash
-docker exec -it YOURCONTAINERNAME bash
+### Run CapsuleDB Local Demo 
+Model
 ```
-the name can be found using `docker ps`. 
+                                      ┌─────►CDB
+┌───────────┐     ┌────────────┐      │
+│test server├────►│root router ├──────┤
+└───────────┘     └────────────┘      ├─────►CDB
+                                      │
+                                      │
+                                      └─────►...
+```
 
+Run instructions
 ```
-(two instances of same docker container)
-# start CapusleDB worker
+(three instances of same docker container)
+# start root router
 bazel run //src:hello_world_sgx_sim -- --mode=7
 
-# start multicast coordinator, clients
+# start CapusleDB worker
+bazel run //src:hello_world_sgx_sim  -- --mode=8
+
+# start testing client
 bazel run //src:capsuleDBIntegTests
 ```
 
