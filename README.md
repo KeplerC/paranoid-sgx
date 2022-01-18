@@ -97,7 +97,7 @@ Model
 
 Run instructions
 ```
-(two instances of same docker container)
+(three instances of same docker container)
 # start root router
 bazel run //src:hello_world_sgx_sim -- --mode=7
 
