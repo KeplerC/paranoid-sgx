@@ -6,7 +6,7 @@
 #include "../kvs_include/capsule.h"
 #include <mutex>
 #include "index.hh"
-
+#include <map>
 //#include "../sgx_spinlock.h"
 
 class Memtable
@@ -20,8 +20,8 @@ public:
     Memtable(size_t ms);
     // M_BENCHMARK_CODE
 private:
-    absl::flat_hash_map<std::string, kvs_payload> memtable;
-    absl::flat_hash_map<std::string, std::mutex *> locklst; // each kv has its own lock.
+    std::map<std::string, kvs_payload> memtable;
+    std::map<std::string, std::mutex *> locklst; // each kv has its own lock.
     // absl::btree_set<std::string> sort_cache;                    // stores sorted set of keys to be used when moved to upper levels.(optimization)
 };
 

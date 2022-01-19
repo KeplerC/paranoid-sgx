@@ -20,7 +20,8 @@ kvs_payload Memtable::get(const std::string &key)
     // First check if a lock is present. If not, key is not present and can return.
     // If present, wait to get lock and access the data item.
     kvs_payload got;
-    if (!locklst.contains(key))
+    auto search = locklst.find(key);
+    if (search == locklst.end())
     {
         #ifdef DEBUG
         std::cout << "Memtable: Couldn't find key: " << key << "\n";
