@@ -155,6 +155,13 @@ namespace asylo {
         dc->timestamp = payload_l->back().txn_timestamp;
         dc->msgType = payload_l->back().txn_msgType;
         dc->sender = enclave_id;
+        dc->retAddr = "";
+    }
+
+    // Overload when there is a return address
+    void PayloadListToCapsule(capsule_pdu *dc, const std::vector<kvs_payload> *payload_l, const int enclave_id, std::string &ret_addr) {
+        PayloadListToCapsule(dc, payload_l, enclave_id);
+        dc->retAddr = ret_addr;
     }
 
     void CapsuleToProto(const capsule_pdu *dc, hello_world::CapsulePDU *dcProto){
@@ -169,6 +176,8 @@ namespace asylo {
         dcProto->set_timestamp(dc->timestamp);
         dcProto->set_msgtype(dc->msgType);
 
+        dcProto->set_retaddr(dc->retAddr);
+
     }
 
     void CapsuleFromProto(capsule_pdu *dc, const hello_world::CapsulePDU *dcProto) {
@@ -182,6 +191,8 @@ namespace asylo {
 
         dc->timestamp = dcProto->timestamp();
         dc->msgType = dcProto->msgtype();
+
+        dc->retAddr = dcProto->retaddr();
     }
 
     void CapsuleToCapsule(capsule_pdu *dc_new, const capsule_pdu *dc) {

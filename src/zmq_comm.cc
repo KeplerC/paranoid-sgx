@@ -198,8 +198,26 @@
             // Convert message to protobuf
             hello_world::CapsulePDU in_dc;
             in_dc.ParseFromString(msg);
-            // TODO: Change to generic handler instead of only put
-            this->m_db->handle(in_dc);
+
+            hello_world::CapsulePDU out_dc = this->m_db->handle(in_dc);
+            if (out_dc.has_payload_in_transit()) {
+                // Has contents to return (non-empty payload)
+                LOG(INFO) << "Got response, return to " << in_dc.retaddr();
+                
+                // TODO: zmq utils?
+                // Connect to new socket
+                zmq::socket_t* socket_send = new zmq::socket_t( context, ZMQ_PUSH);
+                socket_send -> connect (in_dc.retaddr());
+
+                // Convert to zmq message
+                std::string out_s;
+                out_dc.SerializeToString(&out_s);
+
+                zmq::message_t msg(out_s.size());
+                memcpy(msg.data(), out_s.c_str(), out_s.size());
+
+                socket_send->send(msg);
+            }
         }
     }
 }

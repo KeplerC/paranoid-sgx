@@ -63,6 +63,7 @@ void CapsuleDBNetworkClient::put(const hello_world::CapsulePDU inPDU) {
     }
     else
         std::cout <<"Unable to decrypt payload\n";
+
     return;
 }
 
@@ -71,6 +72,8 @@ hello_world::CapsulePDU CapsuleDBNetworkClient::get(std::string requestedKey) {
     
     // Get requested payload from CapsuleDB
     kvs_payload requested = db->get(requestedKey);
+    // kvs_payload requested;
+    asylo::KvToPayload(&requested, "TESTKEY", "TESTVAL", 0, "PUT");
     if (requested.key == "") {
         std::cout << "Key not present in CapsuleDB\n";
     }
@@ -99,13 +102,16 @@ hello_world::CapsulePDU CapsuleDBNetworkClient::get(std::string requestedKey) {
         return protoDC;
     }
 
-    // Sign
+    // Sign (same issue as cdb_test signing)
+    /*
     success = asylo::sign_dc(dc, signing_key);
+    LOG(INFO) << "Got here";
     if (!success) {
         std::cout << "DC signing failed!\n";
         delete dc;
         return protoDC;
     }
+    */
 
     // Convert to proto and return
     asylo::CapsuleToProto(dc, &protoDC);
@@ -116,7 +122,7 @@ hello_world::CapsulePDU CapsuleDBNetworkClient::get(std::string requestedKey) {
 /*
  * One example of a handler that may or may not be what we want. 
  */
-void CapsuleDBNetworkClient::handle(const hello_world::CapsulePDU inPDU) {
+hello_world::CapsulePDU CapsuleDBNetworkClient::handle(const hello_world::CapsulePDU inPDU) {
     // Convert proto to pdu
     std::cout << "Got into capsuleDB handle function" << std::endl;
     capsule_pdu translated;
@@ -133,16 +139,19 @@ void CapsuleDBNetworkClient::handle(const hello_world::CapsulePDU inPDU) {
     // Decrypt pdu paylaod
     if(asylo::decrypt_payload_l(&translated)) {
     // Convert decrypted payload into vector of kvs_payloads
+
+        LOG(INFO) << "ret addr: " << translated.retAddr;
         for (kvs_payload payload : translated.payload_l) {
             if (payload.txn_msgType == "PUT") {
                 db->put(&payload);
             } else if (payload.txn_msgType == "GET") {
-                // Note: I don't have a backward connection from capsuleDB -> testing coordinator for now, so the return value will be unused.
-                get(payload.key);
+                return get(payload.key);
             }
         }
     }
     else
         std::cout <<"Unable to decrypt payload\n";
-    return;
+
+    hello_world::CapsulePDU empty;
+    return empty;
 }

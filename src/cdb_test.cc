@@ -7,8 +7,8 @@ void benchmark_put(const std::string &key, const std::string &value) {
     client.put(key, value);
 }
 
-void benchmark_get(const std::string &key) {
-    client.get(key);
+std::string benchmark_get(const std::string &key) {
+    return client.get(key);
 }
 
 
@@ -35,7 +35,7 @@ int run_cdb_test_client() {
     // benchmark();
     // benchmark_put("testkey", "testvalue");
     while (true) {
-        benchmark_put("3945957134849834", "wef");
+        benchmark_get("3945957134849834");
         sleep(5);
     }
 
@@ -58,14 +58,17 @@ int run_full_test() {
     // TODO: Add benchmark here
     // benchmark();
     // benchmark_put("testkey", "testvalue");
+    /*
     while (true) {
         benchmark_put("3945957134849834", "wef");
         sleep(5);
     }
+    */
 
-    sleep(1 * 1000 * 1000);
+    // sleep(1 * 1000 * 1000);
     return 0; 
 }
+
 
 int main() {
     run_cdb_test_client();

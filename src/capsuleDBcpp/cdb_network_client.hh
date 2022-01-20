@@ -26,7 +26,7 @@ class CapsuleDBNetworkClient {
     public:
         CapsuleDBNetworkClient(size_t blocksize, int id, absl::string_view signing_key_pem); 
         void put(hello_world::CapsulePDU inPDU);
-        void handle(hello_world::CapsulePDU inPDU);
+        hello_world::CapsulePDU handle(hello_world::CapsulePDU inPDU);
         hello_world::CapsulePDU get(std::string requestedKey);
 };
 

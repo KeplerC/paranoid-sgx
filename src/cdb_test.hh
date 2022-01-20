@@ -26,6 +26,23 @@ class CapsuleDBTestClient {
             ASYLO_ASSIGN_OR_RETURN(this->verifying_key, this->signing_key->GetVerifyingKey());
         }
 
+        std::string wait_response(const std::string &key) {
+            LOG(INFO) << "Waiting for response";
+
+            std::vector<zmq::pollitem_t> pollitems = {
+                    { static_cast<void *>(*recv_socket), 0, ZMQ_POLLIN, 0 },
+            };
+            while (true) {
+                // LOG(INFO) << "Start zmq";
+                zmq::poll(pollitems.data(), pollitems.size(), 0);
+                // Join Request
+                if (pollitems[0].revents & ZMQ_POLLIN) {
+                    LOG(INFO) << "Got response!!!!";
+                    return "";
+                }
+            }
+        }
+
         zmq::message_t gen_payload(const std::string &key, const std::string &value, bool isPut) {
             kvs_payload payload;
             std::vector<kvs_payload> payload_l;
@@ -42,13 +59,13 @@ class CapsuleDBTestClient {
 
             // Create and encrypt DC
             capsule_pdu *dc = new capsule_pdu();
-            asylo::PayloadListToCapsule(dc, &payload_l, 0);
+            asylo::PayloadListToCapsule(dc, &payload_l, 0, recv_addr);
             asylo::encrypt_payload_l(dc, true);
             asylo::generate_hash(dc);
             // The line below seg faults (:
             // asylo::sign_dc(dc, signing_key);
 
-            // DUMP_CAPSULE(dc);
+            DUMP_CAPSULE(dc);
 
             // Convert DC -> CapsulePDU protobuf -> string -> zmq::message_t
             hello_world::CapsulePDU out_dc;
@@ -71,9 +88,10 @@ class CapsuleDBTestClient {
             mcast_socket->connect ("tcp://" + coordinator_ip + ":6667");
             
             // Bind recv socket
-            recv_addr = "tcp://*:" + std::to_string(NET_CDB_TEST_RESULT_PORT);
+            recv_socket->bind ("tcp://*:" + std::to_string(NET_CDB_TEST_RESULT_PORT));
+            std::string ip = NET_CDB_TEST_CLIENT_IP;
+            recv_addr = "tcp://" + ip + ":" + std::to_string(NET_CDB_TEST_RESULT_PORT);
             LOG(INFO) << "Bind recv socket: " << recv_addr;
-            recv_socket->bind (recv_addr);
             
             setKeys();
 
@@ -84,10 +102,14 @@ class CapsuleDBTestClient {
             mcast_socket->send(msg);
             LOG(INFO) << "Sent put msg!";
         }
-        void get(const std::string &key) {
+        std::string get(const std::string &key) {
             zmq::message_t msg = gen_payload(key, "UNUSED_VAL", false);
             mcast_socket->send(msg);
             LOG(INFO) << "Sent get msg!";
+
+            // Waits for reponse
+            // return wait_response(key);
+            return "";
         }
 
         const absl::string_view signing_key_pem = {

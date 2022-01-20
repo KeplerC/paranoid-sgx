@@ -41,6 +41,8 @@ void KvToPayload(kvs_payload *payload, const std::string &key, const std::string
 
 void PayloadListToCapsule(capsule_pdu *dc, const std::vector<kvs_payload> *payload_l, const int enclave_id);
 
+void PayloadListToCapsule(capsule_pdu *dc, const std::vector<kvs_payload> *payload_l, const int enclave_id, std::string &ret_addr);
+
 void CapsuleToProto(const capsule_pdu *dc, hello_world::CapsulePDU *dcProto);
 
 void CapsuleFromProto(capsule_pdu *dc, const hello_world::CapsulePDU *dcProto);
