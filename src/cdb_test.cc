@@ -3,6 +3,7 @@
 
 CapsuleDBTestClient client;
 
+// Wrappers for benchmark
 void benchmark_put(const std::string &key, const std::string &value) {
     client.put(key, value);
 }
@@ -35,7 +36,7 @@ int run_cdb_test_client() {
     // benchmark();
     // benchmark_put("testkey", "testvalue");
     while (true) {
-        benchmark_get("3945957134849834");
+        LOG(INFO) << "Get result: " << benchmark_get("3945957134849834");
         sleep(5);
     }
 
@@ -43,6 +44,7 @@ int run_cdb_test_client() {
     return 0; 
 }
 
+// IGNORE
 int run_full_test() {
     std::vector <std::thread> worker_threads;
 

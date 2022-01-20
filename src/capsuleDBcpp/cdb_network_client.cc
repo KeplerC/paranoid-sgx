@@ -71,8 +71,8 @@ hello_world::CapsulePDU CapsuleDBNetworkClient::get(std::string requestedKey) {
     hello_world::CapsulePDU protoDC;
     
     // Get requested payload from CapsuleDB
-    kvs_payload requested = db->get(requestedKey);
-    // kvs_payload requested;
+    // kvs_payload requested = db->get(requestedKey);
+    kvs_payload requested;
     asylo::KvToPayload(&requested, "TESTKEY", "TESTVAL", 0, "PUT");
     if (requested.key == "") {
         std::cout << "Key not present in CapsuleDB\n";
