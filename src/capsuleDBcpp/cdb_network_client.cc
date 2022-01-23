@@ -47,12 +47,12 @@ void CapsuleDBNetworkClient::put(const hello_world::CapsulePDU inPDU) {
     asylo::CapsuleFromProto(&translated, &inPDU);
     
     // Verify hashe and signature
-    /*
+    // /*
     if(!asylo::verify_dc(&translated, verifying_key)){
         std::cout << "Verification failed, not writing to CapsuleDB\n";
         return;
     }
-    */
+    // */
 
     // Decrypt pdu paylaod
     if(asylo::decrypt_payload_l(&translated)) {
@@ -103,7 +103,7 @@ hello_world::CapsulePDU CapsuleDBNetworkClient::get(std::string requestedKey) {
     }
 
     // Sign (same issue as cdb_test signing)
-    /*
+    // /*
     success = asylo::sign_dc(dc, signing_key);
     LOG(INFO) << "Got here";
     if (!success) {
@@ -111,7 +111,7 @@ hello_world::CapsulePDU CapsuleDBNetworkClient::get(std::string requestedKey) {
         delete dc;
         return protoDC;
     }
-    */
+    // */
 
     // Convert to proto and return
     asylo::CapsuleToProto(dc, &protoDC);
