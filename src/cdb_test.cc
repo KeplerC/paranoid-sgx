@@ -36,6 +36,8 @@ int run_cdb_test_client() {
     // benchmark();
     // benchmark_put("testkey", "testvalue");
     while (true) {
+        benchmark_put("3945957134849834", "TEST_VAL");
+        sleep(3);
         LOG(INFO) << "Get result: " << benchmark_get("3945957134849834");
         sleep(5);
     }
