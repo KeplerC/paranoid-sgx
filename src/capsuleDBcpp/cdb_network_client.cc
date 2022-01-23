@@ -71,11 +71,11 @@ hello_world::CapsulePDU CapsuleDBNetworkClient::get(std::string requestedKey) {
     hello_world::CapsulePDU protoDC;
     
     // Get requested payload from CapsuleDB
-    // kvs_payload requested = db->get(requestedKey);
-    kvs_payload requested;
-    asylo::KvToPayload(&requested, "TESTKEY", "TESTVAL", 0, "PUT");
+    kvs_payload requested = db->get(requestedKey);
+    // kvs_payload requested;
+    // asylo::KvToPayload(&requested, "TESTKEY", "TESTVAL", 0, "PUT");
     if (requested.key == "") {
-        std::cout << "Key not present in CapsuleDB\n";
+        LOG(INFO) << "Key not present in CapsuleDB";
     }
     
     // Generate Vector of kvs_payloads (will only be one in this case)
@@ -124,7 +124,7 @@ hello_world::CapsulePDU CapsuleDBNetworkClient::get(std::string requestedKey) {
  */
 hello_world::CapsulePDU CapsuleDBNetworkClient::handle(const hello_world::CapsulePDU inPDU) {
     // Convert proto to pdu
-    std::cout << "Got into capsuleDB handle function" << std::endl;
+    LOG(INFO) << "Got into capsuleDB handle function" << std::endl;
     capsule_pdu translated;
     asylo::CapsuleFromProto(&translated, &inPDU);
     
