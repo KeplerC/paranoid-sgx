@@ -38,7 +38,7 @@ namespace asylo {
 
         void KVSClient::put(std::string key, std::string value, std::string msgType = "") {
             m_lamport_timer += 1;
-            if (key == "6546342200096381") {
+            if (key == "Benchmark_End") {
                 msgType = "Benchmark_End";
             }
 

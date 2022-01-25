@@ -43,15 +43,18 @@ def serialize_message(code):
     return (return_addr + delimiter + code).encode()
 
 def get_code_from_load():
-    print("running trace A")
+    times = 10
+    print("running trace A (2000 puts) x times: " + str(times))
     with open("../YCSB_traces/tracea_load_a.txt") as f:
         lines = f.read().split("\n")
-    cmd = "print(\"start\"); "
-    for line in lines:
-        key = line.split(" ")[1]
-        value = line.split(" ")[2]
-        value = "".join(e for e in value if e.isalpha())
-        cmd += "psl_put(\"" + key + "\",\"" + value + "\"); "
+        cmd = "print(\"start\"); "
+        for _ in range(times):
+            for line in lines:
+                key = line.split(" ")[1]
+                value = line.split(" ")[2]
+                value = "".join(e for e in value if e.isalpha())
+                cmd += "psl_put(\"" + key + "\",\"" + value + "\"); "
+        cmd += "psl_put(\"" + "Benchmark_End" + "\",\"" + "value" + "\"); "
     cmd += "print(\"end\"); "
     return cmd
 
