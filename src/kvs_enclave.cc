@@ -112,7 +112,7 @@ namespace asylo {
                 update_client_hash(dc);
 
             if (dc->msgType == "Benchmark_End") {
-                dc->hash = "END_HASH";
+                dc->hash = std::string("END_HASH") + std::string(NET_WORKER_IP);
             }
  
             // send dc
@@ -419,7 +419,7 @@ namespace asylo {
                             case ECALL_PUT:
                                 LOGI << "[CICBUF-ECALL] transmitted a data capsule pdu";
 				DUMP_CAPSULE(dc);
-                                if (dc->msgType == REPLICATION_ACK && dc->hash == "END_HASH") {
+                                if (dc->msgType == REPLICATION_ACK) {
                                     put("psl_return", "dcr_ack", "PSL_RET");
                                     break;
                                 }

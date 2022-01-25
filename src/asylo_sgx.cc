@@ -226,7 +226,8 @@ void Asylo_SGX::send_to_sgx(std::string message){
         LOGI << "Replication Ack received for enclave: " << this->m_name << ", hash: " << in_dc.hash();
         // After receiving ack, worker can discard the dc pdu
         // do nothing for now
-        if (in_dc.hash() != "END_HASH") {
+        std::string targetHash = std::string("END_HASH") + std::string(NET_WORKER_IP);
+        if (in_dc.hash() != targetHash) {
             return; 
         }
     }
