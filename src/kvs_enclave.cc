@@ -491,6 +491,12 @@ namespace asylo {
             duk_push_c_function(ctx, js_get, 1 /*nargs*/);
             duk_put_global_string(ctx, "psl_get");
 
+            duk_push_c_function(ctx, js_cdb_put, 2 /*nargs*/);
+            duk_put_global_string(ctx, "cdb_put");
+
+            duk_push_c_function(ctx, js_cdb_get, 1 /*nargs*/);
+            duk_put_global_string(ctx, "cdb_get");
+
             duk_push_c_function(ctx, js_print, 1 /*nargs*/);
             duk_put_global_string(ctx, "console_print");
 

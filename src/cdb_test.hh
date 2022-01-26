@@ -2,6 +2,7 @@
 #include <thread>
 #include <vector>
 #include <zmq.hpp>
+#include <memory>
 
 #include "common.h"
 
@@ -99,7 +100,7 @@ class CapsuleDBTestClient {
             payload_l.push_back(payload);
 
             // Create CapsulePDU
-            capsule_pdu *dc = new capsule_pdu();
+            auto *dc = new capsule_pdu();
             asylo::PayloadListToCapsule(dc, &payload_l, 0, recv_addr);
             // Encrypt
             asylo::encrypt_payload_l(dc, true);

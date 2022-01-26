@@ -26,11 +26,11 @@
  * Inputs: ??? (Maybe name?)
  * Outputs: An error code
  */
-CapsuleDB spawnDB(size_t memtable_size)
+CapsuleDB* spawnDB(size_t memtable_size)
 {
-    CapsuleDB newInstance = CapsuleDB();
-    newInstance.memtable = Memtable(memtable_size);
-    newInstance.index = CapsuleIndex(memtable_size);
+    CapsuleDB* newInstance = new CapsuleDB();
+    newInstance->memtable = Memtable(memtable_size);
+    newInstance->index = CapsuleIndex(memtable_size);
     return newInstance;
 }
 
