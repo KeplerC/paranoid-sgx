@@ -17,41 +17,35 @@
 #include "engine.hh"
 
 
-CapsuleDBNetworkClient::CapsuleDBNetworkClient(size_t blocksize, int id, absl::string_view signing_key_pem) {
+CapsuleDBNetworkClient::CapsuleDBNetworkClient(size_t blocksize, int id, asylo::CleansingVector<uint8_t> serialized_signing_key) {
     CapsuleDB instance = spawnDB(blocksize);
     this->db = &instance;
     this->id = id;
 
-    this->setKeys(signing_key_pem);
+    this->setKeys(serialized_signing_key);
 }
 
-asylo::Status CapsuleDBNetworkClient::setKeys(absl::string_view signing_key_pem_unused) {
-    // Not sure why using the function param key causes seg fault. fix later? 
-    const absl::string_view signing_key_pem = {
-                R"pem(-----BEGIN EC PRIVATE KEY-----
-    MHcCAQEEIF0Z0yrz9NNVFQU1754rHRJs+Qt04mr3vEgNok8uyU8QoAoGCCqGSM49
-    AwEHoUQDQgAE2M/ETD1FV9EFzZBB1+emBFJuB1eh2/XyY3ZdNrT8lq7FQ0Z6ENdm
-    oG+ldQH94d6FPkRWOMwY+ppB+SQ8XnUFRA==
-    -----END EC PRIVATE KEY-----)pem"
-    };
+asylo::Status CapsuleDBNetworkClient::setKeys(asylo::CleansingVector<uint8_t> serialized_signing_key) {
+    ASYLO_ASSIGN_OR_RETURN(signing_key, EcdsaP256Sha256SigningKey::CreateFromDer(serialized_signing_key));
+    ASYLO_ASSIGN_OR_RETURN(verifying_key, signing_key->GetVerifyingKey());
 
     // signing_key = asylo::EcdsaP256Sha256SigningKey::CreateFromPem(signing_key_pem);
-    ASYLO_ASSIGN_OR_RETURN(this->signing_key, asylo::EcdsaP256Sha256SigningKey::CreateFromPem(signing_key_pem));
-    ASYLO_ASSIGN_OR_RETURN(this->verifying_key, signing_key->GetVerifyingKey());
+    // ASYLO_ASSIGN_OR_RETURN(this->signing_key, asylo::EcdsaP256Sha256SigningKey::CreateFromPem(signing_key_pem));
+    // ASYLO_ASSIGN_OR_RETURN(this->verifying_key, signing_key->GetVerifyingKey());
 }
 
 void CapsuleDBNetworkClient::put(const hello_world::CapsulePDU inPDU) {
     // Convert proto to pdu
-    std::cout << "Got into capsuleDB put function" << std::endl;
+    LOG(INFO) << "Got into capsuleDB put function" << std::endl;
     capsule_pdu translated;
     asylo::CapsuleFromProto(&translated, &inPDU);
     
     // Verify hashe and signature
     // /*
-    if(!asylo::verify_dc(&translated, verifying_key)){
-        std::cout << "Verification failed, not writing to CapsuleDB\n";
-        return;
-    }
+    // if(!asylo::verify_dc(&translated, verifying_key)){
+    //     std::cout << "Verification failed, not writing to CapsuleDB\n";
+    //     return;
+    // }
     // */
 
     // Decrypt pdu paylaod
@@ -62,7 +56,7 @@ void CapsuleDBNetworkClient::put(const hello_world::CapsulePDU inPDU) {
         }
     }
     else
-        std::cout <<"Unable to decrypt payload\n";
+        LOG(INFO) <<"Unable to decrypt payload\n";
 
     return;
 }
@@ -89,7 +83,7 @@ hello_world::CapsulePDU CapsuleDBNetworkClient::get(std::string requestedKey) {
     // Encrypt
     bool success = asylo::encrypt_payload_l(dc, true);
     if (!success) {
-        std::cout << "Payload_l encryption failed\n";
+        LOG(INFO) << "Payload_l encryption failed\n";
         delete dc;
         return protoDC;
     }
@@ -97,20 +91,21 @@ hello_world::CapsulePDU CapsuleDBNetworkClient::get(std::string requestedKey) {
     // Hash
     success = asylo::generate_hash(dc);
     if (!success) {
-        std::cout << "Hash generation failed\n";
+        LOG(INFO) << "Hash generation failed\n";
         delete dc;
         return protoDC;
     }
+    LOG(INFO) << "SIGNATURE: " << dc->signature << "\n";
 
     // Sign (same issue as cdb_test signing)
     // /*
-    success = asylo::sign_dc(dc, signing_key);
-    LOG(INFO) << "Got here";
-    if (!success) {
-        std::cout << "DC signing failed!\n";
-        delete dc;
-        return protoDC;
-    }
+    // success = asylo::sign_dc(dc, signing_key);
+    // LOG(INFO) << "Got here";
+    // if (!success) {
+    //     std::cout << "DC signing failed!\n";
+    //     delete dc;
+    //     return protoDC;
+    // }
     // */
 
     // Convert to proto and return
@@ -150,7 +145,7 @@ hello_world::CapsulePDU CapsuleDBNetworkClient::handle(const hello_world::Capsul
         }
     }
     else
-        std::cout <<"Unable to decrypt payload\n";
+        LOG(INFO) <<"Unable to decrypt payload\n";
 
     hello_world::CapsulePDU empty;
     return empty;

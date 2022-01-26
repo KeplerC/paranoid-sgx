@@ -21,9 +21,18 @@ class CapsuleDBTestClient {
         std::unique_ptr <asylo::VerifyingKey> verifying_key;
 
         asylo::Status setKeys() {
-            // signing_key = asylo::EcdsaP256Sha256SigningKey::CreateFromPem(signing_key_pem);
-            ASYLO_ASSIGN_OR_RETURN(this->signing_key, asylo::EcdsaP256Sha256SigningKey::CreateFromPem(signing_key_pem));
-            ASYLO_ASSIGN_OR_RETURN(this->verifying_key, this->signing_key->GetVerifyingKey());
+            LOG(INFO) << "Creating keys\n";
+            // This line for some reason causes an internal error, no idea why.
+            // signing_key = asylo::EcdsaP256Sha256SigningKey::CreateFromPem(signing_key_pem).ValueOrDie();
+            // // signing_key = asylo::EcdsaP256Sha256SigningKey::Create();
+            // ASYLO_ASSIGN_OR_RETURN(this->verifying_key, this->signing_key->GetVerifyingKey());
+            // LOG(INFO) << "Verifying key: " << this->verifying_key.get() << "\n";
+            
+            std::unique_ptr <asylo::SigningKey> signing_key_temp(std::move(asylo::EcdsaP256Sha256SigningKey::CreateFromPem(signing_key_pem)).ValueOrDie());
+            LOG(INFO) << "Signing key: " << signing_key_temp.get() << "\n";
+            asylo::CleansingVector<uint8_t> serialized_signing_key;
+            ASYLO_ASSIGN_OR_RETURN(serialized_signing_key, signing_key_temp->SerializeToDer());
+            ASYLO_ASSIGN_OR_RETURN(signing_key, asylo::EcdsaP256Sha256SigningKey::CreateFromDer(serialized_signing_key));
         }
 
         // Yeah :)
@@ -98,7 +107,8 @@ class CapsuleDBTestClient {
             asylo::generate_hash(dc);
             // Sign
             // The line below seg faults (:
-            // asylo::sign_dc(dc, signing_key);
+            LOG(INFO) << "About to sign\n";
+            asylo::sign_dc(dc, signing_key);
 
             DUMP_CAPSULE(dc);
 
@@ -130,7 +140,12 @@ class CapsuleDBTestClient {
             recv_addr = "tcp://" + ip + ":" + std::to_string(NET_CDB_TEST_RESULT_PORT);
             LOG(INFO) << "Bind recv socket: " << recv_addr;
             
-            setKeys();
+            // setKeys();
+            signing_key(std::move(asylo::EcdsaP256Sha256SigningKey::CreateFromPem(
+            signing_key_pem)).ValueOrDie());
+            asylo::CleansingVector<uint8_t> serialized_signing_key;
+            ASSIGN_OR_RETURN(serialized_signing_key,
+                            signing_key->SerializeToDer());
 
             LOG(INFO) << "Finish test client setup!";
         }
@@ -154,10 +169,11 @@ class CapsuleDBTestClient {
         }
 
         const absl::string_view signing_key_pem = {
-                        R"pem(-----BEGIN EC PRIVATE KEY-----
-            MHcCAQEEIF0Z0yrz9NNVFQU1754rHRJs+Qt04mr3vEgNok8uyU8QoAoGCCqGSM49
-            AwEHoUQDQgAE2M/ETD1FV9EFzZBB1+emBFJuB1eh2/XyY3ZdNrT8lq7FQ0Z6ENdm
-            oG+ldQH94d6FPkRWOMwY+ppB+SQ8XnUFRA==
-            -----END EC PRIVATE KEY-----)pem"
+                    R"pem(-----BEGIN EC PRIVATE KEY-----
+        MHcCAQEEIF0Z0yrz9NNVFQU1754rHRJs+Qt04mr3vEgNok8uyU8QoAoGCCqGSM49
+        AwEHoUQDQgAE2M/ETD1FV9EFzZBB1+emBFJuB1eh2/XyY3ZdNrT8lq7FQ0Z6ENdm
+        oG+ldQH94d6FPkRWOMwY+ppB+SQ8XnUFRA==
+        -----END EC PRIVATE KEY-----)pem"
         };
+        
 };

@@ -21,7 +21,17 @@ void thread_run_zmq_server(unsigned thread_id){
 
 // Spawn root router
 void thread_run_zmq_client(unsigned thread_id){
-    CapsuleDBNetworkClient* db = new CapsuleDBNetworkClient(50, 0, client.signing_key_pem);
+    const absl::string_view signing_key_pem = {
+                R"pem(-----BEGIN EC PRIVATE KEY-----
+    MHcCAQEEIF0Z0yrz9NNVFQU1754rHRJs+Qt04mr3vEgNok8uyU8QoAoGCCqGSM49
+    AwEHoUQDQgAE2M/ETD1FV9EFzZBB1+emBFJuB1eh2/XyY3ZdNrT8lq7FQ0Z6ENdm
+    oG+ldQH94d6FPkRWOMwY+ppB+SQ8XnUFRA==
+    -----END EC PRIVATE KEY-----)pem"
+    };
+    LOG(INFO) << "Creating new CapsuleDBNetworkClient instance\n";
+    CapsuleDBNetworkClient* db = new CapsuleDBNetworkClient(50, 0, signing_key_pem);
+    // CapsuleDBNetworkClient* db = new CapsuleDBNetworkClient(50, 0, client.signing_key_pem);
+    LOG(INFO) << "Creating new CapsuleDBNetworkClient instance\n";
     zmq_comm zs = zmq_comm(NET_CLIENT_IP, thread_id, db, nullptr);
     zs.run_cdb_client();
 }

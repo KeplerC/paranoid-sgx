@@ -301,6 +301,7 @@ cc_binary(
         "@com_google_asylo//asylo/crypto:sha256_hash_util",
         "@com_google_asylo//asylo/identity:enclave_assertion_authority_configs",
         "@com_google_asylo//asylo/crypto:aead_cryptor",
+        # "@com_google_asylo//asylo/crypto/util:byte_container_util"
     ],
 )
 
