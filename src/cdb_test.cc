@@ -46,8 +46,10 @@ int run_cdb_test_client() {
     // benchmark();
     // benchmark_put("testkey", "testvalue");
     while (true) {
-        benchmark_put("3945957134849834", "TEST_VAL");
+        benchmark_put("3945957134849834", "FIRST_VAL");
+        benchmark_put("3945957134849835", "SECOND_VAL");
         sleep(3);
+        LOG(INFO) << "Get result: " << benchmark_get("3945957134849835");
         LOG(INFO) << "Get result: " << benchmark_get("3945957134849834");
         sleep(5);
     }
@@ -55,34 +57,6 @@ int run_cdb_test_client() {
     sleep(1 * 1000 * 1000);
     return 0; 
 }
-
-// IGNORE
-int run_full_test() {
-    std::vector <std::thread> worker_threads;
-
-    // Start root router
-    worker_threads.push_back(std::thread(thread_run_zmq_server, 0));
-    sleep(3);
-
-    // Start CDB worker, connects to coordinator
-    std::cout << "New client" << std::endl;
-    worker_threads.push_back(std::thread(thread_run_zmq_client, 1));
-    sleep(3);
-
-    // TODO: Add benchmark here
-    // benchmark();
-    // benchmark_put("testkey", "testvalue");
-    /*
-    while (true) {
-        benchmark_put("3945957134849834", "wef");
-        sleep(5);
-    }
-    */
-
-    // sleep(1 * 1000 * 1000);
-    return 0; 
-}
-
 
 int main() {
     run_cdb_test_client();

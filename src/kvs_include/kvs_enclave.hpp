@@ -131,6 +131,36 @@
         return 1;           
     }
 
+    static duk_ret_t js_cdb_put(duk_context *ctx){
+        std::string key = duk_to_string(ctx, 0);
+        std::string val = duk_to_string(ctx, 1);
+
+        duk_eval_string(ctx, "ctx");
+        KVSClient *m = (KVSClient *) duk_to_pointer(ctx, -1);
+        m->put(key, val, "CDB_PUT");
+        return 0;           
+    }
+
+/* TODO modify */
+    static duk_ret_t js_cdb_get(duk_context *ctx){
+        std::string key = duk_to_string(ctx, 0);
+    
+        duk_eval_string(ctx, "ctx");
+        KVSClient *m = (KVSClient *) duk_to_pointer(ctx, -1);
+
+        duk_idx_t obj_idx = duk_push_object(ctx);
+        kvs_payload dc = m->get(key);
+
+        duk_push_string(ctx, dc.key.c_str());
+        duk_put_prop_string(ctx, obj_idx, "key");
+
+        duk_push_string(ctx, dc.value.c_str());
+        duk_put_prop_string(ctx, obj_idx, "val");
+
+        return 1;           
+    }
+
+
     static duk_ret_t js_ret(duk_context *ctx){
         std::string ret = duk_to_string(ctx, 0);
         duk_eval_string(ctx, "ctx");

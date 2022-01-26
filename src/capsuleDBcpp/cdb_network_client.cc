@@ -18,11 +18,11 @@
 
 
 CapsuleDBNetworkClient::CapsuleDBNetworkClient(size_t blocksize, int id, asylo::CleansingVector<uint8_t> serialized_signing_key) {
-    CapsuleDB instance = spawnDB(blocksize);
-    this->db = &instance;
+    CapsuleDB* instance = spawnDB(blocksize);
+    this->db = instance;
     this->id = id;
 
-    this->setKeys(serialized_signing_key);
+    // this->setKeys(serialized_signing_key);
 }
 
 asylo::Status CapsuleDBNetworkClient::setKeys(asylo::CleansingVector<uint8_t> serialized_signing_key) {
