@@ -26,12 +26,8 @@ CapsuleDBNetworkClient::CapsuleDBNetworkClient(size_t blocksize, int id, asylo::
 }
 
 asylo::Status CapsuleDBNetworkClient::setKeys(asylo::CleansingVector<uint8_t> serialized_signing_key) {
-    ASYLO_ASSIGN_OR_RETURN(signing_key, EcdsaP256Sha256SigningKey::CreateFromDer(serialized_signing_key));
+    ASYLO_ASSIGN_OR_RETURN(signing_key, asylo::EcdsaP256Sha256SigningKey::CreateFromDer(serialized_signing_key));
     ASYLO_ASSIGN_OR_RETURN(verifying_key, signing_key->GetVerifyingKey());
-
-    // signing_key = asylo::EcdsaP256Sha256SigningKey::CreateFromPem(signing_key_pem);
-    // ASYLO_ASSIGN_OR_RETURN(this->signing_key, asylo::EcdsaP256Sha256SigningKey::CreateFromPem(signing_key_pem));
-    // ASYLO_ASSIGN_OR_RETURN(this->verifying_key, signing_key->GetVerifyingKey());
 }
 
 void CapsuleDBNetworkClient::put(const hello_world::CapsulePDU inPDU) {
@@ -42,10 +38,10 @@ void CapsuleDBNetworkClient::put(const hello_world::CapsulePDU inPDU) {
     
     // Verify hashe and signature
     // /*
-    // if(!asylo::verify_dc(&translated, verifying_key)){
-    //     std::cout << "Verification failed, not writing to CapsuleDB\n";
-    //     return;
-    // }
+    if(!asylo::verify_dc(&translated, verifying_key)){
+        std::cout << "Verification failed, not writing to CapsuleDB\n";
+        return;
+    }
     // */
 
     // Decrypt pdu paylaod
@@ -99,13 +95,13 @@ hello_world::CapsulePDU CapsuleDBNetworkClient::get(std::string requestedKey) {
 
     // Sign (same issue as cdb_test signing)
     // /*
-    // success = asylo::sign_dc(dc, signing_key);
-    // LOG(INFO) << "Got here";
-    // if (!success) {
-    //     std::cout << "DC signing failed!\n";
-    //     delete dc;
-    //     return protoDC;
-    // }
+    success = asylo::sign_dc(dc, signing_key);
+    LOG(INFO) << "Got here";
+    if (!success) {
+        std::cout << "DC signing failed!\n";
+        delete dc;
+        return protoDC;
+    }
     // */
 
     // Convert to proto and return
