@@ -21,21 +21,6 @@ class CapsuleDBTestClient {
         std::unique_ptr <asylo::SigningKey> signing_key;
         std::unique_ptr <asylo::VerifyingKey> verifying_key;
 
-        asylo::Status setKeys() {
-            LOG(INFO) << "Creating keys\n";
-            // This line for some reason causes an internal error, no idea why.
-            // signing_key = asylo::EcdsaP256Sha256SigningKey::CreateFromPem(signing_key_pem).ValueOrDie();
-            // // signing_key = asylo::EcdsaP256Sha256SigningKey::Create();
-            // ASYLO_ASSIGN_OR_RETURN(this->verifying_key, this->signing_key->GetVerifyingKey());
-            // LOG(INFO) << "Verifying key: " << this->verifying_key.get() << "\n";
-            
-            std::unique_ptr <asylo::SigningKey> signing_key_temp(std::move(asylo::EcdsaP256Sha256SigningKey::CreateFromPem(signing_key_pem)).ValueOrDie());
-            LOG(INFO) << "Signing key: " << signing_key_temp.get() << "\n";
-            asylo::CleansingVector<uint8_t> serialized_signing_key;
-            ASYLO_ASSIGN_OR_RETURN(serialized_signing_key, signing_key_temp->SerializeToDer());
-            ASYLO_ASSIGN_OR_RETURN(signing_key, asylo::EcdsaP256Sha256SigningKey::CreateFromDer(serialized_signing_key));
-        }
-
         // Yeah :)
         // Converts socket message to CapsulePDU
         capsule_pdu recv_capsule_pdu(zmq::socket_t* socket) {
@@ -107,9 +92,7 @@ class CapsuleDBTestClient {
             // Hash
             asylo::generate_hash(dc);
             // Sign
-            // The line below seg faults (:
-            LOG(INFO) << "About to sign\n";
-            asylo::sign_dc(dc, signing_key);
+            bool success = asylo::sign_dc(dc, signing_key);
 
             DUMP_CAPSULE(dc);
 
@@ -141,13 +124,6 @@ class CapsuleDBTestClient {
             recv_addr = "tcp://" + ip + ":" + std::to_string(NET_CDB_TEST_RESULT_PORT);
             LOG(INFO) << "Bind recv socket: " << recv_addr;
             
-            // setKeys();
-            signing_key(std::move(asylo::EcdsaP256Sha256SigningKey::CreateFromPem(
-            signing_key_pem)).ValueOrDie());
-            asylo::CleansingVector<uint8_t> serialized_signing_key;
-            ASSIGN_OR_RETURN(serialized_signing_key,
-                            signing_key->SerializeToDer());
-
             LOG(INFO) << "Finish test client setup!";
         }
         
@@ -176,5 +152,12 @@ class CapsuleDBTestClient {
         oG+ldQH94d6FPkRWOMwY+ppB+SQ8XnUFRA==
         -----END EC PRIVATE KEY-----)pem"
         };
+
+        asylo::Status setKeys(asylo::CleansingVector<uint8_t> serialized_signing_key) {
+            LOG(INFO) << "Creating keys";
+            ASYLO_ASSIGN_OR_RETURN(signing_key, asylo::EcdsaP256Sha256SigningKey::CreateFromDer(serialized_signing_key));
+            ASYLO_ASSIGN_OR_RETURN(verifying_key, signing_key->GetVerifyingKey());
+            LOG(INFO) << "Finished key setup, signing_key: " << signing_key.get();
+        }
         
 };

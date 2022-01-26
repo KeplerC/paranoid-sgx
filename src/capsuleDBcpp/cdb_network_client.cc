@@ -18,11 +18,16 @@
 
 
 CapsuleDBNetworkClient::CapsuleDBNetworkClient(size_t blocksize, int id, asylo::CleansingVector<uint8_t> serialized_signing_key) {
+    LOG(INFO) << "Creating CapsuleDB Network Client";
     CapsuleDB* instance = spawnDB(blocksize);
     this->db = instance;
     this->id = id;
 
-    // this->setKeys(serialized_signing_key);
+    LOG(INFO) << "Creating keys";
+    this->setKeys(serialized_signing_key);
+    LOG(INFO) << "Finished key setup, signing_key: " << signing_key.get();
+
+    LOG(INFO) << "CapsuleDB Network Client setup complete";
 }
 
 asylo::Status CapsuleDBNetworkClient::setKeys(asylo::CleansingVector<uint8_t> serialized_signing_key) {
@@ -36,13 +41,11 @@ void CapsuleDBNetworkClient::put(const hello_world::CapsulePDU inPDU) {
     capsule_pdu translated;
     asylo::CapsuleFromProto(&translated, &inPDU);
     
-    // Verify hashe and signature
-    // /*
+    // Verify hash and signature
     if(!asylo::verify_dc(&translated, verifying_key)){
         std::cout << "Verification failed, not writing to CapsuleDB\n";
         return;
     }
-    // */
 
     // Decrypt pdu paylaod
     if(asylo::decrypt_payload_l(&translated)) {
@@ -94,15 +97,12 @@ hello_world::CapsulePDU CapsuleDBNetworkClient::get(std::string requestedKey) {
     LOG(INFO) << "SIGNATURE: " << dc->signature << "\n";
 
     // Sign (same issue as cdb_test signing)
-    // /*
     success = asylo::sign_dc(dc, signing_key);
-    LOG(INFO) << "Got here";
     if (!success) {
         std::cout << "DC signing failed!\n";
         delete dc;
         return protoDC;
     }
-    // */
 
     // Convert to proto and return
     asylo::CapsuleToProto(dc, &protoDC);
@@ -118,14 +118,13 @@ hello_world::CapsulePDU CapsuleDBNetworkClient::handle(const hello_world::Capsul
     LOG(INFO) << "Got into capsuleDB handle function" << std::endl;
     capsule_pdu translated;
     asylo::CapsuleFromProto(&translated, &inPDU);
+    hello_world::CapsulePDU empty;
     
     // Verify hash and signature
-    /*
     if(!asylo::verify_dc(&translated, verifying_key)){
         std::cout << "Verification failed, not writing to CapsuleDB\n";
-        return;
+        return empty;
     }
-    */
 
     // Decrypt pdu paylaod
     if(asylo::decrypt_payload_l(&translated)) {
@@ -143,6 +142,5 @@ hello_world::CapsulePDU CapsuleDBNetworkClient::handle(const hello_world::Capsul
     else
         LOG(INFO) <<"Unable to decrypt payload\n";
 
-    hello_world::CapsulePDU empty;
     return empty;
 }

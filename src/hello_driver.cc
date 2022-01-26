@@ -641,13 +641,13 @@ int run_capsuleDB() {
     asylo::CleansingVector<uint8_t> serialized_signing_key;
     ASSIGN_OR_RETURN(serialized_signing_key,
                             signing_key->SerializeToDer());
-
     std::vector <std::thread> worker_threads;
 
     //start clients
     int num_threads = TOTAL_THREADS;
     for (unsigned thread_id = START_CLIENT_ID; thread_id < num_threads; thread_id++) {
         CapsuleDBNetworkClient* cdb = new CapsuleDBNetworkClient(50, thread_id, serialized_signing_key);
+        LOG(INFO) << "Got here";
         worker_threads.push_back(std::thread(thread_run_zmq_cdb_client, thread_id, cdb));
         sleep(1);
     }
