@@ -17,22 +17,20 @@
 #include "engine.hh"
 
 
-CapsuleDBNetworkClient::CapsuleDBNetworkClient(size_t blocksize, int id, asylo::CleansingVector<uint8_t> serialized_signing_key) {
+CapsuleDBNetworkClient::CapsuleDBNetworkClient(size_t blocksize, int id, asylo::CleansingVector<uint8_t> serialized_input_key) {
     LOG(INFO) << "Creating CapsuleDB Network Client";
     CapsuleDB* instance = spawnDB(blocksize);
     this->db = instance;
     this->id = id;
 
-    LOG(INFO) << "Creating keys";
-    this->setKeys(serialized_signing_key);
-    LOG(INFO) << "Finished key setup, signing_key: " << signing_key.get();
-
     LOG(INFO) << "CapsuleDB Network Client setup complete";
 }
 
-asylo::Status CapsuleDBNetworkClient::setKeys(asylo::CleansingVector<uint8_t> serialized_signing_key) {
-    ASYLO_ASSIGN_OR_RETURN(signing_key, asylo::EcdsaP256Sha256SigningKey::CreateFromDer(serialized_signing_key));
-    ASYLO_ASSIGN_OR_RETURN(verifying_key, signing_key->GetVerifyingKey());
+asylo::Status CapsuleDBNetworkClient::setKeys(asylo::CleansingVector<uint8_t> serialized_input_key) {
+    LOG(INFO) << "Creating CapsuleDBNetworkClient keys";
+    ASYLO_ASSIGN_OR_RETURN(this->signing_key, asylo::EcdsaP256Sha256SigningKey::CreateFromDer(serialized_signing_key));
+    ASYLO_ASSIGN_OR_RETURN(this->verifying_key, signing_key->GetVerifyingKey());
+    LOG(INFO) << "Done creating CapsuleDBNetworkClient keys";
 }
 
 void CapsuleDBNetworkClient::put(const hello_world::CapsulePDU inPDU) {

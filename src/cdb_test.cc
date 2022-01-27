@@ -1,7 +1,7 @@
 #include "cdb_test.hh"
 #include "benchmark.h"
 
-CapsuleDBTestClient client;
+// CapsuleDBTestClient client;
 const absl::string_view signing_key_pem = {
             R"pem(-----BEGIN EC PRIVATE KEY-----
 MHcCAQEEIF0Z0yrz9NNVFQU1754rHRJs+Qt04mr3vEgNok8uyU8QoAoGCCqGSM49
@@ -11,13 +11,13 @@ oG+ldQH94d6FPkRWOMwY+ppB+SQ8XnUFRA==
 };
 
 // Wrappers for benchmark
-void benchmark_put(const std::string &key, const std::string &value) {
-    client.put(key, value);
-}
+// void benchmark_put(const std::string &key, const std::string &value) {
+//     client.put(key, value);
+// }
 
-std::string benchmark_get(const std::string &key) {
-    return client.get(key);
-}
+// std::string benchmark_get(const std::string &key) {
+//     return client.get(key);
+// }
 
 /* 
  * Runs a simple test of CapsuleDB connected to ZMQ client, making use of the current multicast tree implementation.
@@ -35,19 +35,19 @@ int run_cdb_test_client() {
     ASSIGN_OR_RETURN(serialized_signing_key,
                             signing_key->SerializeToDer());
 
-    // CapsuleDBTestClient client;
+    CapsuleDBTestClient client;
     client.setKeys(serialized_signing_key);
-
+    LOG(INFO) << "Done with key setup, returned to run_cdb_test_client";
     while (true) {
-        // client.put("3945957134849834", "FIRST_VAL");
-        // client.put("3945957134849835", "SECOND_VAL");
-        benchmark_put("3945957134849834", "FIRST_VAL");
-        benchmark_put("3945957134849835", "SECOND_VAL");
+        client.put("3945957134849834", "FIRST_VAL");
+        client.put("3945957134849835", "SECOND_VAL");
+        // benchmark_put("3945957134849834", "FIRST_VAL");
+        // benchmark_put("3945957134849835", "SECOND_VAL");
         sleep(3);
-        // LOG(INFO) << "Get result: " << client.get("3945957134849835");
-        // LOG(INFO) << "Get result: " << client.get("3945957134849834");
-        LOG(INFO) << "Get result: " << benchmark_get("3945957134849835");
-        LOG(INFO) << "Get result: " << benchmark_get("3945957134849834");
+        LOG(INFO) << "Get result: " << client.get("3945957134849835");
+        LOG(INFO) << "Get result: " << client.get("3945957134849834");
+        // LOG(INFO) << "Get result: " << benchmark_get("3945957134849835");
+        // LOG(INFO) << "Get result: " << benchmark_get("3945957134849834");
         sleep(5);
     }
 

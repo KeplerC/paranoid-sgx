@@ -84,14 +84,18 @@ class CapsuleDBTestClient {
             }
             payload_l.push_back(payload);
 
+            LOG(INFO) << "Generating payload with key: " << key << "and value: " << value;
             // Create CapsulePDU
             auto *dc = new capsule_pdu();
             asylo::PayloadListToCapsule(dc, &payload_l, 0, recv_addr);
             // Encrypt
+            LOG(INFO) << "Test 1";
             asylo::encrypt_payload_l(dc, true);
             // Hash
+            LOG(INFO) << "Test 2";
             asylo::generate_hash(dc);
             // Sign
+            LOG(INFO) << "Test 3";
             bool success = asylo::sign_dc(dc, signing_key);
 
             DUMP_CAPSULE(dc);
@@ -113,6 +117,14 @@ class CapsuleDBTestClient {
 
 
     public:
+        const absl::string_view signing_key_pem = {
+                    R"pem(-----BEGIN EC PRIVATE KEY-----
+        MHcCAQEEIF0Z0yrz9NNVFQU1754rHRJs+Qt04mr3vEgNok8uyU8QoAoGCCqGSM49
+        AwEHoUQDQgAE2M/ETD1FV9EFzZBB1+emBFJuB1eh2/XyY3ZdNrT8lq7FQ0Z6ENdm
+        oG+ldQH94d6FPkRWOMwY+ppB+SQ8XnUFRA==
+        -----END EC PRIVATE KEY-----)pem"
+        };
+        
         CapsuleDBTestClient() {
             // Connect to the multicast socket of the root router
             std::string coordinator_ip = NET_SEED_ROUTER_IP;
@@ -145,19 +157,11 @@ class CapsuleDBTestClient {
             // return "";
         }
 
-        const absl::string_view signing_key_pem = {
-                    R"pem(-----BEGIN EC PRIVATE KEY-----
-        MHcCAQEEIF0Z0yrz9NNVFQU1754rHRJs+Qt04mr3vEgNok8uyU8QoAoGCCqGSM49
-        AwEHoUQDQgAE2M/ETD1FV9EFzZBB1+emBFJuB1eh2/XyY3ZdNrT8lq7FQ0Z6ENdm
-        oG+ldQH94d6FPkRWOMwY+ppB+SQ8XnUFRA==
-        -----END EC PRIVATE KEY-----)pem"
-        };
-
         asylo::Status setKeys(asylo::CleansingVector<uint8_t> serialized_signing_key) {
             LOG(INFO) << "Creating keys";
-            ASYLO_ASSIGN_OR_RETURN(signing_key, asylo::EcdsaP256Sha256SigningKey::CreateFromDer(serialized_signing_key));
-            ASYLO_ASSIGN_OR_RETURN(verifying_key, signing_key->GetVerifyingKey());
-            LOG(INFO) << "Finished key setup, signing_key: " << signing_key.get();
+            ASYLO_ASSIGN_OR_RETURN(this->signing_key, asylo::EcdsaP256Sha256SigningKey::CreateFromDer(serialized_signing_key));
+            ASYLO_ASSIGN_OR_RETURN(this->verifying_key, this->signing_key->GetVerifyingKey());
+            LOG(INFO) << "Finished key setup, signing_key: " << this->signing_key.get();
         }
         
 };

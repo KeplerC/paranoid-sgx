@@ -67,10 +67,7 @@ namespace asylo {
     }
 
     bool sign_dc(capsule_pdu *dc, const std::unique_ptr <SigningKey> &signing_key) {
-        std::cout << "Entering sign_dc\n";
         std::string aggregated = dc->hash + dc->prevHash;
-        std::cout << "Aggregated hash + prevHash: " << aggregated << "\n";
-        std::cout << "Signing key: " << signing_key.get() << "\n";
         dc->signature = SignMessage(aggregated, signing_key);
         return true;
     }
