@@ -18,7 +18,6 @@ class CapsuleDBNetworkClient {
         int id;
         std::string priv_key;
         std::string pub_key;
-        asylo::CleansingVector<uint8_t> serialized_signing_key;
         std::unique_ptr <asylo::SigningKey> signing_key;
         std::unique_ptr <asylo::VerifyingKey> verifying_key;
 

@@ -28,9 +28,9 @@ CapsuleDBNetworkClient::CapsuleDBNetworkClient(size_t blocksize, int id, asylo::
 
 asylo::Status CapsuleDBNetworkClient::setKeys(asylo::CleansingVector<uint8_t> serialized_input_key) {
     LOG(INFO) << "Creating CapsuleDBNetworkClient keys";
-    ASYLO_ASSIGN_OR_RETURN(this->signing_key, asylo::EcdsaP256Sha256SigningKey::CreateFromDer(serialized_signing_key));
-    ASYLO_ASSIGN_OR_RETURN(this->verifying_key, signing_key->GetVerifyingKey());
-    LOG(INFO) << "Done creating CapsuleDBNetworkClient keys";
+    ASYLO_ASSIGN_OR_RETURN(this->signing_key, asylo::EcdsaP256Sha256SigningKey::CreateFromDer(serialized_input_key));
+    ASYLO_ASSIGN_OR_RETURN(this->verifying_key, this->signing_key->GetVerifyingKey());
+    LOG(INFO) << "Done creating CapsuleDBNetworkClient keys, signing_key: " << this->signing_key.get();
 }
 
 void CapsuleDBNetworkClient::put(const hello_world::CapsulePDU inPDU) {
@@ -119,10 +119,12 @@ hello_world::CapsulePDU CapsuleDBNetworkClient::handle(const hello_world::Capsul
     hello_world::CapsulePDU empty;
     
     // Verify hash and signature
+    std::cout << "Got before verify\n";
     if(!asylo::verify_dc(&translated, verifying_key)){
         std::cout << "Verification failed, not writing to CapsuleDB\n";
         return empty;
     }
+    std::cout << "Got after verify\n";
 
     // Decrypt pdu paylaod
     if(asylo::decrypt_payload_l(&translated)) {
