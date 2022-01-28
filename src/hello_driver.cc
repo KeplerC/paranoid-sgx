@@ -60,7 +60,6 @@
 // #include "asylo/identity/enclave_assertion_authority_config.proto.h"
 #include "asylo/identity/enclave_assertion_authority_configs.h"
 
-<<<<<<< HEAD
 #include "src/translator_server.grpc.pb.h"
 #include "asylo/grpc/auth/enclave_channel_credentials.h"
 #include "include/grpcpp/grpcpp.h"
@@ -464,7 +463,7 @@ void thread_user_receiving_result(){
     }
 }
 
-<<<<<<< HEAD
+
 int run_worker(){
     std::unique_ptr <asylo::SigningKey> signing_key(std::move(asylo::EcdsaP256Sha256SigningKey::CreateFromPem(
             signing_key_pem)).ValueOrDie());
@@ -641,7 +640,7 @@ int run_local_dispatcher(){
     return 0;
 }
 
-
+/*
 int run_worker(){
     std::unique_ptr <asylo::SigningKey> signing_key(std::move(asylo::EcdsaP256Sha256SigningKey::CreateFromPem(
             signing_key_pem)).ValueOrDie());
@@ -667,7 +666,7 @@ int run_worker(){
 
     return 0;
 }
-
+*/
 int run_sync_server(){
     std::unique_ptr <asylo::SigningKey> signing_key(std::move(asylo::EcdsaP256Sha256SigningKey::CreateFromPem(
             signing_key_pem)).ValueOrDie());

@@ -360,6 +360,7 @@ cc_library(
         "bloom/bloom_filter.hpp",
     ],
     deps=[
+	"@bip32//:bip32",
         "@boost//:archive",
         "@boost//:serialization",
         "@com_google_asylo//asylo/crypto:ecdsa_p256_sha256_signing_key",
@@ -501,11 +502,6 @@ cc_library(
     includes = ["mplambda/include", "kvs_include"],
 )
 
-cc_library(
-    name = "mpl_hdrs",
-    includes = ["mplambda/include", "kvs_include"],
-)
-
 
 cc_unsigned_enclave(
     name = "hello_enclave_unsigned.so",
@@ -638,6 +634,8 @@ enclave_loader(
         ":hello_cc_proto",
         ":translator_server",
         ":attestation_util",
+	 ":networkedCapsuleDB",
+        ":capsuleDB_cc_proto",
         "@bip32//:bip32",
         "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/flags:parse",

@@ -96,8 +96,8 @@ namespace asylo {
     bool verify_signature(const capsule_pdu *dc, const std::unique_ptr <VerifyingKey> &verifying_key) {
         return VerifyMessage(dc->hash + dc->prevHash, dc->signature, verifying_key);
     }
-
-    bool verify_dc(std::unordered_map<int, secp256k1_key> enclave_worker_keys, const capsule_pdu *dc, const Coin::HDKeychain& key){
+  
+    bool verify_dc(const capsule_pdu *dc, const std::unique_ptr <VerifyingKey> &verifying_key){
         
         // verify hash matches
         bool hash_result = verify_hash(dc);
@@ -107,9 +107,9 @@ namespace asylo {
         }
         // LOG(INFO) << "after verify_hash";
         // verify signature
-        bool sig_result = verify_dc_hd_wallet(enclave_worker_keys, dc, key);
+        bool sig_result = verify_signature(dc, verifying_key);
         if (!sig_result) {
-            LOGI << "signature verification failed!!! " << dc->faas_idx;
+            std::cout << "signature verification failed!!!";
             return false;
         }
 
@@ -132,6 +132,30 @@ namespace asylo {
         return true;
     }
 
+      bool sign_dc(capsule_pdu *dc, const std::unique_ptr <SigningKey> &signing_key) {
+        std::string aggregated = dc->hash + dc->prevHash;
+        dc->signature = SignMessage(aggregated, signing_key);
+        return true;
+    }
+
+      bool verify_dc(std::unordered_map<int, secp256k1_key> enclave_worker_keys, const capsule_pdu *dc, const Coin::HDKeychain& key){
+        
+        // verify hash matches
+        bool hash_result = verify_hash(dc);
+        if (!hash_result) {
+            std::cout << "hash verification failed!!!";
+            return false;
+        }
+        // LOG(INFO) << "after verify_hash";
+        // verify signature
+        bool sig_result = verify_dc_hd_wallet(enclave_worker_keys, dc, key);
+        if (!sig_result) {
+            LOGI << "signature verification failed!!! " << dc->faas_idx;
+            return false;
+        }
+	return true;
+      }
+
     bool encrypt_payload_l(capsule_pdu *dc, bool encryption_needed, const asylo::ByteContainerView kAesKey128) {
         std::string aggregated = serialize_payload_l(dc->payload_l);
         if (!encryption_needed){
@@ -148,6 +172,27 @@ namespace asylo {
         std::string decrypted_aggregated;
 
         ASSIGN_OR_RETURN_FALSE(decrypted_aggregated, DecryptMessage(dc->payload_in_transit, kAesKey128));
+        LOGI << "After DecryptMessage: " << decrypted_aggregated << std::endl;
+        // std::cout << std::endl;
+        dc->payload_l = deserialize_payload_l(decrypted_aggregated);
+        return true;
+    }
+      bool encrypt_payload_l(capsule_pdu *dc, bool encryption_needed) {
+        std::string aggregated = serialize_payload_l(dc->payload_l);
+        if (!encryption_needed){
+            dc->payload_in_transit = aggregated;
+            return true;
+        }
+        std::string encrypted_aggregated;
+        ASSIGN_OR_RETURN_FALSE(encrypted_aggregated, EncryptMessage(aggregated));
+        dc->payload_in_transit = encrypted_aggregated;
+        return true;
+    }
+
+    bool decrypt_payload_l(capsule_pdu *dc) {
+        std::string decrypted_aggregated;
+
+        ASSIGN_OR_RETURN_FALSE(decrypted_aggregated, DecryptMessage(dc->payload_in_transit));
         LOGI << "After DecryptMessage: " << decrypted_aggregated << std::endl;
         // std::cout << std::endl;
         dc->payload_l = deserialize_payload_l(decrypted_aggregated);

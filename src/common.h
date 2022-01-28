@@ -88,14 +88,8 @@
 #define BENCHMARK_MODE true
 #define LOGI LOG_IF(INFO, !BENCHMARK_MODE)
 // #define LOGD LOG_IF(INFO, BENCHMARK_MODE) << get_current_time() << " "
-#if BENCHMARK_MODE
-#include "benchmark.h"
-//#define M_BENCHMARK_CODE void KVSClient::benchmark(){}
-#define M_BENCHMARK_CODE M_BENCHMARK_HERE
-#else
-#define M_BENCHMARK_CODE \
-    void benchmark() {}
-#endif
+#define M_BENCHMARK_CODE void benchmark() {}
+
 
 enum OCALL_ID
 {

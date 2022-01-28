@@ -39,6 +39,13 @@ bool encrypt_payload_l(capsule_pdu *dc, bool encryption_needed, const asylo::Byt
 
 bool decrypt_payload_l(capsule_pdu *dc, const asylo::ByteContainerView kAesKey128);
 
+  //TODO: following three function needs to be removed
+bool encrypt_payload_l(capsule_pdu *dc, bool encryption_need);
+bool decrypt_payload_l(capsule_pdu *dc);
+bool verify_dc(const capsule_pdu *dc, const std::unique_ptr <VerifyingKey> &verifying_key);
+  bool sign_dc(capsule_pdu *dc, const std::unique_ptr <SigningKey> &signing_key);
+
+  
 void KvToPayload(kvs_payload *payload, const std::string &key, const std::string &value, const int64_t timer,
                     const std::string &msgType);
 

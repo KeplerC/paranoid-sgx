@@ -16,11 +16,6 @@
     zmq::socket_t socket_result (context, ZMQ_PULL);
     socket_result.bind ("tcp://*:" + std::to_string(NET_SERVER_RESULT_PORT));
 
-    zmq::socket_t socket_control (context, ZMQ_PULL);
-    socket_control.bind ("tcp://*:" + std::to_string(NET_SERVER_CONTROL_PORT));
-    zmq::socket_t socket_result (context, ZMQ_PULL);
-    socket_result.bind ("tcp://*:" + std::to_string(NET_SERVER_RESULT_PORT));
-
 
     //poll join and mcast messages
     std::vector<zmq::pollitem_t> pollitems = {
@@ -226,56 +221,4 @@
         }
     }
 }
-
-
-[[noreturn]] void zmq_comm::run_js_client(){
-    zmq::context_t context (1);
-
-    zmq::socket_t socket_from_server (context, ZMQ_PULL);
-    socket_from_server.bind ("tcp://*:" + m_port);
-
-    //send join request to seed server
-    zmq::socket_t* socket_join  = new  zmq::socket_t( context, ZMQ_PUSH);
-    socket_join -> connect ("tcp://" + m_seed_server_ip + ":" + m_seed_server_join_port);
-    this->send_string(m_addr, socket_join);
-
-    //a socket to server to multicast
-    zmq::socket_t* socket_send  = new  zmq::socket_t( context, ZMQ_PUSH);
-    socket_send -> connect ("tcp://" + m_seed_server_ip + ":" + m_seed_server_mcast_port);
-
-    zmq::socket_t socket_code (context, ZMQ_PULL);
-    socket_code.bind ("tcp://*:" + m_recv_code_port);
-
-    LOGI << "tcp://" + m_seed_server_ip + ":" + m_seed_server_mcast_port;
-    LOGI << "tcp://" + m_seed_server_ip + ":" + m_seed_server_join_port;
-
-    // poll for new messages
-    std::vector<zmq::pollitem_t> pollitems = {
-            { static_cast<void *>(socket_from_server), 0, ZMQ_POLLIN, 0 },
-            { static_cast<void *>(socket_code), 0, ZMQ_POLLIN, 0 },
-    };
-
-
-    //start enclave
-    while (true) {
-        // LOG(INFO) << "Start zmq";
-        zmq::poll(pollitems.data(), pollitems.size(), 0);
-        // Join Request
-        if (pollitems[0].revents & ZMQ_POLLIN) {
-            //Get the address
-            std::string msg = this->recv_string(&socket_from_server);
-            LOG(INFO) << "[Client " << m_addr << "]:  " + msg ;
-            // this -> send_string(m_port , socket_send);
-            this->m_sgx->send_to_sgx(msg);
-        }
-        if (pollitems[1].revents & ZMQ_POLLIN) {
-            //Get the address
-            std::string msg = this->recv_string(&socket_code);
-            // LOG(INFO) << "[Client " << m_addr << "]:  " + msg ;
-            // this -> send_string(m_port , socket_send);
-            this->m_sgx->execute_js_code(msg);
-        }
-    }
-}
-
 

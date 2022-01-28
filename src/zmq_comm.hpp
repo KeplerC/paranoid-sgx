@@ -1,3 +1,5 @@
+#ifndef ZMQ_HPP
+#define ZMQ_HPP
 #pragma once
 #include <iostream>
 #include <fstream>
@@ -107,3 +109,5 @@ private:
         return ret;
     }
 };
+
+#endif
