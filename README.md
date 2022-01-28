@@ -83,6 +83,33 @@ python3 run_benchmark.py
 
 ```
 
+### Run CapsuleDB Local Demo 
+Model
+```
+                                      ┌─────►CDB
+┌───────────┐     ┌────────────┐      │
+│test server├────►│root router ├──────┤
+└───────────┘     └────────────┘      ├─────►CDB
+                                      │
+                                      │
+                                      └─────►...
+```
+
+Run instructions
+```
+(three instances of same docker container)
+# start root router
+bazel run //src:hello_world_sgx_sim -- --mode=7
+
+# start CapusleDB worker
+bazel run //src:hello_world_sgx_sim  -- --mode=8
+
+# start testing client
+bazel run //src:capsuleDBIntegTests
+```
+
+Or you can put it as a background job and run both in the same instance. 
+
 
 ## Introduction
 

@@ -16,6 +16,7 @@
  *
  */
 
+#include <algorithm>
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -53,10 +54,12 @@
 #include <netinet/in.h>
 #include <netdb.h>
 
+#include "capsuleDBcpp/cdb_network_client.hh"
+
 // #include "asylo/identity/enclave_assertion_authority_config.proto.h"
 #include "asylo/identity/enclave_assertion_authority_configs.h"
 
-enum mode_type { RUN_BOTH_CLIENT_AND_SERVER, RUN_CLIENT_ONLY, LISTENER_MODE, COORDINATOR_MODE, JS_MODE, USER_MODE,WORKER_MODE, SYNC_SERVER_MODE };
+enum mode_type { RUN_BOTH_CLIENT_AND_SERVER, RUN_CLIENT_ONLY, LISTENER_MODE, COORDINATOR_MODE, JS_MODE, USER_MODE, WORKER_MODE, SYNC_SERVER_MODE, CAPSULEDB_MODE };
 
 #define PORT_NUM 1234
 
@@ -113,6 +116,12 @@ void thread_run_zmq_js_client(unsigned thread_id, Asylo_SGX* sgx){
     LOG(INFO) << "[thread_run_zmq_client_worker]";
     zmq_comm zs = zmq_comm(NET_WORKER_IP, thread_id, sgx);
     zs.run_js_client();
+}
+
+void thread_run_zmq_cdb_client(unsigned thread_id, CapsuleDBNetworkClient* db){
+    // TODO: Individual cdb worker ip for future simulations?
+    zmq_comm zs = zmq_comm(NET_WORKER_IP, thread_id, db, nullptr);
+    zs.run_cdb_client();
 }
 
 void thread_run_zmq_router(unsigned thread_id){
@@ -511,7 +520,7 @@ int run_local_dispatcher(){
             std::vector<std::string> splitted_messages = absl::StrSplit(message_to_string(message), GROUP_ADDR_DELIMIT, absl::SkipEmpty());
             return_addr = splitted_messages[0];
             code = splitted_messages[1];
-            LOGI << "[Client " << return_addr << "]:  " + code ;
+            LOG(INFO) << "[Client " << return_addr << "]:  " + code ;
 
             //aloha to query for available worker nodes
             zmq::socket_t* socket_ptr  = new  zmq::socket_t( context, ZMQ_PUSH);
@@ -598,8 +607,8 @@ int run_sync_server(){
     Asylo_SGX* sgx = new Asylo_SGX( std::to_string(thread_id), serialized_signing_key);
     sgx->init();
     sleep(2);
-    worker_threads.push_back(std::thread(thread_run_zmq_js_client, thread_id, sgx));
-    worker_threads.push_back(std::thread(thread_start_coordinator, sgx));
+    // worker_threads.push_back(std::thread(thread_run_zmq_js_client, thread_id, sgx));
+    // worker_threads.push_back(std::thread(thread_start_coordinator, sgx));
 
     sleep(1000);
     return 0;
@@ -626,11 +635,31 @@ int run_js() {
     return 0; 
 }
 
+int run_capsuleDB() {
+    std::unique_ptr <asylo::SigningKey> signing_key(std::move(asylo::EcdsaP256Sha256SigningKey::CreateFromPem(
+                                            signing_key_pem)).ValueOrDie());
+
+    asylo::CleansingVector<uint8_t> serialized_signing_key;
+    ASSIGN_OR_RETURN(serialized_signing_key,
+                            signing_key->SerializeToDer());
+    std::vector <std::thread> worker_threads;
+
+    //start clients
+    int num_threads = TOTAL_THREADS;
+    for (unsigned thread_id = START_CLIENT_ID; thread_id < num_threads; thread_id++) {
+        CapsuleDBNetworkClient* cdb = new CapsuleDBNetworkClient(50, thread_id, serialized_signing_key);
+        worker_threads.push_back(std::thread(thread_run_zmq_cdb_client, thread_id, cdb));
+        sleep(1);
+    }
+    sleep(1000);
+    return 0; 
+}
+
 int main(int argc, char *argv[]) {
     absl::ParseCommandLine(argc, argv);
 
     uint32_t mode = absl::GetFlag(FLAGS_mode);
-    LOGI << "Current Mode: "<< mode;
+    LOG(INFO) << "Current Mode: "<< mode;
     switch(mode){
         case RUN_BOTH_CLIENT_AND_SERVER:
             run_client_and_router();
@@ -646,22 +675,25 @@ int main(int argc, char *argv[]) {
 //            break;
         case JS_MODE:
             run_js();
-            break;
+            break; 
         case USER_MODE:
-            LOGI << "running in user mode";
+            LOG(INFO) << "running in user mode";
             run_user();
             break;
         case COORDINATOR_MODE:
-            LOGI << "running in coordinator mode";
+            LOG(INFO) << "running in coordinator mode";
             run_local_dispatcher();
             break;
         case WORKER_MODE:
-            LOGI << "running in worker mode";
+            LOG(INFO) << "running in worker mode";
             run_worker();
             break;
         case SYNC_SERVER_MODE:
-            LOGI << "running sync server";
+            LOG(INFO) << "running sync server";
             run_sync_server();
+        case CAPSULEDB_MODE:
+            LOG(INFO) << "running CapsuleDB server";
+            run_capsuleDB();
             break;
         default:
             printf("Mode %d is incorrect\n", mode); 
