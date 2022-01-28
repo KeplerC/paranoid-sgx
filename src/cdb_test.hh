@@ -84,18 +84,14 @@ class CapsuleDBTestClient {
             }
             payload_l.push_back(payload);
 
-            LOG(INFO) << "Generating payload with key: " << key << "and value: " << value;
             // Create CapsulePDU
             auto *dc = new capsule_pdu();
             asylo::PayloadListToCapsule(dc, &payload_l, 0, recv_addr);
             // Encrypt
-            LOG(INFO) << "Test 1";
             asylo::encrypt_payload_l(dc, true);
             // Hash
-            LOG(INFO) << "Test 2";
             asylo::generate_hash(dc);
             // Sign
-            LOG(INFO) << "Test 3";
             bool success = asylo::sign_dc(dc, signing_key);
 
             DUMP_CAPSULE(dc);

@@ -17,20 +17,16 @@
 #include "engine.hh"
 
 
-CapsuleDBNetworkClient::CapsuleDBNetworkClient(size_t blocksize, int id) {
+CapsuleDBNetworkClient::CapsuleDBNetworkClient(size_t blocksize, int id, asylo::CleansingVector<uint8_t> serialized_input_key) {
     LOG(INFO) << "Creating CapsuleDB Network Client";
     CapsuleDB* instance = spawnDB(blocksize);
     this->db = instance;
     this->id = id;
 
-    LOG(INFO) << "CapsuleDB Network Client setup complete";
-}
+    this->signing_key = asylo::EcdsaP256Sha256SigningKey::CreateFromDer(serialized_input_key).ValueOrDie();
+    this->verifying_key = this->signing_key->GetVerifyingKey().ValueOrDie();
 
-asylo::StatusOr<asylo::CleansingVector<uint8_t>> CapsuleDBNetworkClient::setKeys(asylo::CleansingVector<uint8_t> serialized_input_key) {
-    LOG(INFO) << "Creating CapsuleDBNetworkClient keys";
-    ASYLO_ASSIGN_OR_RETURN(this->signing_key, asylo::EcdsaP256Sha256SigningKey::CreateFromDer(serialized_input_key));
-    ASYLO_ASSIGN_OR_RETURN(this->verifying_key, this->signing_key->GetVerifyingKey());
-    LOG(INFO) << "Done creating CapsuleDBNetworkClient keys, signing_key: " << this->signing_key.get();
+    LOG(INFO) << "CapsuleDB Network Client setup complete";
 }
 
 void CapsuleDBNetworkClient::put(const hello_world::CapsulePDU inPDU) {
