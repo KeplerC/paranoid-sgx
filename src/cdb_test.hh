@@ -112,16 +112,8 @@ class CapsuleDBTestClient {
         }
 
 
-    public:
-        const absl::string_view signing_key_pem = {
-                    R"pem(-----BEGIN EC PRIVATE KEY-----
-        MHcCAQEEIF0Z0yrz9NNVFQU1754rHRJs+Qt04mr3vEgNok8uyU8QoAoGCCqGSM49
-        AwEHoUQDQgAE2M/ETD1FV9EFzZBB1+emBFJuB1eh2/XyY3ZdNrT8lq7FQ0Z6ENdm
-        oG+ldQH94d6FPkRWOMwY+ppB+SQ8XnUFRA==
-        -----END EC PRIVATE KEY-----)pem"
-        };
-        
-        CapsuleDBTestClient() {
+    public:       
+        CapsuleDBTestClient(asylo::CleansingVector<uint8_t> serialized_signing_key) {
             // Connect to the multicast socket of the root router
             std::string coordinator_ip = NET_SEED_ROUTER_IP;
             mcast_socket->connect ("tcp://" + coordinator_ip + ":6667");
@@ -131,6 +123,10 @@ class CapsuleDBTestClient {
             std::string ip = NET_CDB_TEST_CLIENT_IP;
             recv_addr = "tcp://" + ip + ":" + std::to_string(NET_CDB_TEST_RESULT_PORT);
             LOG(INFO) << "Bind recv socket: " << recv_addr;
+
+            // Set up signing and verifying keys
+            this->signing_key = asylo::EcdsaP256Sha256SigningKey::CreateFromDer(serialized_signing_key).ValueOrDie();
+            this->verifying_key = this->signing_key->GetVerifyingKey().ValueOrDie();
             
             LOG(INFO) << "Finish test client setup!";
         }
@@ -151,13 +147,5 @@ class CapsuleDBTestClient {
             // Waits for reponse
             return wait_response(key);
             // return "";
-        }
-
-        asylo::Status setKeys(asylo::CleansingVector<uint8_t> serialized_signing_key) {
-            LOG(INFO) << "Creating keys";
-            ASYLO_ASSIGN_OR_RETURN(this->signing_key, asylo::EcdsaP256Sha256SigningKey::CreateFromDer(serialized_signing_key));
-            ASYLO_ASSIGN_OR_RETURN(this->verifying_key, this->signing_key->GetVerifyingKey());
-            LOG(INFO) << "Finished key setup, signing_key: " << this->signing_key.get();
-        }
-        
+        }        
 };

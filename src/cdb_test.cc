@@ -35,8 +35,7 @@ int run_cdb_test_client() {
     ASSIGN_OR_RETURN(serialized_signing_key,
                             signing_key->SerializeToDer());
 
-    CapsuleDBTestClient client;
-    client.setKeys(serialized_signing_key);
+    CapsuleDBTestClient client = CapsuleDBTestClient(serialized_signing_key);
     LOG(INFO) << "Done with key setup, returned to run_cdb_test_client";
     while (true) {
         client.put("3945957134849834", "FIRST_VAL");
