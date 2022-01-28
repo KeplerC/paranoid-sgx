@@ -605,7 +605,7 @@ enclave_loader(
         "--mode=3",
         "--hosts=localhost,35.247.29.237", 
         ],
-    linkopts = [ "-L/usr/local/lib", "-lzmq" ],
+    linkopts = [ "-L/usr/local/lib", "-lzmq", "-fsanitize=address",  "-static-libasan",  "-g"],
     deps = [
         ":networkedCapsuleDB",
         ":capsuleDB_cc_proto",
