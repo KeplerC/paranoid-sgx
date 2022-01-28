@@ -18,13 +18,13 @@ class CapsuleDBNetworkClient {
         int id;
         std::string priv_key;
         std::string pub_key;
-        std::unique_ptr <asylo::SigningKey> signing_key;
-        std::unique_ptr <asylo::VerifyingKey> verifying_key;
 
 
     public:
-        CapsuleDBNetworkClient(size_t blocksize, int id, asylo::CleansingVector<uint8_t> serialized_signing_key); 
-        asylo::Status setKeys(asylo::CleansingVector<uint8_t> serialized_input_key);
+        std::unique_ptr <asylo::SigningKey> signing_key;
+        std::unique_ptr <asylo::VerifyingKey> verifying_key;
+        CapsuleDBNetworkClient(size_t blocksize, int id); 
+        asylo::StatusOr<asylo::CleansingVector<uint8_t>> setKeys(asylo::CleansingVector<uint8_t> serialized_input_key);
         void put(hello_world::CapsulePDU inPDU);
         hello_world::CapsulePDU handle(hello_world::CapsulePDU inPDU);
         hello_world::CapsulePDU get(std::string requestedKey);

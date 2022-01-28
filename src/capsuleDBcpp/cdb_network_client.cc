@@ -17,7 +17,7 @@
 #include "engine.hh"
 
 
-CapsuleDBNetworkClient::CapsuleDBNetworkClient(size_t blocksize, int id, asylo::CleansingVector<uint8_t> serialized_input_key) {
+CapsuleDBNetworkClient::CapsuleDBNetworkClient(size_t blocksize, int id) {
     LOG(INFO) << "Creating CapsuleDB Network Client";
     CapsuleDB* instance = spawnDB(blocksize);
     this->db = instance;
@@ -26,7 +26,7 @@ CapsuleDBNetworkClient::CapsuleDBNetworkClient(size_t blocksize, int id, asylo::
     LOG(INFO) << "CapsuleDB Network Client setup complete";
 }
 
-asylo::Status CapsuleDBNetworkClient::setKeys(asylo::CleansingVector<uint8_t> serialized_input_key) {
+asylo::StatusOr<asylo::CleansingVector<uint8_t>> CapsuleDBNetworkClient::setKeys(asylo::CleansingVector<uint8_t> serialized_input_key) {
     LOG(INFO) << "Creating CapsuleDBNetworkClient keys";
     ASYLO_ASSIGN_OR_RETURN(this->signing_key, asylo::EcdsaP256Sha256SigningKey::CreateFromDer(serialized_input_key));
     ASYLO_ASSIGN_OR_RETURN(this->verifying_key, this->signing_key->GetVerifyingKey());

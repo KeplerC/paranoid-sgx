@@ -16,6 +16,7 @@
  *
  */
 
+#include <algorithm>
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -646,8 +647,22 @@ int run_capsuleDB() {
     //start clients
     int num_threads = TOTAL_THREADS;
     for (unsigned thread_id = START_CLIENT_ID; thread_id < num_threads; thread_id++) {
-        CapsuleDBNetworkClient* cdb = new CapsuleDBNetworkClient(50, thread_id, serialized_signing_key);
-        cdb->setKeys(serialized_signing_key);
+        // asylo::CleansingVector<uint8_t> temp_vec;
+        // LOG(INFO) << "Pretest: " << serialized_signing_key.size();
+        // std::copy(serialized_signing_key, serialized_signing_key[serialized_signing_key.size() - 1], temp_vec.begin());
+        // LOG(INFO) << "Test";
+
+        // asylo::CleansingVector<uint8_t> serialized_signing_key;
+        // ASSIGN_OR_RETURN(serialized_signing_key,
+        //                         signing_key->SerializeToDer());
+        // serialized_signing_key = signing_key->SerializeToDer().ValueOrDie();
+
+        CapsuleDBNetworkClient* cdb = new CapsuleDBNetworkClient(50, thread_id);
+
+        cdb->signing_key = asylo::EcdsaP256Sha256SigningKey::CreateFromDer(serialized_signing_key).ValueOrDie();
+        cdb->verifying_key = cdb->signing_key->GetVerifyingKey().ValueOrDie();
+        LOG(INFO) << "Key: " << cdb->signing_key.get();
+        // cdb->setKeys(serialized_signing_key);
         LOG(INFO) << "Done with key setup, returned to run_capsuleDB";
         worker_threads.push_back(std::thread(thread_run_zmq_cdb_client, thread_id, cdb));
         sleep(1);
