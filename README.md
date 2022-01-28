@@ -34,6 +34,7 @@ Next, use Docker to build and run the `paranoid-sgx` application, using a
 simulated enclave backend:
 
 ```bash
+MY_PROJECT=~/paranoid-sgx
 docker run -it --rm \
     -v bazel-cache:/root/.cache/bazel \
     -v "${MY_PROJECT}":/opt/my-project \
@@ -54,24 +55,62 @@ bazel run //src:hello_world_sgx_sim -- --mode 4 --input_file "/opt/my-project/sr
 ```
 
 ### Run JS demo with PSL stack
-It's better to start three terminals with the same docker container using 
-```bash
-docker exec -it YOURCONTAINERNAME bash
-```
-the name can be found using `docker ps`. 
 
-Then you can start the coordinator by 
 ```
- bazel run //src:hello_world_sgx_sim -- --mode=3
+MY_PROJECT=~/paranoid-sgx
+sudo docker run -it --rm \
+    --net=host \
+    -v bazel-cache:/root/.cache/bazel \
+    -v "${MY_PROJECT}":/opt/my-project \
+    -w /opt/my-project \
+    keplerc/paranoid-asylo:latest 
+fogrobotics
+
+(four different terminals)
+# start sync server
+bazel run //src:hello_world_sgx_sim -- --mode=7
+
+# start workers 
+bazel run //src:hello_world_sgx_sim  --copt=-O3 -- --mode=6
+
+# start job dispatcher 
+bazel run //src:hello_world_sgx_sim -- --mode=3
+
+# run benchmark
+apt install python3-pip
+pip3 install zmq
+cd frontend 
+python3 run_benchmark.py
+
 ```
-the user by 
+
+### Run CapsuleDB Local Demo 
+Model
 ```
- bazel run //src:hello_world_sgx_sim -- --mode=5
+                                      ┌─────►CDB
+┌───────────┐     ┌────────────┐      │
+│test server├────►│root router ├──────┤
+└───────────┘     └────────────┘      ├─────►CDB
+                                      │
+                                      │
+                                      └─────►...
 ```
-and the worker by 
+
+Run instructions
 ```
- bazel run //src:hello_world_sgx_sim -- --mode=6
+(three instances of same docker container)
+# start root router
+bazel run //src:hello_world_sgx_sim -- --mode=7
+
+# start CapusleDB worker
+bazel run //src:hello_world_sgx_sim  -- --mode=8
+
+# start testing client
+bazel run //src:capsuleDBIntegTests
 ```
+
+Or you can put it as a background job and run both in the same instance. 
+
 
 
 ## Introduction

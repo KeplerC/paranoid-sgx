@@ -16,4 +16,6 @@ message CapsulePDU {
 
   optional int32 faas_idx = 8; 
 
+  optional string retAddr = 9; // return address of sender, if applicable
+
 }

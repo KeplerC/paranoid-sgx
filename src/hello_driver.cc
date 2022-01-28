@@ -16,6 +16,7 @@
  *
  */
 
+#include <algorithm>
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -54,9 +55,12 @@
 #include <netinet/in.h>
 #include <netdb.h>
 
+#include "capsuleDBcpp/cdb_network_client.hh"
+
 // #include "asylo/identity/enclave_assertion_authority_config.proto.h"
 #include "asylo/identity/enclave_assertion_authority_configs.h"
 
+<<<<<<< HEAD
 #include "src/translator_server.grpc.pb.h"
 #include "asylo/grpc/auth/enclave_channel_credentials.h"
 #include "include/grpcpp/grpcpp.h"
@@ -66,7 +70,8 @@ using examples::grpc_server::Translator;
 using examples::grpc_server::RetrieveKeyPairResponse;
 using examples::grpc_server::RetrieveKeyPairRequest;
 
-enum mode_type { RUN_BOTH_CLIENT_AND_SERVER, RUN_CLIENT_ONLY, LISTENER_MODE, COORDINATOR_MODE, JS_MODE, USER_MODE,WORKER_MODE, ROUTER_MODE };
+enum mode_type { RUN_BOTH_CLIENT_AND_SERVER, RUN_CLIENT_ONLY, LISTENER_MODE, COORDINATOR_MODE, JS_MODE, USER_MODE,WORKER_MODE, ROUTER_MODE, SYNC_SERVER_MODE, CAPSULEDB_MODE  };
+
 
 #define PORT_NUM 1234
 
@@ -124,6 +129,14 @@ void thread_run_zmq_js_client(unsigned thread_id, Asylo_SGX* sgx){
     zmq_comm zs = zmq_comm(NET_WORKER_IP, thread_id, sgx);
     zs.run_js_client();
 }
+
+
+void thread_run_zmq_cdb_client(unsigned thread_id, CapsuleDBNetworkClient* db){
+    // TODO: Individual cdb worker ip for future simulations?
+    zmq_comm zs = zmq_comm(NET_WORKER_IP, thread_id, db, nullptr);
+    zs.run_cdb_client();
+}
+
 
 void thread_run_zmq_router(unsigned thread_id){
     LOG(INFO) << "[thread_run_zmq_server]"; 
@@ -451,6 +464,7 @@ void thread_user_receiving_result(){
     }
 }
 
+<<<<<<< HEAD
 int run_worker(){
     std::unique_ptr <asylo::SigningKey> signing_key(std::move(asylo::EcdsaP256Sha256SigningKey::CreateFromPem(
             signing_key_pem)).ValueOrDie());
@@ -486,6 +500,7 @@ int run_worker(){
 unsigned long int get_current_time(){
     return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
 }
+
 int run_user(){
 
     std::string server_addr = "localhost:3001";
@@ -540,38 +555,6 @@ int run_user(){
     run_worker(); 
     sleep(10);
     return 0;
-//
-//    zmq::context_t context (1);
-//    // socket for join requests
-//    std::vector <std::thread> worker_threads;
-//    worker_threads.push_back(std::thread(thread_user_receiving_result));
-//
-//    zmq::socket_t* socket_send  = new  zmq::socket_t( context, ZMQ_PUSH);
-//    socket_send -> connect ("tcp://" + std::string(NET_JS_TASK_COORDINATOR_IP) + ":" + std::to_string(NET_COORDINATOR_FROM_USER_PORT));
-////    std::ifstream t("/opt/my-project/src/input.js");
-////    std::stringstream buffer;
-////    buffer << t.rdbuf();
-////    std::string code = buffer.str();
-////    socket_send->send(string_to_message(code));
-//    std::string cmd;
-//    std::string cmd_buffer = "";
-//    bool first_cmd_wait = false;
-//    unsigned long int now =get_current_time();
-//    while(std::getline(std::cin, cmd)){
-//        cmd_buffer += cmd;
-//        cmd_buffer += "\n";
-//        //buffer the message to reduce traffic
-//        if(get_current_time() - now > 5){
-//            if(cmd_buffer == cmd && !first_cmd_wait){
-//                first_cmd_wait = true;
-//                continue;
-//            }
-//            socket_send->send(string_to_message(cmd_buffer));
-//            cmd_buffer = "";
-//            first_cmd_wait = true;
-//        }
-//        now = get_current_time();
-//    }
 }
 
 int run_local_dispatcher(){
@@ -607,11 +590,12 @@ int run_local_dispatcher(){
             zmq::message_t message;
             socket_from_user.recv(&message);
             //code = message_to_string(message);
+
+            LOGI << message_to_string(message);
             std::vector<std::string> splitted_messages = absl::StrSplit(message_to_string(message), GROUP_ADDR_DELIMIT, absl::SkipEmpty());
             return_addr = splitted_messages[0];
             code = splitted_messages[1];
-            LOGI << "[Client " << return_addr << "]:  " + code ;
-
+            LOG(INFO) << "[Client " << return_addr << "]:  " + code ;
             //aloha to query for available worker nodes
             zmq::socket_t* socket_ptr  = new  zmq::socket_t( context, ZMQ_PUSH);
             socket_ptr -> connect ("tcp://" + std::string(NET_SEED_ROUTER_IP) + ":" + std::to_string(NET_SERVER_CONTROL_PORT));
@@ -622,14 +606,20 @@ int run_local_dispatcher(){
         if (pollitems[1].revents & ZMQ_POLLIN) {
             zmq::message_t message;
             socket_for_membership.recv(&message);
+            LOG(INFO)  <<message_to_string(message);
             std::vector<std::string> addresses = absl::StrSplit(message_to_string(message), GROUP_ADDR_DELIMIT, absl::SkipEmpty());
             zmq::socket_t* socket_to_worker;
             int thread_count = 2;
             for( const std::string& a : addresses ) {
-                LOG(INFO)  << "[RECEIVED WORKER ADDR] " + a ;
+                std::vector<std::string> address = absl::StrSplit(a, ":", absl::SkipEmpty());
+                LOG(INFO)  << address[2];
+                int port = std::stoi(address[2]);
+                std::string worker_addr = "tcp:" + address[1] + ":" + std::to_string(port + (NET_WORKER_LISTEN_FOR_TASK_BASE_PORT - NET_CLIENT_BASE_PORT));
+                LOG(INFO)  << "[RECEIVED WORKER ADDR] " + worker_addr ;
                 socket_to_worker  = new  zmq::socket_t( context, ZMQ_PUSH);
-                socket_to_worker -> connect ("tcp://" + std::string(NET_WORKER_IP) + ":" + std::to_string(NET_WORKER_LISTEN_FOR_TASK_BASE_PORT +  thread_count));
-                LOGI << "[connected to recv_code_port] " << std::to_string(NET_WORKER_LISTEN_FOR_TASK_BASE_PORT +  thread_count);
+                //"tcp://" + std::string(NET_WORKER_IP) + ":" + std::to_string(NET_WORKER_LISTEN_FOR_TASK_BASE_PORT +  thread_count)
+                socket_to_worker -> connect (worker_addr);
+                //LOGI << "[connected to recv_code_port] " << std::to_string(NET_WORKER_LISTEN_FOR_TASK_BASE_PORT +  thread_count);
                 thread_count += 1;
                 socket_to_worker->send(string_to_message(code));
             }
@@ -651,6 +641,53 @@ int run_local_dispatcher(){
     return 0;
 }
 
+
+int run_worker(){
+    std::unique_ptr <asylo::SigningKey> signing_key(std::move(asylo::EcdsaP256Sha256SigningKey::CreateFromPem(
+            signing_key_pem)).ValueOrDie());
+    asylo::CleansingVector<uint8_t> serialized_signing_key;
+    ASSIGN_OR_RETURN(serialized_signing_key,
+                     signing_key->SerializeToDer());
+
+    std::vector <std::thread> worker_threads;
+    int num_threads = 4; //# of worker = num_threads - 2
+    //worker_threads.push_back(std::thread(thread_run_zmq_router, 0));
+
+    for (unsigned thread_id = START_CLIENT_ID; thread_id < num_threads; thread_id++) {
+        //unsigned thread_id = 2;
+        Asylo_SGX* sgx = new Asylo_SGX( std::to_string(thread_id+2), serialized_signing_key);
+        sgx->init();
+        sleep(2);
+        worker_threads.push_back(std::thread(thread_start_fake_client, sgx));
+	//worker_threads.push_back(std::thread(thread_start_coordinator, sgx));
+        worker_threads.push_back(std::thread(thread_run_zmq_js_client, thread_id+2, sgx));
+        sleep(1);
+    }
+    sleep(1000);
+
+    return 0;
+}
+
+int run_sync_server(){
+    std::unique_ptr <asylo::SigningKey> signing_key(std::move(asylo::EcdsaP256Sha256SigningKey::CreateFromPem(
+            signing_key_pem)).ValueOrDie());
+    asylo::CleansingVector<uint8_t> serialized_signing_key;
+    ASSIGN_OR_RETURN(serialized_signing_key,
+                     signing_key->SerializeToDer());
+
+    std::vector <std::thread> worker_threads;
+    int thread_id = 1;
+    worker_threads.push_back(std::thread(thread_run_zmq_router, 0));
+    Asylo_SGX* sgx = new Asylo_SGX( std::to_string(thread_id), serialized_signing_key);
+    sgx->init();
+    sleep(2);
+    // worker_threads.push_back(std::thread(thread_run_zmq_js_client, thread_id, sgx));
+    // worker_threads.push_back(std::thread(thread_start_coordinator, sgx));
+
+    sleep(1000);
+    return 0;
+}
+
 int run_js() {
     std::unique_ptr <asylo::SigningKey> signing_key(std::move(asylo::EcdsaP256Sha256SigningKey::CreateFromPem(
                                             signing_key_pem)).ValueOrDie());
@@ -669,6 +706,26 @@ int run_js() {
     std::string s = absl::GetFlag(FLAGS_input_file);
     sgx->execute_js_file(s);
     LOGI << "finished running the code";
+    return 0; 
+}
+
+int run_capsuleDB() {
+    std::unique_ptr <asylo::SigningKey> signing_key(std::move(asylo::EcdsaP256Sha256SigningKey::CreateFromPem(
+                                            signing_key_pem)).ValueOrDie());
+
+    asylo::CleansingVector<uint8_t> serialized_signing_key;
+    ASSIGN_OR_RETURN(serialized_signing_key,
+                            signing_key->SerializeToDer());
+    std::vector <std::thread> worker_threads;
+
+    //start clients
+    int num_threads = TOTAL_THREADS;
+    for (unsigned thread_id = START_CLIENT_ID; thread_id < num_threads; thread_id++) {
+        CapsuleDBNetworkClient* cdb = new CapsuleDBNetworkClient(50, thread_id, serialized_signing_key);
+        worker_threads.push_back(std::thread(thread_run_zmq_cdb_client, thread_id, cdb));
+        sleep(1);
+    }
+    sleep(1000);
     return 0; 
 }
 
@@ -728,6 +785,12 @@ int main(int argc, char *argv[]) {
         case ROUTER_MODE:
             LOGI << "running in router mode";
             run_root_router();
+        case SYNC_SERVER_MODE:
+            LOG(INFO) << "running sync server";
+            run_sync_server();
+        case CAPSULEDB_MODE:
+            LOG(INFO) << "running CapsuleDB server";
+            run_capsuleDB();
             break;
         default:
             printf("Mode %d is incorrect\n", mode); 

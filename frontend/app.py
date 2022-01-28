@@ -34,13 +34,10 @@ class ServerTask(threading.Thread):
             if recv_result_socket in sockets:
                 if sockets[recv_result_socket] == zmq.POLLIN:
                     msg = recv_result_socket.recv()
-                    received_capsule = capsule_pb2.CapsulePDU()
-                    print("=========")
-                    received_capsule.ParseFromString(msg)
-                    #decoded_msg = msg.decode('utf-8', 'backslashreplace')
-                    print(received_capsule)
-                    logs = received_capsule.__str__() + " \n " + logs
-                    results =  "Latest result: " + received_capsule.payload_in_transit.split("@@@")[3] 
+                    decoded_msg = msg.decode('utf-8', 'backslashreplace')
+                    logs = decoded_msg + "\n" + logs
+                    results =  "Result: " + decoded_msg.split("@@@")[3] + " Packet ID " + decoded_msg.split("@@@")[0]  
+                    print(msg)
 
 def serialize_message(code):
     return (return_addr + delimiter + code).encode()
@@ -60,10 +57,10 @@ def index():
         if (not request.form["num_lambda"] or not request.form["js_code"]):
             pass
         else:
+            context = zmq.Context()
+            zmq_socket = context.socket(zmq.PUSH)
+            zmq_socket.connect(local_dispatcher_addr)
             for i in range(int(request.form["num_lambda"])):
-                context = zmq.Context()
-                zmq_socket = context.socket(zmq.PUSH)
-                zmq_socket.connect(local_dispatcher_addr)
                 zmq_socket.send(serialize_message(request.form["js_code"]))
     global logs
     global results

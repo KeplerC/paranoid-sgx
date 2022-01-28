@@ -67,7 +67,7 @@ namespace asylo {
 
             success = encrypt_payload_l(dc, encryption_needed, encryption_key);
             if (!success) {
-                LOGI << "payload_l encryption failed!!!";
+                std::cout << "payload_l encryption failed!!!";
                 delete dc;
                 return;
             }
@@ -75,21 +75,22 @@ namespace asylo {
             // generate hash and update prev_hash
             success = generate_hash(dc);
             if (!success) {
-                LOGI << "hash generation failed!!!";
+                std::cout << "hash generation failed!!!";
                 delete dc;
                 return;
             }
             dc->prevHash = m_prev_hash;
             m_prev_hash = dc->hash;
+
             // sign dc
             success = sign_dc(dc, enclave_key_pair, faas_idx);
             LOGI << "sign_dc: " << faas_idx;
+
             if (!success) {
-                LOGI << "sign dc failed!!!";
+                std::cout << "sign dc failed!!!";
                 delete dc;
                 return;
             }
-            DUMP_CAPSULE(dc);
 
             // to_memtable and/or update_hash based on msgType
             bool to_memtable = (dc->msgType == "")? true : false;
@@ -115,7 +116,16 @@ namespace asylo {
         }
 
         kvs_payload KVSClient::get(const std::string &key){
+            //TODO: Handle get via capsuleDB
             return memtable.get(key);
+            // PSUEDO CODE
+            /*
+            while (true) {
+                if (memtable.contains(key)) {
+                    return memtable.get(key);
+                }
+            }
+            */
         }
 
         std::string KVSClient::serialize_eoe_hashes(){
@@ -266,7 +276,7 @@ namespace asylo {
                 return asylo::Status::OkStatus();
             }
             else if (input.HasExtension(hello_world::is_coordinator)) {
-                LOGI << "[Coordinator] Up and Running";
+                std::cout << "[Coordinator] Up and Running";
                 LOG(INFO) << "[Coordinator running]";
                 m_enclave_id = 1;
                 buffer = (HotMsg *) input.GetExtension(hello_world::is_coordinator).circ_buffer();
@@ -419,7 +429,7 @@ namespace asylo {
 
                 numRetries++;
                 if( numRetries > MAX_RETRIES ){
-                    LOGI << "exceeded tries\n";
+                    std::cout << "exceeded tries\n";
                     sgx_spin_unlock( &data_ptr->spinlock );
                     return -1;
                 }
@@ -547,6 +557,12 @@ namespace asylo {
             duk_push_c_function(ctx, js_get, 1 /*nargs*/);
             duk_put_global_string(ctx, "psl_get");
 
+            duk_push_c_function(ctx, js_cdb_put, 2 /*nargs*/);
+            duk_put_global_string(ctx, "cdb_put");
+
+            duk_push_c_function(ctx, js_cdb_get, 1 /*nargs*/);
+            duk_put_global_string(ctx, "cdb_get");
+
             duk_push_c_function(ctx, js_print, 1 /*nargs*/);
             duk_put_global_string(ctx, "console_print");
 
@@ -558,7 +574,8 @@ namespace asylo {
             duk_put_global_string(ctx, "ctx");
         }
 
-        M_BENCHMARK_CODE
+        // TODO: No idea how to fix build issues if I uncomment this...
+        // M_BENCHMARK_CODE
 
         TrustedApplication *BuildTrustedApplication() { return new KVSClient; }
 

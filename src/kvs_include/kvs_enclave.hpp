@@ -16,13 +16,16 @@
 #include "asylo/identity/platform/sgx/sgx_identity_util.h"
 #include "asylo/identity/attestation/sgx/sgx_local_assertion_generator.h"
 #include "../kvs_include/capsule.h"
-#include "../memtable.hpp"
 #include "../hot_msg_pass.h"
 #include "../common.h"
+#include "../duktape/duktape.h"
+#include "../pqueue.hpp"
+#include "../memtable.hpp"
+
+// #include "../capsuleDBcpp/memtable_new.hpp"
+
 #include "src/proto/hello.pb.h"
 #include "src/util/proto_util.hpp"
-#include "../duktape/duktape.h"
-
 //GRPC 
 #include "src/translator_server.grpc.pb.h"
 #include "asylo/grpc/auth/enclave_channel_credentials.h"
@@ -37,7 +40,6 @@
 #include <utility>
 #include <unordered_map>
 
-#include "../pqueue.hpp"
  
  using examples::grpc_server::Translator;
  namespace asylo {
@@ -75,6 +77,7 @@
 
         asylo::Status ConnectKDE(std::string server_addr, int32_t port);
         asylo::Status InitializeKeys(std::string identity,  std::shared_ptr<::grpc::Channel> channel);
+
 
         void put_internal(capsule_pdu *dc, bool to_memtable, bool update_hash, bool to_network);
         std::string serialize_eoe_hashes();
@@ -147,6 +150,38 @@
 
         return 1;           
     }
+
+
+    static duk_ret_t js_cdb_put(duk_context *ctx){
+        std::string key = duk_to_string(ctx, 0);
+        std::string val = duk_to_string(ctx, 1);
+
+        duk_eval_string(ctx, "ctx");
+        KVSClient *m = (KVSClient *) duk_to_pointer(ctx, -1);
+        m->put(key, val, "CDB_PUT");
+        return 0;           
+    }
+
+/* TODO modify */
+    static duk_ret_t js_cdb_get(duk_context *ctx){
+        std::string key = duk_to_string(ctx, 0);
+    
+        duk_eval_string(ctx, "ctx");
+        KVSClient *m = (KVSClient *) duk_to_pointer(ctx, -1);
+
+        duk_idx_t obj_idx = duk_push_object(ctx);
+        kvs_payload dc = m->get(key);
+
+        duk_push_string(ctx, dc.key.c_str());
+        duk_put_prop_string(ctx, obj_idx, "key");
+
+        duk_push_string(ctx, dc.value.c_str());
+        duk_put_prop_string(ctx, obj_idx, "val");
+
+        return 1;           
+    }
+
+
 
     static duk_ret_t js_ret(duk_context *ctx){
         std::string ret = duk_to_string(ctx, 0);

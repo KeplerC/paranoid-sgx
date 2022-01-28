@@ -79,20 +79,24 @@ static void *StartOcallResponder( void *arg ) {
             case OCALL_PUT: {
                 // TODO: we do everything inside of the lock, this is slow
                 // we can copy the string and process it after we release the lock
-                LOGI << "[CICBUF-OCALL] transmitted a data capsule pdu";
+                LOG(INFO) << "[CICBUF-OCALL] transmitted a data capsule pdu";
                 asylo::dumpProtoCapsule(&in_dc);
 
                 std::string out_s;
                 in_dc.SerializeToString(&out_s);
                 zmq::message_t msg(out_s.size());
                 memcpy(msg.data(), out_s.c_str(), out_s.size());
+                LOG(INFO) << in_dc.msgtype();
                 if(in_dc.msgtype() == COORDINATOR_EOE_TYPE){
+                    LOG(INFO) << "Sending PSL_EOE " << out_s;
                     socket_ptr_to_sync->send(msg);
                 }
                 else if(in_dc.msgtype() == "PSL_RET"){
+                    LOG(INFO) << "Sending PSL_RET " << out_s;
                     socket_ptr_for_result -> send(msg);
                 }
                 else {
+                    LOG(INFO) << "Sending message to router " << out_s;
                     socket_ptr->send(msg);
                 }
                 break;
@@ -218,6 +222,12 @@ void Asylo_SGX::send_to_sgx(std::string message){
 
     hello_world::CapsulePDU in_dc;
     in_dc.ParseFromString(message);
+    if (in_dc.sender() == std::stoi(this->m_name) && in_dc.msgtype() == REPLICATION_ACK) {
+        LOGI << "Replication Ack received for enclave: " << this->m_name << ", hash: " << in_dc.hash();
+        // After receiving ack, worker can discard the dc pdu
+        // do nothing for now
+        return; 
+    }
     if(in_dc.sender() == std::stoi(this->m_name)){
         return;
     }
@@ -232,6 +242,7 @@ void Asylo_SGX::send_to_sgx(std::string message){
     put_ecall(dc);
     //Sleep so that threads have time to process ALL requests
 }
+
 
 void Asylo_SGX::execute_coordinator() {
     asylo::EnclaveInput input;
@@ -308,7 +319,7 @@ void Asylo_SGX::execute(){
 
 
     //Sleep so that threads have time to process ALL requests
-    sleep(1);
+    sleep(1000);
 
 }
 
