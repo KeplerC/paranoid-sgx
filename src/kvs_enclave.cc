@@ -125,6 +125,10 @@ namespace asylo {
             */
         }
 
+        bool KVSClient::contains(const std::string &key){
+            return memtable.contains(key);
+        }
+
         std::string KVSClient::serialize_eoe_hashes(){
             std::string ret = "";
             for( const auto& [key, pair] : m_eoe_hashes ) {
@@ -462,6 +466,7 @@ namespace asylo {
                                 } else {
                                     update_client_hash(dc);
                                     for (int i = 0; i < dc->payload_l.size(); i++) {
+                                        LOGI << "Put key: " << dc->payload_l[i].key << ", val: " << dc->payload_l[i].value;
                                         memtable.put(&(dc->payload_l[i]));
                                     }
                                 }

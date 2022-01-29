@@ -16,7 +16,6 @@
 #include "../kvs_include/capsule.h"
 #include "engine.hh"
 
-
 CapsuleDBNetworkClient::CapsuleDBNetworkClient(size_t blocksize, int id, asylo::CleansingVector<uint8_t> serialized_input_key) {
     LOG(INFO) << "Creating CapsuleDB Network Client";
     CapsuleDB* instance = spawnDB(blocksize);
@@ -98,6 +97,8 @@ hello_world::CapsulePDU CapsuleDBNetworkClient::get(std::string requestedKey) {
         return protoDC;
     }
 
+    DUMP_CAPSULE(dc);
+
     // Convert to proto and return
     asylo::CapsuleToProto(dc, &protoDC);
     delete dc;
@@ -109,18 +110,16 @@ hello_world::CapsulePDU CapsuleDBNetworkClient::get(std::string requestedKey) {
  */
 hello_world::CapsulePDU CapsuleDBNetworkClient::handle(const hello_world::CapsulePDU inPDU) {
     // Convert proto to pdu
-    LOG(INFO) << "Got into capsuleDB handle function" << std::endl;
+    LOG(INFO) << "Got into capsuleDB handle function";
     capsule_pdu translated;
     asylo::CapsuleFromProto(&translated, &inPDU);
     hello_world::CapsulePDU empty;
     
     // Verify hash and signature
-    std::cout << "Got before verify\n";
     if(!asylo::verify_dc(&translated, verifying_key)){
         std::cout << "Verification failed, not writing to CapsuleDB\n";
         return empty;
     }
-    std::cout << "Got after verify\n";
 
     // Decrypt pdu paylaod
     if(asylo::decrypt_payload_l(&translated)) {
@@ -128,9 +127,9 @@ hello_world::CapsulePDU CapsuleDBNetworkClient::handle(const hello_world::Capsul
 
         LOG(INFO) << "ret addr: " << translated.retAddr;
         for (kvs_payload payload : translated.payload_l) {
-            if (payload.txn_msgType == "PUT") {
+            if (payload.txn_msgType == "CDB_PUT") {
                 db->put(&payload);
-            } else if (payload.txn_msgType == "GET") {
+            } else if (payload.txn_msgType == "CDB_GET") {
                 return get(payload.key);
             }
         }

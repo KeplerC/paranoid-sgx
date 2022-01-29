@@ -44,6 +44,7 @@
         KVSClient(){}
         void put(std::string key, std::string value, std::string msgType);
         kvs_payload get(const std::string &key);
+        bool contains(const std::string &key);
         asylo::Status Initialize(const EnclaveConfig &config);
         asylo::Status Run(const asylo::EnclaveInput &input, asylo::EnclaveOutput *output) override;
         void benchmark();
@@ -149,6 +150,15 @@
         KVSClient *m = (KVSClient *) duk_to_pointer(ctx, -1);
 
         duk_idx_t obj_idx = duk_push_object(ctx);
+        // Janky workaround
+        m->put(key, "", "CDB_GET");
+
+        // Wait for new value to be put in memtable
+        while (!m->contains(key)){
+            LOG(INFO) << "Waiting for key " << key;
+            sleep(1);
+        }
+
         kvs_payload dc = m->get(key);
 
         duk_push_string(ctx, dc.key.c_str());
