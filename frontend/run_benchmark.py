@@ -35,21 +35,26 @@ class ServerTask(threading.Thread):
                         logs += ("\nrecv," + str(time.time()))
                     if "end" in msg:
                         logs += ("\ndone," + str(time.time()))
-
+                    if "dcr" in msg:
+                        logs += ("\nack," + str(time.time()))
+                    
 
 def serialize_message(code):
     return (return_addr + delimiter + code).encode()
 
 def get_code_from_load():
-    print("running trace A")
+    times = 10
+    print("running trace A (2000 puts) x times: " + str(times))
     with open("../YCSB_traces/tracea_load_a.txt") as f:
         lines = f.read().split("\n")
-    cmd = "print(\"start\"); "
-    for line in lines:
-        key = line.split(" ")[1]
-        value = line.split(" ")[2]
-        value = "".join(e for e in value if e.isalpha())
-        cmd += "psl_put(\"" + key + "\",\"" + value + "\"); "
+        cmd = "print(\"start\"); "
+        for _ in range(times):
+            for line in lines:
+                key = line.split(" ")[1]
+                value = line.split(" ")[2]
+                value = "".join(e for e in value if e.isalpha())
+                cmd += "psl_put(\"" + key + "\",\"" + value + "\"); "
+        cmd += "psl_put(\"" + "Benchmark_End" + "\",\"" + "value" + "\"); "
     cmd += "print(\"end\"); "
     return cmd
 
@@ -63,7 +68,7 @@ def main():
     zmq_socket.connect(local_dispatcher_addr)
     zmq_socket.send(serialize_message(code))
     logs += ("starting time," + str( time.time()))
-    time.sleep(10)
+    time.sleep(20)
     print(logs)
 
 
