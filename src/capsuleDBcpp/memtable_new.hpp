@@ -20,9 +20,9 @@ public:
     Memtable(size_t ms);
     // M_BENCHMARK_CODE
 private:
-    std::map<std::string, kvs_payload> memtable;
-    std::map<std::string, std::mutex *> locklst; // each kv has its own lock.
-    // absl::btree_set<std::string> sort_cache;                    // stores sorted set of keys to be used when moved to upper levels.(optimization)
+    absl::flat_hash_map<std::string, kvs_payload> memtable;
+    absl::flat_hash_map<std::string, std::mutex *> locklst; // each kv has its own lock.
+    absl::btree_set<std::string> sort_cache;                    // stores sorted set of keys to be used when moved to upper levels.(optimization)
 };
 
 #endif
