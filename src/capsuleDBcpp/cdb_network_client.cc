@@ -127,9 +127,9 @@ hello_world::CapsulePDU CapsuleDBNetworkClient::handle(const hello_world::Capsul
 
         LOG(INFO) << "ret addr: " << translated.retAddr;
         for (kvs_payload payload : translated.payload_l) {
-            if (payload.txn_msgType == "CDB_PUT") {
+            if (payload.txn_msgType == CDB_PUT) {
                 db->put(&payload);
-            } else if (payload.txn_msgType == "CDB_GET") {
+            } else if (payload.txn_msgType == CDB_GET) {
                 return get(payload.key);
             }
         }

@@ -55,6 +55,11 @@
 // Type for replication ack
 #define REPLICATION_ACK "REPLICATION_ACK"
 
+// Message type for CDB put requests
+#define CDB_PUT "CDB_PUT"
+// Message type for CDB get requests
+#define CDB_GET "CDB_GET"
+
 #define START_CLIENT_ID 2 // >=2 ; TOTAL_THREADS - START_CLIENT_ID = Num of clients on this node
 #define TOTAL_THREADS 3
 #define EPOCH_TIME 20

@@ -138,7 +138,7 @@
 
         duk_eval_string(ctx, "ctx");
         KVSClient *m = (KVSClient *) duk_to_pointer(ctx, -1);
-        m->put(key, val, "CDB_PUT");
+        m->put(key, val, CDB_PUT);
         return 0;           
     }
 
@@ -151,7 +151,7 @@
 
         duk_idx_t obj_idx = duk_push_object(ctx);
         // Janky workaround
-        m->put(key, "", "CDB_GET");
+        m->put(key, "", CDB_GET);
 
         // Wait for new value to be put in memtable
         while (!m->contains(key)){

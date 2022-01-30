@@ -222,6 +222,12 @@ void Asylo_SGX::send_to_sgx(std::string message){
 
     hello_world::CapsulePDU in_dc;
     in_dc.ParseFromString(message);
+    
+    // Ignore CDB put/get messsages
+    if (in_dc.msgtype() == CDB_PUT || in_dc.msgtype() == CDB_GET) {
+        return;
+    }
+
     if (in_dc.sender() == std::stoi(this->m_name) && in_dc.msgtype() == REPLICATION_ACK) {
         LOGI << "Replication Ack received for enclave: " << this->m_name << ", hash: " << in_dc.hash();
         // After receiving ack, worker can discard the dc pdu

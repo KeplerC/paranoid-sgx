@@ -68,7 +68,8 @@ class CapsuleDBTestClient {
                     // Returns value of first PUT kvs_payload received
                     // Note: does not handle request batching
                         for (kvs_payload payload : response.payload_l) {
-                            if (payload.txn_msgType == "CDB_PUT" && payload.key == key) {
+                            // TODO: Define get interaction
+                            if (payload.txn_msgType == CDB_PUT && payload.key == key) {
                                 return payload.value;
                             }
                         }
@@ -85,9 +86,9 @@ class CapsuleDBTestClient {
 
             // TODO: Formally define msgType
             if (isPut) {
-                asylo::KvToPayload(&payload, key, value, currTime, "CDB_PUT");
+                asylo::KvToPayload(&payload, key, value, currTime, CDB_PUT);
             } else {
-                asylo::KvToPayload(&payload, key, value, currTime, "CDB_GET");
+                asylo::KvToPayload(&payload, key, value, currTime, CDB_GET);
             }
             payload_l.push_back(payload);
 
