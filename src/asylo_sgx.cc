@@ -79,24 +79,24 @@ static void *StartOcallResponder( void *arg ) {
             case OCALL_PUT: {
                 // TODO: we do everything inside of the lock, this is slow
                 // we can copy the string and process it after we release the lock
-                LOG(INFO) << "[CICBUF-OCALL] transmitted a data capsule pdu";
+                LOGI << "[CICBUF-OCALL] transmitted a data capsule pdu";
                 asylo::dumpProtoCapsule(&in_dc);
 
                 std::string out_s;
                 in_dc.SerializeToString(&out_s);
                 zmq::message_t msg(out_s.size());
                 memcpy(msg.data(), out_s.c_str(), out_s.size());
-                LOG(INFO) << in_dc.msgtype();
+                LOGI << in_dc.msgtype();
                 if(in_dc.msgtype() == COORDINATOR_EOE_TYPE){
                     LOG(INFO) << "Sending PSL_EOE " << out_s;
                     socket_ptr_to_sync->send(msg);
                 }
                 else if(in_dc.msgtype() == "PSL_RET"){
-                    LOG(INFO) << "Sending PSL_RET " << out_s;
+                    LOGI << "Sending PSL_RET " << out_s;
                     socket_ptr_for_result -> send(msg);
                 }
                 else {
-                    LOG(INFO) << "Sending message to router " << out_s;
+                    LOGI << "Sending message to router " << out_s;
                     socket_ptr->send(msg);
                 }
                 break;

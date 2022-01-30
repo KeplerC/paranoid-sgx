@@ -468,6 +468,8 @@ namespace asylo {
                                     for (int i = 0; i < dc->payload_l.size(); i++) {
                                         LOGI << "Put key: " << dc->payload_l[i].key << ", val: " << dc->payload_l[i].value;
                                         memtable.put(&(dc->payload_l[i]));
+                                        LOGI << "Contains key " << dc->payload_l[i].key << ": " << contains(dc->payload_l[i].key);
+
                                     }
                                 }
                                 break;

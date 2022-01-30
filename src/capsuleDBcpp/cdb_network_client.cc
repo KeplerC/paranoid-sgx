@@ -64,6 +64,8 @@ hello_world::CapsulePDU CapsuleDBNetworkClient::get(std::string requestedKey) {
         LOG(INFO) << "Key not present in CapsuleDB";
     }
     
+    LOGI << "original msgtype: " << requested.txn_msgType;
+    requested.txn_msgType = "";
     // Generate Vector of kvs_payloads (will only be one in this case)
     std::vector<kvs_payload> outgoingVec;
     outgoingVec.push_back(requested);
@@ -87,7 +89,7 @@ hello_world::CapsulePDU CapsuleDBNetworkClient::get(std::string requestedKey) {
         delete dc;
         return protoDC;
     }
-    LOG(INFO) << "SIGNATURE: " << dc->signature << "\n";
+    LOGI << "SIGNATURE: " << dc->signature;
 
     // Sign (same issue as cdb_test signing)
     success = asylo::sign_dc(dc, signing_key);
@@ -110,14 +112,14 @@ hello_world::CapsulePDU CapsuleDBNetworkClient::get(std::string requestedKey) {
  */
 hello_world::CapsulePDU CapsuleDBNetworkClient::handle(const hello_world::CapsulePDU inPDU) {
     // Convert proto to pdu
-    LOG(INFO) << "Got into capsuleDB handle function";
+    LOGI << "Got into capsuleDB handle function";
     capsule_pdu translated;
     asylo::CapsuleFromProto(&translated, &inPDU);
     hello_world::CapsulePDU empty;
     
     // Verify hash and signature
     if(!asylo::verify_dc(&translated, verifying_key)){
-        std::cout << "Verification failed, not writing to CapsuleDB\n";
+        LOG(INFO) << "Verification failed, not writing to CapsuleDB";
         return empty;
     }
 
@@ -125,7 +127,8 @@ hello_world::CapsulePDU CapsuleDBNetworkClient::handle(const hello_world::Capsul
     if(asylo::decrypt_payload_l(&translated)) {
     // Convert decrypted payload into vector of kvs_payloads
 
-        LOG(INFO) << "ret addr: " << translated.retAddr;
+        // TODO: fix batch request logic, this will not work properly
+        // LOG(INFO) << "ret addr: " << translated.retAddr;
         for (kvs_payload payload : translated.payload_l) {
             if (payload.txn_msgType == CDB_PUT) {
                 db->put(&payload);

@@ -154,10 +154,12 @@
         m->put(key, "", CDB_GET);
 
         // Wait for new value to be put in memtable
+        /*
         while (!m->contains(key)){
             LOG(INFO) << "Waiting for key " << key;
             sleep(1);
         }
+        */
 
         kvs_payload dc = m->get(key);
 

@@ -210,7 +210,7 @@ namespace asylo {
     }
 
     void dumpProtoCapsule(const hello_world::CapsulePDU *dcProto){
-        std::cout << "Sender: "<< dcProto->sender() << ", payload_in_transit: " << dcProto->payload_in_transit() << ", Timestamp: " << (int64_t) dcProto->timestamp()
+        LOGI << "Sender: "<< dcProto->sender() << ", payload_in_transit: " << dcProto->payload_in_transit() << ", Timestamp: " << (int64_t) dcProto->timestamp()
                   << ", hash: " << dcProto->hash() << ", prevHash: " << dcProto->prevhash()
                   << ", signature: " << dcProto->signature() << " message type: " << dcProto->msgtype();
     }

@@ -34,17 +34,13 @@ class ServerTask(threading.Thread):
             if recv_result_socket in sockets:
                 if sockets[recv_result_socket] == zmq.POLLIN:
                     msg = recv_result_socket.recv().__str__()
-                    # print("[" + str(time.time())+ "]" + msg)
+                    print("[" + str(time.time())+ "]" + msg)
                     if "start" in msg:
-                        # logs += ("\nrecv," + str(time.time()))
-                        print("recv," + str(time.time()))
+                        logs += ("\nrecv," + str(time.time()))
                     if "end" in msg:
-                        # logs += ("\ndone," + str(time.time()))
-                        print("done," + str(time.time()))
+                        logs += ("\ndone," + str(time.time()))
                     if "dcr" in msg:
-                        # logs += ("\nack," + str(time.time()))
-                        print("ack," + str(time.time()))
-
+                        logs += ("\nack," + str(time.time()))
                     
 
 def serialize_message(code):
@@ -66,6 +62,13 @@ def get_code_from_load():
     cmd += "print(\"end\"); "
     return cmd
 
+def test_code():
+    cmd = "print(\"start\"); "
+    cmd += "cdb_put(\"testkey\", \"testval\"); cdb_get(\"testkey\"); "
+    cmd += "print(\"end\"); "
+    return cmd
+
+
 def main():
     global logs
     server = ServerTask()
@@ -75,10 +78,9 @@ def main():
     zmq_socket = context.socket(zmq.PUSH)
     zmq_socket.connect(local_dispatcher_addr)
     zmq_socket.send(serialize_message(code))
-    # logs += ("starting time," + str( time.time()))
-    print("starting time," + str( time.time()))
-    # time.sleep(20)
-    # print(logs)
+    logs += ("starting time," + str( time.time()))
+    time.sleep(20)
+    print(logs)
 
 
 main()

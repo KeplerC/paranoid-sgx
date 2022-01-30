@@ -45,7 +45,7 @@
         //receive new message to mcast
         if (pollitems[1].revents & ZMQ_POLLIN){
             std::string msg = this->recv_string(&socket_msg);
-            LOG(INFO) << "[SERVER] Mcast Message: " + msg ;
+            LOGI << "[SERVER] Mcast Message: " + msg ;
             //mcast to all the clients
             for (zmq::socket_t* socket : this -> group_sockets) {
                 this->send_string(msg, socket);
@@ -63,7 +63,7 @@
 
         if (pollitems[3].revents & ZMQ_POLLIN){
             std::string result = this->recv_string(&socket_result);
-            LOG(INFO) << "[SERVER] REV result Message: " + result ;
+            LOGI << "[SERVER] REV result Message: " + result ;
             zmq::socket_t* socket_ptr  = new  zmq::socket_t( context, ZMQ_PUSH);
             socket_ptr -> connect (this->m_coordinator+ std::to_string(NET_COORDINATOR_RECV_RESULT_PORT));
             this->send_string(result, socket_ptr);
@@ -194,12 +194,27 @@
         if (pollitems[0].revents & ZMQ_POLLIN) {
             //Get the address
             std::string msg = this->recv_string(&socket_from_server);
-            LOG(INFO) << "[CapsuleDB client " << m_addr << "]:  " + msg ;
+            LOGI << "[CapsuleDB client " << m_addr << "]:  " + msg ;
             // Convert message to protobuf
             hello_world::CapsulePDU in_dc;
             in_dc.ParseFromString(msg);
 
             hello_world::CapsulePDU out_dc = this->m_db->handle(in_dc);
+            if (out_dc.has_payload_in_transit()) {
+                // Has contents to return (non-empty payload)
+                LOGI << "Got response, return to mcast tree";
+
+                // Convert to zmq message
+                std::string out_s;
+                out_dc.SerializeToString(&out_s);
+
+                zmq::message_t msg(out_s.size());
+                memcpy(msg.data(), out_s.c_str(), out_s.size());
+
+                socket_send->send(msg);
+            }
+            /*
+            // Old client semantics (directly forward to requester)
             if (out_dc.has_payload_in_transit()) {
                 // Has contents to return (non-empty payload)
                 LOG(INFO) << "Got response, return to " << in_dc.retaddr();
@@ -218,6 +233,7 @@
                 socket_ret->send(msg);
                 delete socket_ret;
             }
+            */
         }
     }
 }
