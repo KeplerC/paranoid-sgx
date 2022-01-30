@@ -2,6 +2,10 @@
 #include "asylo/util/logging.h"
 #include "common.h"
 
+bool MemTable::contains(const std::string &key){
+    return memtable.contains(key);
+}
+
 kvs_payload MemTable::get(const std::string &key){
     kvs_payload got; 
     sgx_spin_lock(&mt_spinlock);

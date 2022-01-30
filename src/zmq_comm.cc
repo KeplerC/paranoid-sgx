@@ -143,7 +143,7 @@
     while (true) {
         // LOG(INFO) << "Start zmq";
         zmq::poll(pollitems.data(), pollitems.size(), 0);
-        // Join Request
+        // Send to server
         if (pollitems[0].revents & ZMQ_POLLIN) {
             //Get the address
             std::string msg = this->recv_string(&socket_from_server);
@@ -204,10 +204,9 @@
                 // Has contents to return (non-empty payload)
                 LOG(INFO) << "Got response, return to " << in_dc.retaddr();
                 
-                // TODO: zmq utils?
-                // Connect to new socket
-                zmq::socket_t* socket_send = new zmq::socket_t( context, ZMQ_PUSH);
-                socket_send -> connect (in_dc.retaddr());
+                // Connect to return socket
+                zmq::socket_t* socket_ret = new zmq::socket_t( context, ZMQ_PUSH);
+                socket_ret -> connect (in_dc.retaddr());
 
                 // Convert to zmq message
                 std::string out_s;
@@ -216,7 +215,8 @@
                 zmq::message_t msg(out_s.size());
                 memcpy(msg.data(), out_s.c_str(), out_s.size());
 
-                socket_send->send(msg);
+                socket_ret->send(msg);
+                delete socket_ret;
             }
         }
     }

@@ -1,5 +1,4 @@
 #include "cdb_test.hh"
-#include "benchmark.h"
 
 // CapsuleDBTestClient client;
 const absl::string_view signing_key_pem = {
@@ -35,20 +34,24 @@ int run_cdb_test_client() {
     ASSIGN_OR_RETURN(serialized_signing_key,
                             signing_key->SerializeToDer());
 
+    // TODO add fork here
     CapsuleDBTestClient client = CapsuleDBTestClient(serialized_signing_key);
     LOG(INFO) << "Done with key setup, returned to run_cdb_test_client";
+    client.runBenchmark();
+    /*
     while (true) {
-        client.put("3945957134849834", "FIRST_VAL");
-        client.put("3945957134849835", "SECOND_VAL");
-        // benchmark_put("3945957134849834", "FIRST_VAL");
-        // benchmark_put("3945957134849835", "SECOND_VAL");
+        // client.put("3945957134849834", "FIRST_VAL");
+        // client.put("3945957134849835", "SECOND_VAL");
+        benchmark_put("3945957134849834", "FIRST_VAL", client);
+        benchmark_put("3945957134849835", "SECOND_VAL", client);
         sleep(3);
-        LOG(INFO) << "Get result: " << client.get("3945957134849835");
-        LOG(INFO) << "Get result: " << client.get("3945957134849834");
-        // LOG(INFO) << "Get result: " << benchmark_get("3945957134849835");
-        // LOG(INFO) << "Get result: " << benchmark_get("3945957134849834");
+        // LOG(INFO) << "Get result: " << client.get("3945957134849835");
+        // LOG(INFO) << "Get result: " << client.get("3945957134849834");
+        LOG(INFO) << "Get result: " << benchmark_get("3945957134849835", client);
+        LOG(INFO) << "Get result: " << benchmark_get("3945957134849834", client);
         sleep(5);
     }
+    */
 
     sleep(1 * 1000 * 1000);
     return 0; 

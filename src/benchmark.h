@@ -3,7 +3,7 @@
 #define PARANOID_SGX_BENCHMARK_H
 
 #define M_BENCHMARK_HERE void benchmark(){ \
-	 LOGD << "Load started"; \
+	 LOG(INFO) << "Load started"; \
 	put("6284781860667377", ":Sg3Ow5-v.6f>Q7)");\
 	put("8517097267634966", "'Uw'.6(&1");\
 	put("1820151046732198", "/M%=,z23$,Gu:W%8");\
@@ -6002,7 +6002,7 @@
 	put("6408915986570119", "#x6%*/Y;!~<I38");\
 	put("8744392766610517", "%Ck6_u($x:G/>N/");\
 	put("6546342200096381", "1?|#*j$_{#!b:,6,");\
-	 LOGD << "Loaded 5998 entries"; \
+	 LOG(INFO) << "Loaded 5998 entries"; \
 	put("1127100791449830", "7G95@})*");\
 	get("8507943218814273");\
 	put("1127100791449830", "%UoAa$7t:-v<Mc'");\
@@ -16003,7 +16003,7 @@
 	put("5479976144003648", "9'v'F?.,(0Hw6Ok");\
 	get("7556898885097888");\
 	get("8863840710493992");\
-	 LOGD << "put 5037 and get 4963 end"; \
+	 LOG(INFO) << "put 5037 and get 4963 end"; \
 }
 
 #endif //PARANOID_SGX_BENCHMARK_H

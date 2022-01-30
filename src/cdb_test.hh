@@ -9,6 +9,7 @@
 #include "zmq_comm.hpp"
 #include "capsuleDBcpp/cdb_network_client.hh"
 #include "kvs_include/capsule.h"
+#include "benchmark.h"
 
 class CapsuleDBTestClient {
     private:
@@ -36,7 +37,7 @@ class CapsuleDBTestClient {
             return translated;
         }
 
-        /* Waits for any response on the recv port. 
+        /* Waits for response for cooresponding KEY
          * Called for GET requests.
          */
         std::string wait_response(const std::string &key) {
@@ -51,21 +52,27 @@ class CapsuleDBTestClient {
             while (true) {
                 zmq::poll(pollitems.data(), pollitems.size(), 0);
                 if (pollitems[0].revents & ZMQ_POLLIN) {
-                    LOG(INFO) << "Got response!!!!";
+                    LOG(INFO) << "Got response!";
 
                     // Convert socket message -> decrypted CapsulePDU
                     capsule_pdu response = recv_capsule_pdu(recv_socket);
+
+                    // Verify hash and signature
+                    if(!asylo::verify_dc(&response, verifying_key)){
+
+                        std::cout << "Verification failed, ignoring get response.\n";
+                        continue;
+                    }
 
                     if(asylo::decrypt_payload_l(&response)) {
                     // Returns value of first PUT kvs_payload received
                     // Note: does not handle request batching
                         for (kvs_payload payload : response.payload_l) {
-                            if (payload.txn_msgType == "PUT") {
+                            if (payload.txn_msgType == "CDB_PUT" && payload.key == key) {
                                 return payload.value;
                             }
                         }
                     }
-                    return "";
                 }
             }
         }
@@ -78,9 +85,9 @@ class CapsuleDBTestClient {
 
             // TODO: Formally define msgType
             if (isPut) {
-                asylo::KvToPayload(&payload, key, value, currTime, "PUT");
+                asylo::KvToPayload(&payload, key, value, currTime, "CDB_PUT");
             } else {
-                asylo::KvToPayload(&payload, key, value, currTime, "GET");
+                asylo::KvToPayload(&payload, key, value, currTime, "CDB_GET");
             }
             payload_l.push_back(payload);
 
@@ -113,6 +120,8 @@ class CapsuleDBTestClient {
 
 
     public:       
+        CapsuleDBTestClient() {}
+
         CapsuleDBTestClient(asylo::CleansingVector<uint8_t> serialized_signing_key) {
             // Connect to the multicast socket of the root router
             std::string coordinator_ip = NET_SEED_ROUTER_IP;
@@ -147,5 +156,20 @@ class CapsuleDBTestClient {
             // Waits for reponse
             return wait_response(key);
             // return "";
+        }
+
+        M_BENCHMARK_HERE
+        void runBenchmark() {
+            /*
+            while (true) {
+                put("3945957134849834", "FIRST_VAL");
+                put("3945957134849835", "SECOND_VAL");
+                sleep(3);
+                LOG(INFO) << "Get result: " << get("3945957134849835");
+                LOG(INFO) << "Get result: " << get("3945957134849834");
+                sleep(5);
+            }
+            */
+           benchmark();
         }        
 };
