@@ -24,16 +24,22 @@
 #ifndef __COMMON_H
 #define __COMMON_H
 
-
-//#define NET_WORKER_IP "128.32.37.69"
-//#define NET_SEED_ROUTER_IP "128.32.37.46"
-//#define NET_SYNC_SERVER_IP "128.32.37.46"
+#ifdef NUC_TESTING
+#define NET_WORKER_IP "128.32.37.78" // GDP 7
+#define NET_SEED_ROUTER_IP "128.32.37.48" // GDP 8
+#define NET_CDB_WORKER_IP "128.32.37.74" // GDP 9
+#define NET_JS_TASK_COORDINATOR_IP "128.32.37.34" // GDP 11
+#else
 #define NET_WORKER_IP "localhost"
 #define NET_SEED_ROUTER_IP "localhost"
+#define NET_CDB_WORKER_IP "localhost"
+#define NET_JS_TASK_COORDINATOR_IP "localhost"
+#endif
+
+// #define NET_SYNC_SERVER_IP "128.32.37.46"
 #define NET_SYNC_SERVER_IP "localhost"
 #define NET_KEY_DIST_SERVER_IP "localhost"
 #define NET_USER_IP "localhost"
-#define NET_JS_TASK_COORDINATOR_IP "localhost"
 
 // // ip of this machine
 #define NET_CLIENT_IP "localhost"

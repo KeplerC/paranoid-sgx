@@ -2,9 +2,13 @@ import time
 import zmq
 import threading
 
-# my_ip = "128.32.37.26"
-# server_ip = "128.32.37.46"
+NUC_MODE = False
 my_ip = server_ip = "localhost"
+
+if (NUC_MODE): 
+    my_ip = "128.32.37.55"
+    server_ip = "128.32.37.34"
+
 return_addr = "tcp://" + my_ip + ":3007"
 local_dispatcher_addr = "tcp://" + server_ip + ":3005"
 delimiter = "@@@"

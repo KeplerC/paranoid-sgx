@@ -120,7 +120,7 @@ void thread_run_zmq_js_client(unsigned thread_id, Asylo_SGX* sgx){
 
 void thread_run_zmq_cdb_client(unsigned thread_id, CapsuleDBNetworkClient* db){
     // TODO: Individual cdb worker ip for future simulations?
-    zmq_comm zs = zmq_comm(NET_WORKER_IP, thread_id, db, nullptr);
+    zmq_comm zs = zmq_comm(NET_CDB_WORKER_IP, thread_id, db, nullptr);
     zs.run_cdb_client();
 }
 
