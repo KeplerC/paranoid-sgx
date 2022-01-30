@@ -9,7 +9,7 @@ kvs_payload MemTable::get(const std::string &key){
     if(memtable.contains(key)){
         got = memtable.at(key);
     } else {
-        LOGI << "Couldn't find key: " << key;
+        // LOGI << "Couldn't find key: " << key;
         got.key = ""; 
     }
     sgx_spin_unlock(&mt_spinlock);

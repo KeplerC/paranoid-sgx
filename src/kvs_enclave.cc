@@ -299,17 +299,19 @@ namespace asylo {
 
             //Register OCALL buffer
             buffer = (HotMsg *) input.GetExtension(hello_world::buffer).buffer();
-            m_enclave_id = std::stoi(input.GetExtension(hello_world::buffer).enclave_id());
+            // m_enclave_id = std::stoi(input.GetExtension(hello_world::buffer).enclave_id());
+
 
             sleep(3);
 
-            for( uint64_t i=0; i < 1; ++i ) {
-                LOGI << "[ENCLAVE] ===CLIENT PUT=== ";
-                LOGI << "[ENCLAVE] Generating a new capsule PDU ";
-                put("default_key", "default_value" + std::to_string(i));
-            }
-
+            // for( uint64_t i=0; i < 1; ++i ) {
+            //     LOGI << "[ENCLAVE] ===CLIENT PUT=== ";
+            //     LOGI << "[ENCLAVE] Generating a new capsule PDU ";
+            //     put("default_key", "default_value" + std::to_string(i));
+            // }
+            LOG(INFO) << "Starting MPL";
             if (input.HasExtension(hello_world::lambda_input)){
+                LOG(INFO) << "Starting MPL";
                 return start_eapp(this, input);
             }
 
@@ -349,6 +351,7 @@ namespace asylo {
                 std::pair<std::string, int64_t> p;
                 p.first = value;
                 p.second = std::stoll(ts);
+                std::cout << key << std::endl;
                 tmp[std::stoi(key)] = p;
             }
 

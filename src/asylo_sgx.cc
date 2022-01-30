@@ -218,9 +218,16 @@ void Asylo_SGX::send_to_sgx(std::string message){
 
     hello_world::CapsulePDU in_dc;
     in_dc.ParseFromString(message);
-    if(in_dc.sender() == std::stoi(this->m_name)){
-        return;
+
+    try {
+        if(in_dc.sender() == std::stoi(this->m_name)){
+            return;
+        }
+    } catch (const std::invalid_argument& e){
+        std::cout << this->m_name; 
     }
+
+   
     capsule_pdu *dc = new capsule_pdu();
     asylo::CapsuleFromProto(dc, &in_dc);
 
@@ -253,11 +260,13 @@ void Asylo_SGX::execute_mpl(){
     //Register OCALL buffer to enclave 
     input.MutableExtension(hello_world::buffer)->set_buffer((long int) circ_buffer_host);
     input.MutableExtension(hello_world::buffer)->set_enclave_id(m_name);
-    *(input.MutableExtension(hello_world::crypto_param)->mutable_key()) = asylo::CopyToByteContainer<std::string>(serialized_signing_key);
+    // *(input.MutableExtension(hello_world::crypto_param)->mutable_key()) = asylo::CopyToByteContainer<std::string>(serialized_signing_key);
 
+    //Load server/port
+    // input.MutableExtension(hello_world::kvs_server_config)->set_server_address(NET_KEY_DIST_SERVER_IP);
+    // input.MutableExtension(hello_world::kvs_server_config)->set_port(NET_KEY_DIST_SERVER_PORT);
 
     hello_world::MP_Lambda_Input lambda_input = getLambdaInput();
-    
     *input.MutableExtension(hello_world::lambda_input) = lambda_input;
 
     asylo::Status status = this->client->EnterAndRun(input, &output);

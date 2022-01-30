@@ -66,7 +66,7 @@ using examples::grpc_server::Translator;
 using examples::grpc_server::RetrieveKeyPairResponse;
 using examples::grpc_server::RetrieveKeyPairRequest;
 
-enum mode_type { RUN_BOTH_CLIENT_AND_SERVER, RUN_CLIENT_ONLY, LISTENER_MODE, COORDINATOR_MODE, JS_MODE, USER_MODE,WORKER_MODE, ROUTER_MODE };
+enum mode_type { RUN_BOTH_CLIENT_AND_SERVER, RUN_CLIENT_ONLY, MPL_LISTENER_MODE, MPL_COORDINATOR_MODE, COORDINATOR_MODE, JS_MODE, USER_MODE,WORKER_MODE, ROUTER_MODE };
 
 #define PORT_NUM 1234
 
@@ -136,6 +136,7 @@ void thread_start_fake_client(Asylo_SGX* sgx){
 
 
 void thread_start_mpl_client(Asylo_SGX* sgx){
+    std::cout << "[thread_start_mpl_client]" << std::endl;
     sgx->execute_mpl();
 }
 
@@ -212,7 +213,7 @@ int run_client_and_router() {
     return 0;
 }
 
-int run_listener(){
+int run_mpl_listener(){
 
     std::unique_ptr <asylo::SigningKey> signing_key(std::move(asylo::EcdsaP256Sha256SigningKey::CreateFromPem(
                                             signing_key_pem)).ValueOrDie());
@@ -313,7 +314,7 @@ int run_listener(){
     return 0; 
 }
 
-int run_mp_coordinator(){
+int run_mpl_coordinator(){
 
     std::unique_ptr <asylo::SigningKey> signing_key(std::move(asylo::EcdsaP256Sha256SigningKey::CreateFromPem(
                                             signing_key_pem)).ValueOrDie());
@@ -704,12 +705,12 @@ int main(int argc, char *argv[]) {
         case RUN_CLIENT_ONLY:
             run_clients_only();
             break;
-//        case LISTENER_MODE:
-//            run_listener();
-//            break;
-//        case COORDINATOR_MODE:
-//            run_mpl_coordinator();
-//            break;
+       case MPL_LISTENER_MODE:
+           run_mpl_listener();
+           break;
+       case MPL_COORDINATOR_MODE:
+           run_mpl_coordinator();
+           break;
         case JS_MODE:
             run_js();
             break;
