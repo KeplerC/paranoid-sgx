@@ -310,7 +310,7 @@ int run_mpl_listener(){
             exit(0);
         }
         
-        server = gethostbyname("localhost");
+        server = gethostbyname(NET_SEED_ROUTER_IP);
         if (server == NULL) {
             LOG(ERROR) << "Cannot get MPL coord";
             exit(0);
