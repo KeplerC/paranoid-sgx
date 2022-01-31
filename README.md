@@ -55,6 +55,12 @@ bazel run //src:hello_world_sgx_sim -- --mode 4 --input_file "/opt/my-project/sr
 ```
 
 ### Run JS demo with PSL stack
+
+NOTE: Remove --copt=-03 when running on local to save compiliation times.
+If running on NUCs:
+- Add `#define NUC_TESTING` to common.h
+- Modify `#define` IPs as necessary (detailed below).
+- Change `NUC_MODE` to true in `run_cdb_benchmark.py` and modify `my_ip`, `server_ip` as necessary.
 ```
 MY_PROJECT=~/paranoid-sgx
 sudo docker run -it --rm \
@@ -67,20 +73,26 @@ fogrobotics
 
 (four different terminals)
 # start sync server
-bazel run //src:hello_world_sgx_sim -- --mode=7
+common.h: NET_SEED_ROUTER_IP
+bazel run //src:hello_world_sgx_sim --copt=-O3  -- --mode=7
 
-# start workers 
+# start JS workers 
+common.h: NET_WORKER_IP
 bazel run //src:hello_world_sgx_sim  --copt=-O3 -- --mode=6
 
+# start capsuleDB lambda
+common.h: NET_CDB_WORKER_IP
+bazel run //src:hello_world_sgx_sim  -- --mode=8
+
 # start job dispatcher 
+common.h: NET_JS_TASK_COORDINATOR_IP
 bazel run //src:hello_world_sgx_sim -- --mode=3
 
 # run benchmark
 apt install python3-pip
 pip3 install zmq
 cd frontend 
-python3 run_benchmark.py
-
+python3 run_cdb_benchmark.py
 ```
 
 ### Run CapsuleDB Local Demo 
