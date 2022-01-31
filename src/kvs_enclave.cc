@@ -45,6 +45,27 @@ namespace asylo {
             handle();
         }
 
+        kvs_payload KVSClient::get(const std::string &key){
+            kvs_payload saved_payload = memtable.get(key);
+            if (saved_payload.key != "") {
+                return saved_payload;
+            }
+
+            m_lamport_timer += 1;
+            kvs_payload payload;
+            asylo::KvToPayload(&payload, key, "", m_lamport_timer, "GET");
+            DUMP_PAYLOAD((&payload));
+            // enqueue to pqueue
+            pqueue.enqueue(&payload);
+            handle();
+
+            // TODO: Wait logic 
+            while (saved_payload.key == "") {
+                saved_payload = memtable.get(key);
+            }
+            return saved_payload;
+        }
+
         void KVSClient::handle() {
             // dequeue msg/txn from pqueue and then handle
             std::vector<kvs_payload> payload_l = pqueue.dequeue(BATCH_SIZE);
@@ -112,18 +133,6 @@ namespace asylo {
             delete dc;
         }
 
-        kvs_payload KVSClient::get(const std::string &key){
-            //TODO: Handle get via capsuleDB
-            return memtable.get(key);
-            // PSUEDO CODE
-            /*
-            while (true) {
-                if (memtable.contains(key)) {
-                    return memtable.get(key);
-                }
-            }
-            */
-        }
 
         std::string KVSClient::serialize_eoe_hashes(){
             std::string ret = "";
