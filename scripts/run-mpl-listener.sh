@@ -1,0 +1,1 @@
+bazel run //src:mpl_listener_sgx_sim --copt=-O3

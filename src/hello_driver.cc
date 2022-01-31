@@ -69,6 +69,7 @@ using examples::grpc_server::RetrieveKeyPairRequest;
 enum mode_type { RUN_BOTH_CLIENT_AND_SERVER, RUN_CLIENT_ONLY, MPL_LISTENER_MODE, MPL_COORDINATOR_MODE, COORDINATOR_MODE, JS_MODE, USER_MODE,WORKER_MODE, ROUTER_MODE };
 
 #define PORT_NUM 1234
+#define MPL_COORD_PORT 1255
 
 
 ABSL_FLAG(int32_t, mode, -1, "Configures which mode to run KVS in");
@@ -294,16 +295,43 @@ int run_mpl_listener(){
                 client_threads.at(i).join();
         }
 
-        //TODO: Figure out a way to kill ZMQ clients 
-        LOG(INFO) << "[listener] Finished request";
-        exit(0);
-
+        // TODO: Kill ZMQ client threads
         //Send cancellation singnals to ZMQ client threads
-        for (int i=0; i<worker_threads.size(); ++i) {
-             if (worker_threads[i].joinable())
-                worker_threads.at(i).join();
+        // for (int i=0; i<worker_threads.size(); ++i) {
+        //      if (worker_threads[i].joinable())
+        //         worker_threads.at(i).join();
+        // }
+
+        struct sockaddr_in serv_addr;
+        struct hostent *server;
+        int sockfd = socket(AF_INET, SOCK_STREAM, 0);
+        if (sockfd < 0){
+            LOG(ERROR) << "Opening socket...";
+            exit(0);
         }
+        
+        server = gethostbyname("localhost");
+        if (server == NULL) {
+            LOG(ERROR) << "Cannot get MPL coord";
+            exit(0);
+        }
+        bzero((char *) &serv_addr, sizeof(serv_addr));
+        serv_addr.sin_family = AF_INET;
+        bcopy((char *)server->h_addr, 
+            (char *)&serv_addr.sin_addr.s_addr,
+            server->h_length);
+        serv_addr.sin_port = htons(MPL_COORD_PORT);
+
+        if (connect(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0){
+            LOG(ERROR) << "Cannot connect to " << "localhost" << ":" << MPL_COORD_PORT;
+            exit(0);
+        }
+
+        write(sockfd, "ACK", 3);
+        close(sockfd);
+        LOG(INFO) << "Send ack request.";
         close(connection);
+        exit(0);
     }
 
     // Send a message to the connection
@@ -416,7 +444,44 @@ int run_mpl_coordinator(){
 
     //Initiate ZMQ server 
     worker_threads.push_back(std::thread(thread_run_zmq_router, 0));
-    sleep(1 * 1000 * 1000);
+
+    int num_acks = 0; 
+
+    sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    if (sockfd == -1) {
+        std::cout << "Failed to create socket. errno: " << errno << std::endl;
+        exit(EXIT_FAILURE);
+    }
+
+    // Listen to port 9999 on any address
+    sockaddr_in sockaddr;
+    sockaddr.sin_family = AF_INET;
+    sockaddr.sin_addr.s_addr = INADDR_ANY;
+    sockaddr.sin_port = htons(MPL_COORD_PORT); // htons is necessary to convert a number to
+                                // network byte order
+    if (bind(sockfd, (struct sockaddr*)&sockaddr, sizeof(sockaddr)) < 0) {
+        std::cout << "Failed to bind to port " << MPL_COORD_PORT << ". errno: " << errno << std::endl;
+        exit(EXIT_FAILURE);
+    }
+
+    // Start listening. Hold at most 10 connections in the queue
+    if (listen(sockfd, 10) < 0) {
+        std::cout << "Failed to listen on socket. errno: " << errno << std::endl;
+        exit(EXIT_FAILURE);
+    }
+
+    while(num_acks < hosts_vec.size()) {
+        // Grab a connection from the queue
+        auto addrlen = sizeof(sockaddr);
+        int connection = accept(sockfd, (struct sockaddr*)&sockaddr, (socklen_t*)&addrlen);
+        if (connection < 0) {
+            std::cout << "Failed to grab connection. errno: " << errno << std::endl;
+            exit(EXIT_FAILURE);
+        }
+        num_acks += 1; 
+    }
+
+    LOG(INFO) << "MPL Coordinator Finished";
     return 0;
 }
 

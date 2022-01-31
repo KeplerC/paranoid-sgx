@@ -1,0 +1,1 @@
+bazel run //src:mpl_coordinator_sgx_sim --copt=-O3

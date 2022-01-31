@@ -483,7 +483,6 @@ enclave_loader(
     loader_args = [
         "--enclave_path='{enclave}'",
         "--mode=3",
-        "--hosts=localhost", 
         #Fetch params
         "--scenario fetch",
         "--algorithm cforest",
@@ -493,7 +492,6 @@ enclave_loader(
         "--goal=-1.07,0.16,0.88,0,0,0",
         "--goal_radius=0.01,0.01,0.01,0.01,0.01,3.141592653589793",
         "--start=0.1,1.570796326794897,1.570796326794897,0,1.570796326794897,0,1.570796326794897,0",
-        "--time_limit 3600",
         "--check_resolution 0.01",
         "--jobs 1", 
         ],

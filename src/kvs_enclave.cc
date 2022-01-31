@@ -278,7 +278,6 @@ namespace asylo {
                 std::string server_addr = input.GetExtension(hello_world::kvs_server_config).server_address();
                 int32_t port = input.GetExtension(hello_world::kvs_server_config).port();
                 ConnectKDE(server_addr, port);
-                LOG(INFO) << "[Coordinator finished] " << faas_idx;
 #endif
                 sleep(3);
 
@@ -304,14 +303,7 @@ namespace asylo {
 
             sleep(3);
 
-            // for( uint64_t i=0; i < 1; ++i ) {
-            //     LOGI << "[ENCLAVE] ===CLIENT PUT=== ";
-            //     LOGI << "[ENCLAVE] Generating a new capsule PDU ";
-            //     put("default_key", "default_value" + std::to_string(i));
-            // }
-            LOG(INFO) << "Starting MPL";
             if (input.HasExtension(hello_world::lambda_input)){
-                LOG(INFO) << "Starting MPL";
                 return start_eapp(this, input);
             }
 
