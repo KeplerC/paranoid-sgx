@@ -35,6 +35,8 @@
 
 #include <utility>
 #include <unordered_map>
+#include <mutex>
+#include <condition_variable>
 
  
  namespace asylo {
@@ -66,6 +68,10 @@
         PQueue pqueue;
         std::unique_ptr <SigningKey> signing_key;
         std::unique_ptr <VerifyingKey> verifying_key;
+
+        bool ready;
+        std::mutex m;
+        std::condition_variable get_cv;
 
 
         void put_internal(capsule_pdu *dc, bool to_memtable, bool update_hash, bool to_network);
@@ -154,12 +160,11 @@
         m->put(key, "", CDB_GET);
 
         // Wait for new value to be put in memtable
-        /*
-        while (!m->contains(key)){
+        // while (!m->contains(key)){
+        while (true){
             LOG(INFO) << "Waiting for key " << key;
             sleep(1);
         }
-        */
 
         kvs_payload dc = m->get(key);
 

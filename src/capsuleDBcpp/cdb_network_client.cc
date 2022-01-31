@@ -57,15 +57,15 @@ hello_world::CapsulePDU CapsuleDBNetworkClient::get(std::string requestedKey) {
     hello_world::CapsulePDU protoDC;
     
     // Get requested payload from CapsuleDB
-    kvs_payload requested = db->get(requestedKey);
-    // kvs_payload requested;
-    // asylo::KvToPayload(&requested, "TESTKEY", "TESTVAL", 0, "PUT");
+    // kvs_payload requested = db->get(requestedKey);
+    LOG(INFO) << "Got into GET";
+    kvs_payload requested;
+    asylo::KvToPayload(&requested, "anotherTestKey", "anotherTestVal", 0, "");
     if (requested.key == "") {
         LOG(INFO) << "Key not present in CapsuleDB";
     }
     
     LOGI << "original msgtype: " << requested.txn_msgType;
-    requested.txn_msgType = "";
     // Generate Vector of kvs_payloads (will only be one in this case)
     std::vector<kvs_payload> outgoingVec;
     outgoingVec.push_back(requested);
@@ -130,7 +130,7 @@ hello_world::CapsulePDU CapsuleDBNetworkClient::handle(const hello_world::Capsul
         // TODO: fix batch request logic, this will not work properly
         // LOG(INFO) << "ret addr: " << translated.retAddr;
         for (kvs_payload payload : translated.payload_l) {
-            if (payload.txn_msgType == CDB_PUT) {
+            if (payload.txn_msgType == "") {
                 db->put(&payload);
             } else if (payload.txn_msgType == CDB_GET) {
                 return get(payload.key);

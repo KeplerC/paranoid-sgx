@@ -114,6 +114,20 @@ namespace asylo {
 
         kvs_payload KVSClient::get(const std::string &key){
             //TODO: Handle get via capsuleDB
+            std::unique_lock<std::mutex> lk(m);
+            this->ready = false;
+
+            if (!memtable.contains(key)) {
+                put(key, "", CDB_GET);
+            }
+
+            while (!memtable.contains(key)) {
+                get_cv.wait(lk);
+            }
+
+            LOG(INFO) << "Found value";
+            this->ready = true;
+            lk.unlock();
             return memtable.get(key);
             // PSUEDO CODE
             /*
@@ -405,7 +419,7 @@ namespace asylo {
 
                 if(data_ptr->data) {
                     //Message exists!
-                    LOGI << "Received new data!";
+                    LOG(INFO) << "Received new data!";
                     EcallParams *arg = (EcallParams *) data_ptr->data;
                     if(arg->ecall_id == ECALL_RUN){
                         char *code = (char *) arg->data;
@@ -469,6 +483,11 @@ namespace asylo {
                                         LOGI << "Put key: " << dc->payload_l[i].key << ", val: " << dc->payload_l[i].value;
                                         memtable.put(&(dc->payload_l[i]));
                                         LOGI << "Contains key " << dc->payload_l[i].key << ": " << contains(dc->payload_l[i].key);
+                                        
+                                        // Signal thread if waiting for GET
+                                        std::lock_guard<std::mutex> lk(m);
+                                        ready = true;
+                                        get_cv.notify_all();
 
                                     }
                                 }

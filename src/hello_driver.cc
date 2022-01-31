@@ -576,7 +576,7 @@ int run_worker(){
                      signing_key->SerializeToDer());
 
     std::vector <std::thread> worker_threads;
-    int num_threads = 4; //# of worker = num_threads - 2
+    int num_threads = 3; //# of worker = num_threads - 2
     //worker_threads.push_back(std::thread(thread_run_zmq_router, 0));
 
     for (unsigned thread_id = START_CLIENT_ID; thread_id < num_threads; thread_id++) {
