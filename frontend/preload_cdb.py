@@ -50,27 +50,17 @@ def serialize_message(code):
     return (return_addr + delimiter + code).encode()
 
 def get_code_from_load():
-    times = 1
-    print("running trace C (2000 puts) x times: " + str(times))
-    with open("../YCSB_traces/tracea_run_a.txt") as f:
+    with open("../YCSB_traces/tracea_load_c.txt") as f:
         lines = f.read().split("\n")
         cmd = "print(\"start\"); "
-        for _ in range(times):
-            for line in lines:
-                key = line.split(" ")[1]
-                value = line.split(" ")[2]
-                value = "".join(e for e in value if e.isalpha())
-                cmd += "cdb_put(\"" + key + "\",\"" + value + "\"); "
+        for line in lines:
+            key = line.split(" ")[1]
+            value = line.split(" ")[2]
+            value = "".join(e for e in value if e.isalpha())
+            cmd += "cdb_put(\"" + key + "\",\"" + value + "\"); "
         cmd += "cdb_put(\"" + "Benchmark_End" + "\",\"" + "value" + "\"); "
     cmd += "print(\"end\"); "
     return cmd
-
-def test_code():
-    cmd = "print(\"start\"); "
-    cmd += "cdb_put(\"testkey\", \"testval\"); cdb_get(\"testkey\"); "
-    cmd += "print(\"end\"); "
-    return cmd
-
 
 def main():
     global logs
