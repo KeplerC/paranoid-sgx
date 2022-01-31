@@ -52,11 +52,12 @@ def serialize_message(code):
 def get_code_from_load():
     times = 1
     print("running trace C (2000 puts) x times: " + str(times))
-    with open("../YCSB_traces/tracea_run_a.txt") as f:
+    with open("../YCSB_traces/tracea_load_a.txt") as f:
         lines = f.read().split("\n")
         cmd = "print(\"start\"); "
         for _ in range(times):
             for line in lines:
+                print(line)
                 key = line.split(" ")[1]
                 value = line.split(" ")[2]
                 value = "".join(e for e in value if e.isalpha())
