@@ -115,18 +115,18 @@ namespace asylo {
         kvs_payload KVSClient::get(const std::string &key){
             //TODO: Handle get via capsuleDB
             std::unique_lock<std::mutex> lk(m);
-            this->ready = false;
 
             if (!memtable.contains(key)) {
                 put(key, "", CDB_GET);
             }
 
-            while (!memtable.contains(key)) {
-                get_cv.wait(lk);
-            }
+            get_cv.wait(lk, [this, &key] {
+                LOGI <<"Got into CV";
+                LOG(INFO) << "Checking memtable for " << key;
+                return this->memtable.contains(key);
+            });
 
-            LOG(INFO) << "Found value";
-            this->ready = true;
+            LOG(INFO) << "Found value" << memtable.get(key).value;
             lk.unlock();
             return memtable.get(key);
             // PSUEDO CODE
@@ -273,7 +273,7 @@ namespace asylo {
             if (input.HasExtension(hello_world::lambda_input)){
                 return start_eapp(this, input);
             }
-
+            // get("anotherTestKey");
             return asylo::Status::OkStatus();
         }
 
@@ -392,6 +392,13 @@ namespace asylo {
             return numRetries;
         }
 
+        void* duk_eval_string_wrapper(void* in) {
+            LOGI <<"Create new thread";
+            sleep(1);
+            struct eval_string_args *args = (struct eval_string_args *) in;
+            duk_eval_string(args->ctx, args->src);
+        } 
+
         void KVSClient::EnclaveMsgStartResponder( HotMsg *hotMsg )
         {
             int dataID = 0;
@@ -424,7 +431,12 @@ namespace asylo {
                     if(arg->ecall_id == ECALL_RUN){
                         char *code = (char *) arg->data;
                         LOGI <<"duk eval string";
-                        duk_eval_string(ctx, code);
+                        // duk_eval_string(ctx, code);
+                        // std::thread(duk_eval_string_wrapper, ctx, code);
+                        struct eval_string_args* args = new eval_string_args;
+                        args->ctx = ctx;
+                        args->src = code;
+                        pthread_create(NULL, NULL, duk_eval_string_wrapper, (void*)args);
                         data_ptr->data = 0;
                     }
                     else{
@@ -486,7 +498,6 @@ namespace asylo {
                                         
                                         // Signal thread if waiting for GET
                                         std::lock_guard<std::mutex> lk(m);
-                                        ready = true;
                                         get_cv.notify_all();
 
                                     }

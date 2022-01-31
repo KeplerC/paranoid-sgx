@@ -57,15 +57,15 @@ hello_world::CapsulePDU CapsuleDBNetworkClient::get(std::string requestedKey) {
     hello_world::CapsulePDU protoDC;
     
     // Get requested payload from CapsuleDB
-    // kvs_payload requested = db->get(requestedKey);
-    LOG(INFO) << "Got into GET";
-    kvs_payload requested;
-    asylo::KvToPayload(&requested, "anotherTestKey", "anotherTestVal", 0, "");
+    kvs_payload requested = db->get(requestedKey);
+    // kvs_payload requested;
+    // asylo::KvToPayload(&requested, "anotherTestKey", "anotherTestVal", 0, "");
     if (requested.key == "") {
         LOG(INFO) << "Key not present in CapsuleDB";
+        asylo::KvToPayload(&requested, requestedKey, "-1", 0, "");
     }
     
-    LOGI << "original msgtype: " << requested.txn_msgType;
+    LOG(INFO) << "GET " << requestedKey;
     // Generate Vector of kvs_payloads (will only be one in this case)
     std::vector<kvs_payload> outgoingVec;
     outgoingVec.push_back(requested);

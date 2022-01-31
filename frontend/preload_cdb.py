@@ -57,8 +57,8 @@ def get_code_from_load():
             key = line.split(" ")[1]
             value = line.split(" ")[2]
             value = "".join(e for e in value if e.isalpha())
-            cmd += "cdb_put(\"" + key + "\",\"" + value + "\"); "
-        cmd += "cdb_put(\"" + "Benchmark_End" + "\",\"" + "value" + "\"); "
+            cmd += "psl_put(\"" + key + "\",\"" + value + "\"); "
+        cmd += "psl_put(\"" + "Benchmark_End" + "\",\"" + "value" + "\"); "
     cmd += "print(\"end\"); "
     return cmd
 

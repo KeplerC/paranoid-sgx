@@ -33,13 +33,17 @@
             //Get the address
             std::string msg = this->recv_string(&socket_join);
             LOG(INFO)  << "[SERVER] JOIN FROM " + msg ;
-            this->group_addresses.push_back(msg);
 
-            //create a socket to the client and save
-            zmq::socket_t* socket_ptr  = new  zmq::socket_t( context, ZMQ_PUSH);
-            socket_ptr -> connect (msg);
-            this->group_sockets.push_back(socket_ptr);
-            //this->send_string("Ack Join", socket_ptr);
+            // Make sure no repeated joins
+            if (std::find(this->group_addresses.begin(), this->group_addresses.end(), msg) == this->group_addresses.end()) {
+                this->group_addresses.push_back(msg);
+
+                //create a socket to the client and save
+                zmq::socket_t* socket_ptr  = new  zmq::socket_t( context, ZMQ_PUSH);
+                socket_ptr -> connect (msg);
+                this->group_sockets.push_back(socket_ptr);
+                //this->send_string("Ack Join", socket_ptr);
+            }
         }
 
         //receive new message to mcast
@@ -154,6 +158,7 @@
         if (pollitems[1].revents & ZMQ_POLLIN) {
             //Get the address
             std::string msg = this->recv_string(&socket_code);
+            // LOGI << "[Client " << m_addr << "]:  " + msg ;
             // LOG(INFO) << "[Client " << m_addr << "]:  " + msg ;
             // this -> send_string(m_port , socket_send);
             this->m_sgx->execute_js_code(msg);

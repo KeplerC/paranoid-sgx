@@ -36,11 +36,17 @@
 #include <utility>
 #include <unordered_map>
 #include <mutex>
+#include <thread>
 #include <condition_variable>
 
  
  namespace asylo {
-   
+
+    struct eval_string_args {
+        duk_context* ctx;
+        char* src;
+    };
+
    class KVSClient : public asylo::TrustedApplication {
     public:
         KVSClient(){}
@@ -69,8 +75,8 @@
         std::unique_ptr <SigningKey> signing_key;
         std::unique_ptr <VerifyingKey> verifying_key;
 
-        bool ready;
         std::mutex m;
+        std::unordered_map<std::string key, std::condition_variable> get_cv_table;
         std::condition_variable get_cv;
 
 

@@ -52,23 +52,26 @@ def serialize_message(code):
 def get_code_from_load():
     times = 1
     print("running trace C (2000 puts) x times: " + str(times))
-    with open("../YCSB_traces/tracea_load_test.txt") as f:
+    with open("../YCSB_traces/tracea_run_c.txt") as f:
         lines = f.read().split("\n")
         cmd = "print(\"start\"); "
         for _ in range(times):
             for line in lines:
-                print(line)
-                key = line.split(" ")[1]
-                value = line.split(" ")[2]
-                value = "".join(e for e in value if e.isalpha())
-                cmd += "psl_put(\"" + key + "\",\"" + value + "\"); "
+                if (line.split(" ")[0] == "GET"):
+                    key = line.split(" ")[1]
+                    cmd += "psl_get(\"" + key + "\"); "
+                else:
+                    key = line.split(" ")[1]
+                    value = line.split(" ")[2]
+                    value = "".join(e for e in value if e.isalpha())
+                    cmd += "psl_put(\"" + key + "\",\"" + value + "\"); "
         cmd += "psl_put(\"" + "Benchmark_End" + "\",\"" + "value" + "\"); "
     cmd += "print(\"end\"); "
     return cmd
 
 def test_code():
     cmd = "print(\"start\"); "
-    cmd += "psl_put(\"testkey\", \"testval\"); psl_get(\"anotherTestKey\"); "
+    cmd += "psl_get(\"anotherTestKey\"); "
     cmd += "print(\"end\"); "
     return cmd
 
@@ -77,7 +80,7 @@ def main():
     global logs
     server = ServerTask()
     server.start()
-    code = test_code()
+    code = get_code_from_load()
     context = zmq.Context()
     zmq_socket = context.socket(zmq.PUSH)
     zmq_socket.connect(local_dispatcher_addr)
