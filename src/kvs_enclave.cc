@@ -116,17 +116,19 @@ namespace asylo {
             //TODO: Handle get via capsuleDB
             std::unique_lock<std::mutex> lk(m);
 
-            if (!memtable.contains(key)) {
-                put(key, "", CDB_GET);
+            if (memtable.contains(key)) {
+                return memtable.get(key);
             }
+
+            put(key, "", CDB_GET);
 
             get_cv.wait(lk, [this, &key] {
                 LOGI <<"Got into CV";
-                LOG(INFO) << "Checking memtable for " << key;
+                LOGI << "Checking memtable for " << key;
                 return this->memtable.contains(key);
             });
 
-            LOG(INFO) << "Found value" << memtable.get(key).value;
+            LOGI << "Found value" << memtable.get(key).value;
             lk.unlock();
             return memtable.get(key);
             // PSUEDO CODE
