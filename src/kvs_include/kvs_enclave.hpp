@@ -76,7 +76,7 @@
         std::unique_ptr <VerifyingKey> verifying_key;
 
         std::mutex m;
-        // std::unordered_map<std::string key, std::condition_variable> get_cv_table;
+        absl::flat_hash_map<std::string, std::condition_variable*> get_cv_table;
         std::condition_variable get_cv;
 
 

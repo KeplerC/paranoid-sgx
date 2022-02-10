@@ -122,13 +122,21 @@ namespace asylo {
 
             put(key, "", CDB_GET);
 
-            get_cv.wait(lk, [this, &key] {
-                LOGI <<"Got into CV";
-                LOGI << "Checking memtable for " << key;
+            if (!get_cv_table.contains(key)) {
+                std::condition_variable* cv = new std::condition_variable();
+                get_cv_table[key] = cv;
+            }
+
+            get_cv_table.at(key)->wait(lk, [this, &key] {
+                LOG(INFO) << "Checking memtable for " << key;
                 return this->memtable.contains(key);
             });
 
-            LOGI << "Found value" << memtable.get(key).value;
+            LOG(INFO) << "Found value: " << memtable.get(key).value;
+            // TODO:
+            delete get_cv_table.at(key);
+            get_cv_table.erase(key);
+
             lk.unlock();
             return memtable.get(key);
             // PSUEDO CODE
@@ -428,7 +436,7 @@ namespace asylo {
 
                 if(data_ptr->data) {
                     //Message exists!
-                    LOG(INFO) << "Received new data!";
+                    LOGI << "Received new data!";
                     EcallParams *arg = (EcallParams *) data_ptr->data;
                     if(arg->ecall_id == ECALL_RUN){
                         char *code = (char *) arg->data;
@@ -500,7 +508,7 @@ namespace asylo {
                                         
                                         // Signal thread if waiting for GET
                                         std::lock_guard<std::mutex> lk(m);
-                                        get_cv.notify_all();
+                                        this->get_cv_table.at(dc->payload_l[i].key)->notify_all();
 
                                     }
                                 }
