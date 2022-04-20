@@ -169,7 +169,22 @@
 
         return 1;           
     }
+    
 
+    // Distributed lock functions
+    static duk_ret_t js_lock_init(duk_context *ctx){
+        std::string lock_id = duk_to_string(ctx, 0);
+
+        // TODO: Broadcast lock init message
+    }
+
+    static duk_ret_t js_lock_acquire(duk_context *ctx){
+        std::string lock_id = duk_to_string(ctx, 0);
+    }
+
+    static duk_ret_t js_lock_release(duk_context *ctx){
+        std::string lock_id = duk_to_string(ctx, 0);
+    }
 
     static duk_ret_t js_ret(duk_context *ctx){
         std::string ret = duk_to_string(ctx, 0);

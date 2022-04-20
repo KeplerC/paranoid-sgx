@@ -511,6 +511,16 @@ namespace asylo {
             //Register memtable as global object
             duk_push_pointer(ctx, this); 
             duk_put_global_string(ctx, "ctx");
+
+            // Distributed lock functions
+            duk_push_c_function(ctx, js_lock_init, 1 /*nargs*/);
+            duk_put_global_string(ctx, "lock_init");
+
+            duk_push_c_function(ctx, js_lock_acquire, 1 /*nargs*/);
+            duk_put_global_string(ctx, "lock_acquire");
+
+            duk_push_c_function(ctx, js_lock_release, 1 /*nargs*/);
+            duk_put_global_string(ctx, "lock_release");
         }
 
         // TODO: No idea how to fix build issues if I uncomment this...
