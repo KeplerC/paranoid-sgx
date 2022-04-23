@@ -112,17 +112,44 @@ namespace asylo {
             delete dc;
         }
 
-        kvs_payload KVSClient::get(const std::string &key){
-            //TODO: Handle get via capsuleDB
-            return memtable.get(key);
-            // PSUEDO CODE
-            /*
-            while (true) {
-                if (memtable.contains(key)) {
-                    return memtable.get(key);
-                }
+        void KVSClient::mem_lock_release(const std::string &key) {
+            lock_table[key] = false;
+            if memtable.contains(key) {
+                put(key, memtable.get(key), "LOCK_RELEASE");
+            } else {
+                put(key, "", "LOCK_RELEASE");
             }
-            */
+        }
+
+        void KVSClient::mem_lock_acquire(const std::string &key) {
+            // TODO: Acquire in the duk stub so we don't block all puts
+            std::unique_lock<std::mutex> lk(m); 
+
+            if (!lock_table.contains(key)) {
+                lock_table[key] = false;
+                std::condition_variable* cv = new std::condition_variable();
+                lock_cv_table[key] = cv;
+            }
+
+            if (!lock_table[key]) {
+                put(key, "", "LOCK_ACQUIRE");
+                // Does not own lock. Need to wait for lock to be owned before continuing.
+                lock_cv_table.at(key)->wait(lk, [this, &key] {
+                    LOG(INFO) << "Checking if lock is acquired for " << key;
+                    if (!lock_table[key]) {
+                        sleep(10);
+                        put(key, "", "LOCK_ACQUIRE");
+                        // Resend lock acquire request
+                        return false;
+                    }
+                    return true;
+                });
+            }
+        }
+
+        kvs_payload KVSClient::get(const std::string &key){
+            // mem_lock_acquire(key);
+            return memtable.get(key);
         }
 
         bool KVSClient::contains(const std::string &key){
@@ -463,6 +490,8 @@ namespace asylo {
                                     p.first = dc->hash;
                                     p.second = dc->timestamp;
                                     m_eoe_hashes[m_enclave_id] = p;
+                                } else if (dc->msgType == "LOCK_ACQUIRE" && !is_coordinator) {
+
                                 } else {
                                     update_client_hash(dc);
                                     for (int i = 0; i < dc->payload_l.size(); i++) {

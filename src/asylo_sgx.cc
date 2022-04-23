@@ -43,6 +43,7 @@ static void *StartOcallResponder( void *arg ) {
     // to router
     zmq::socket_t* socket_ptr  = new  zmq::socket_t( context, ZMQ_PUSH);
     socket_ptr -> connect ("tcp://" + std::string(NET_SEED_ROUTER_IP) + ":6667");
+
     // to sync server
     zmq::socket_t* socket_ptr_to_sync  = new  zmq::socket_t( context, ZMQ_PUSH);
     socket_ptr_to_sync -> connect ("tcp://" + std::string(NET_SEED_ROUTER_IP) +":" + std::to_string(NET_SYNC_SERVER_PORT));
@@ -50,6 +51,8 @@ static void *StartOcallResponder( void *arg ) {
     zmq::socket_t* socket_ptr_for_result  = new  zmq::socket_t( context, ZMQ_PUSH);
     socket_ptr_for_result -> connect ("tcp://" + std::string(NET_SEED_ROUTER_IP) +":" + std::to_string(NET_SERVER_RESULT_PORT));
 
+    zmq::socket_t* socket_ptr_mcast  = new  zmq::socket_t( context, ZMQ_PUSH);
+    socket_ptr_mcast -> connect ("tcp://" + std::string(NET_SEED_ROUTER_IP) + std::to_string(NET_SERVER_MCAST_PORT));
 
     while( true )
     {
@@ -94,6 +97,11 @@ static void *StartOcallResponder( void *arg ) {
                 else if(in_dc.msgtype() == "PSL_RET"){
                     LOG(INFO) << "Sending PSL_RET " << out_s;
                     socket_ptr_for_result -> send(msg);
+                }
+                else if (in_dc.msgtype() == "LOCK_ACQUIRE") {
+                    // Mcast lock acquire
+                    LOG(INFO) << "Sending LOCK_ACQUIRE " << out_s;
+                    socket_ptr_mcast->send(msg);
                 }
                 else {
                     LOG(INFO) << "Sending message to router " << out_s;

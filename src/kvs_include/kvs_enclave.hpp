@@ -67,6 +67,8 @@
         std::unique_ptr <SigningKey> signing_key;
         std::unique_ptr <VerifyingKey> verifying_key;
 
+        absl::flat_hash_map<std::string, bool> lock_table;
+        absl::flat_hash_map<std::string, std::condition_variable*> lock_cv_table;
 
         void put_internal(capsule_pdu *dc, bool to_memtable, bool update_hash, bool to_network);
         std::string serialize_eoe_hashes();
@@ -176,14 +178,6 @@
         std::string lock_id = duk_to_string(ctx, 0);
 
         // TODO: Broadcast lock init message
-    }
-
-    static duk_ret_t js_lock_acquire(duk_context *ctx){
-        std::string lock_id = duk_to_string(ctx, 0);
-    }
-
-    static duk_ret_t js_lock_release(duk_context *ctx){
-        std::string lock_id = duk_to_string(ctx, 0);
     }
 
     static duk_ret_t js_ret(duk_context *ctx){
