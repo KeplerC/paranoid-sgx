@@ -52,7 +52,7 @@ static void *StartOcallResponder( void *arg ) {
     socket_ptr_for_result -> connect ("tcp://" + std::string(NET_SEED_ROUTER_IP) +":" + std::to_string(NET_SERVER_RESULT_PORT));
 
     zmq::socket_t* socket_ptr_mcast  = new  zmq::socket_t( context, ZMQ_PUSH);
-    socket_ptr_mcast -> connect ("tcp://" + std::string(NET_SEED_ROUTER_IP) + std::to_string(NET_SERVER_MCAST_PORT));
+    socket_ptr_mcast -> connect ("tcp://" + std::string(NET_SEED_ROUTER_IP) +":" + std::to_string(NET_SERVER_MCAST_PORT));
 
     while( true )
     {

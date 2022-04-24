@@ -50,6 +50,10 @@
         void benchmark();
         void handle();
 
+        // Lock functions
+        void mem_lock_acquire(const std::string &key);
+        void mem_lock_release(const std::string &key);
+
      private:
         MemTable memtable;
         HotMsg *buffer;
@@ -68,6 +72,7 @@
         std::unique_ptr <VerifyingKey> verifying_key;
 
         /* Lock variables */
+        std::mutex m;
         absl::flat_hash_map<std::string, bool> lock_table;
         absl::flat_hash_map<std::string, std::condition_variable*> lock_cv_table;
         absl::flat_hash_map<std::string, unsigned long int> lock_acq_req_time;

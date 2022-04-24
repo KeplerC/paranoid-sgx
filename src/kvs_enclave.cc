@@ -114,8 +114,8 @@ namespace asylo {
 
         void KVSClient::mem_lock_release(const std::string &key) {
             lock_table[key] = false;
-            if memtable.contains(key) {
-                put(key, memtable.get(key), "LOCK_RELEASE");
+            if (memtable.contains(key)) {
+                put(key, memtable.get(key).value, "LOCK_RELEASE");
             } else {
                 put(key, "", "LOCK_RELEASE");
             }
@@ -142,7 +142,7 @@ namespace asylo {
 
                 put(key, now_str, "LOCK_ACQUIRE");
                 // Does not own lock. Need to wait for lock to be owned before continuing.
-                lock_cv_table.at(key)->wait(lk, [this, &key] {
+                lock_cv_table.at(key)->wait(lk, [this, &key, &now_str] {
                     LOG(INFO) << "Checking if lock is acquired for " << key;
                     if (!lock_table[key] || num_acks[key] != 0) {
                         sleep(10);
