@@ -67,8 +67,12 @@
         std::unique_ptr <SigningKey> signing_key;
         std::unique_ptr <VerifyingKey> verifying_key;
 
+        /* Lock variables */
         absl::flat_hash_map<std::string, bool> lock_table;
         absl::flat_hash_map<std::string, std::condition_variable*> lock_cv_table;
+        absl::flat_hash_map<std::string, unsigned long int> lock_acq_req_time;
+        // Counts number of received responses from lock acquire request
+        absl::flat_hash_map<std::string, int> num_acks;
 
         void put_internal(capsule_pdu *dc, bool to_memtable, bool update_hash, bool to_network);
         std::string serialize_eoe_hashes();

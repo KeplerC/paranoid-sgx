@@ -132,18 +132,27 @@ namespace asylo {
             }
 
             if (!lock_table[key]) {
-                put(key, "", "LOCK_ACQUIRE");
+                // Record time of first lock acquire attempt
+                unsigned long int now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+                std::string now_str = std::to_string(now);
+                lock_acq_req_time[key] = now;
+
+                // Set number of responses needed to successfully acquire
+                num_acks[key] = NUM_WORKERS - 1;
+
+                put(key, now_str, "LOCK_ACQUIRE");
                 // Does not own lock. Need to wait for lock to be owned before continuing.
                 lock_cv_table.at(key)->wait(lk, [this, &key] {
                     LOG(INFO) << "Checking if lock is acquired for " << key;
-                    if (!lock_table[key]) {
+                    if (!lock_table[key] || num_acks[key] != 0) {
                         sleep(10);
-                        put(key, "", "LOCK_ACQUIRE");
+                        put(key, now_str, "LOCK_ACQUIRE");
                         // Resend lock acquire request
                         return false;
                     }
                     return true;
                 });
+                // TODO: Cleaup the CV if application uses too much memory
             }
         }
 
@@ -491,7 +500,49 @@ namespace asylo {
                                     p.second = dc->timestamp;
                                     m_eoe_hashes[m_enclave_id] = p;
                                 } else if (dc->msgType == "LOCK_ACQUIRE" && !is_coordinator) {
+                                    // Handle incoming lock acquire requests
+                                    std::string key = dc->payload_l[0].key;
+                                    if (lock_table[key]) {
+                                        // Lock is acquired by this worker. 
+                                        // TODO: Decide to release or not?
+                                        // put(key, get(key), "LOCK_RELEASE");
 
+                                    } else if (lock_acq_req_time[key] != 0) {
+                                        // Pending lock acquire request from this worker
+                                        // Break by timestamp
+                                        std::string req_time_str = dc->payload_l[0].value;
+                                        unsigned long int req_time = std::strtoul(req_time_str.c_str(), NULL, 10);
+                                        if (req_time < lock_acq_req_time[key]) {
+                                            put(key, "", "LOCK_RELEASE");
+                                        } else {
+                                            put(key, "", "LOCK_DENY");
+                                        }
+
+                                    } else {
+                                        // Lock is not acquired. Notify to sender that it is OK to acquire.
+                                        put(key, "", "LOCK_RELEASE");
+                                    }
+                                } else if (dc->msgType == "LOCK_RELEASE" && !is_coordinator) {
+                                    // Handle lock acquire success acks
+                                    std::string key = dc->payload_l[0].key;
+                                    num_acks.at(key) -= 1;
+                                    if (num_acks[key] == 0) {
+                                        // Successfully acquire lock, wake up
+                                        lock_table[key] = true;
+                                        // Wipe request time
+                                        lock_acq_req_time[key] = 0;
+                                        
+                                        this->lock_cv_table.at(key)->notify_all();
+                                    }
+
+                                } else if (dc->msgType == "LOCK_DENY" && !is_coordinator) {
+                                    // Handle lock acquire failure acks 
+                                    std::string key = dc->payload_l[0].key;
+                                    // Reset number of acks needed
+                                    num_acks.at(key) = NUM_WORKERS - 1;
+                                    // Wake up sleeping thread, resend
+                                    this->lock_cv_table.at(key)->notify_all();
+                                    
                                 } else {
                                     update_client_hash(dc);
                                     for (int i = 0; i < dc->payload_l.size(); i++) {
@@ -540,16 +591,6 @@ namespace asylo {
             //Register memtable as global object
             duk_push_pointer(ctx, this); 
             duk_put_global_string(ctx, "ctx");
-
-            // Distributed lock functions
-            duk_push_c_function(ctx, js_lock_init, 1 /*nargs*/);
-            duk_put_global_string(ctx, "lock_init");
-
-            duk_push_c_function(ctx, js_lock_acquire, 1 /*nargs*/);
-            duk_put_global_string(ctx, "lock_acquire");
-
-            duk_push_c_function(ctx, js_lock_release, 1 /*nargs*/);
-            duk_put_global_string(ctx, "lock_release");
         }
 
         // TODO: No idea how to fix build issues if I uncomment this...
