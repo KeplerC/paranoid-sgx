@@ -63,6 +63,9 @@
 #define BATCH_SIZE 2
 // #define RUN_BOTH_CLIENT_AND_SERVER true
 
+/* LOCK VARS */
+#define NUM_WORKERS 2
+
 //router ports
 #define NET_CLIENT_BASE_PORT 5555
 #define NET_SYNC_SERVER_PORT 5556
