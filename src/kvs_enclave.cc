@@ -371,6 +371,7 @@ namespace asylo {
         }
 
     int KVSClient::HotMsg_requestOCall( HotMsg* hotMsg, int dataID, void *data ) {
+            LOG(INFO) << "Test";
             int i = 0;
             const uint32_t MAX_RETRIES = 10;
             uint32_t numRetries = 0;

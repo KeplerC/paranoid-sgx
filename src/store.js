@@ -27,6 +27,7 @@ var TOTAL_STOCK = "1000";
 psl_put("Item 1", TOTAL_STOCK);
 
 // Purchase items
+print("Starting Test");
 let numBought = 0;
 for (let i = 0; i < 500; i++) {
     let numToBuy = getRandomInt(5);

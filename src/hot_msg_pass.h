@@ -86,7 +86,6 @@ static inline int HotMsg_requestECall( HotMsg* hotMsg, int dataID, void *data )
     int data_index = dataID % (MAX_QUEUE_LENGTH - 1);
     //Request call
     while( true ) {
-
         HotData* data_ptr = (HotData*) hotMsg -> MsgQueue[data_index];
         sgx_spin_lock( &data_ptr->spinlock );
         // printf("[HotMsg_requestCall] keep polling: %d\n", hotMsg->keepPolling);
@@ -99,7 +98,6 @@ static inline int HotMsg_requestECall( HotMsg* hotMsg, int dataID, void *data )
         }
         //else:
         sgx_spin_unlock( &data_ptr->spinlock );
-
         numRetries++;
         if( numRetries > MAX_RETRIES ){
             printf("exceeded tries");
@@ -110,7 +108,6 @@ static inline int HotMsg_requestECall( HotMsg* hotMsg, int dataID, void *data )
         for( i = 0; i<3; ++i)
             _mm_sleep();
     }
-
     return numRetries;
 }
 

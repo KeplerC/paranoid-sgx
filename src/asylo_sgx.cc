@@ -152,14 +152,14 @@ unsigned long int Asylo_SGX::getTimeStamp(){
 }
 
 void Asylo_SGX::run_code(std::string *code){
-    LOGI << "Preparing JS arguments";
+    LOG(INFO) << "Preparing JS arguments";
     EcallParams *args = (EcallParams *) malloc(sizeof(OcallParams));
     args->ecall_id = ECALL_RUN;
     args->data = (char *) code->c_str(); 
     args->data = (char *) calloc(code->size()+1, sizeof(char));
     memcpy(args->data, code->c_str(), code->size());
     HotMsg_requestECall( circ_buffer_enclave, requestedCallID++, args);
-    LOGI << "run code routine end";
+    LOG(INFO) << "run code routine end";
 }
 
 void Asylo_SGX::put_ecall(capsule_pdu *dc) {
@@ -308,6 +308,7 @@ void Asylo_SGX::execute(){
     //Test OCALL
     asylo::EnclaveInput input;        
     asylo::EnclaveOutput output;
+
     //Register OCALL buffer to enclave 
     input.MutableExtension(hello_world::buffer)->set_buffer((long int) circ_buffer_host);
     input.MutableExtension(hello_world::buffer)->set_enclave_id(m_name);
@@ -322,10 +323,8 @@ void Asylo_SGX::execute(){
         LOG(QFATAL) << "EnterAndRun failed: " << status;
     }
 
-
     //Sleep so that threads have time to process ALL requests
-    sleep(1000);
-
+    sleep(10);
 }
 
 void Asylo_SGX::finalize(){

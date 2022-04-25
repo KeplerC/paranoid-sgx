@@ -626,12 +626,12 @@ int run_js() {
     Asylo_SGX* sgx = new Asylo_SGX("1", serialized_signing_key);
 
     sgx->init();
-
     sleep(1);
     sgx->execute();
     std::string s = absl::GetFlag(FLAGS_input_file);
+
     sgx->execute_js_file(s);
-    LOGI << "finished running the code";
+    LOG(INFO) << "finished running the code";
     return 0; 
 }
 
@@ -667,13 +667,11 @@ int main(int argc, char *argv[]) {
         case RUN_CLIENT_ONLY:
             run_clients_only();
             break;
-//        case LISTENER_MODE:
-//            run_listener();
-//            break;
-//        case COORDINATOR_MODE:
-//            run_mpl_coordinator();
-//            break;
+    //    case LISTENER_MODE:
+    //        run_listener();
+    //        break;
         case JS_MODE:
+            LOG(INFO) << "running in js mode";
             run_js();
             break; 
         case USER_MODE:
