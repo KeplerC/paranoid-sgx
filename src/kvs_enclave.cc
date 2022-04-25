@@ -52,8 +52,12 @@ namespace asylo {
                 return;
             }
             capsule_pdu *dc = new capsule_pdu();
-            asylo::PayloadListToCapsule(dc, &payload_l, m_enclave_id);
-
+            if (payload_l[0].txn_msgType == "LOCK_ACQUIRE") {
+                std::string dest = "tcp://" + std::string(NET_CLIENT_IP) + std::to_string(NET_CLIENT_BASE_PORT + START_CLIENT_ID + 2);
+                asylo::PayloadListToCapsule(dc, &payload_l, m_enclave_id, dest);
+            } else {
+                asylo::PayloadListToCapsule(dc, &payload_l, m_enclave_id);
+            }
             bool success;
             // for return, do not encrypt(at least currently)
             // generate hash for update_hash and/or ocall
@@ -525,6 +529,11 @@ namespace asylo {
                                 } else if (dc->msgType == "LOCK_RELEASE" && !is_coordinator) {
                                     // Handle lock acquire success acks
                                     std::string key = dc->payload_l[0].key;
+                                    std::string value = dc->payload_l[0].value;
+                                    if (contains(key) && value != "") {
+                                        // Update local value if ack contains a value
+                                        put(key, value, "");
+                                    }
                                     num_acks.at(key) -= 1;
                                     if (num_acks[key] == 0) {
                                         // Successfully acquire lock, wake up
