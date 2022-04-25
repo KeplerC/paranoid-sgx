@@ -103,6 +103,14 @@ static void *StartOcallResponder( void *arg ) {
                     LOG(INFO) << "Sending LOCK_ACQUIRE " << out_s;
                     socket_ptr_mcast->send(msg);
                 }
+                else if (in_dc.msgtype() == "LOCK_RELEASE" || in_dc.msgtype() == "LOCK_DENY") {
+                    // Mcast lock acquire
+                    LOG(INFO) << "Sending lock reply " << out_s;
+                    zmq::socket_t* temp_socket = new zmq::socket_t(context, ZMQ_PUSH);
+                    temp_socket->connect(in_dc.retaddr());
+                    temp_socket->send(msg);
+                    delete(temp_socket);
+                }
                 else {
                     LOG(INFO) << "Sending message to router " << out_s;
                     socket_ptr->send(msg);
