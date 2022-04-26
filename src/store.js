@@ -10,7 +10,7 @@ function getRandomInt(max) {
 }
 
 function buyItem(item, numberOfItems) {
-    var currStock = parseInt(psl_get(item), 10);
+    var currStock = parseInt(psl_get(item).val, 10);
     if (currStock - numberOfItems > 0) {
         var newStock = currStock - numberOfItems;
         psl_put(item, newStock.toString());
@@ -38,6 +38,6 @@ for (var i = 0; i < 500; i++) {
 print("Number items bought: ");
 print(numBought);
 print("Current stock: ");
-print(psl_get("Item 1"));
+print(psl_get("Item 1").val);
 print("Total original stock: ");
 print(TOTAL_STOCK);
