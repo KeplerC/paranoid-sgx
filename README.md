@@ -54,6 +54,44 @@ After entering the docker, run
 bazel run //src:hello_world_sgx_sim -- --mode 4 --input_file "/opt/my-project/src/input.js"
 ```
 
+### Run locking demo with PSL stack
+To run locally, you must attach to the same docker instance, for socket communication to work properly. To do this,
+use this command when spinning up docker containers for the following steps:
+```
+docker exec -it <container_name> bash
+```
+To find the name of a docker container, use
+```
+docker ps
+```
+
+```
+MY_PROJECT=~/paranoid-sgx
+sudo docker run -it --rm \
+    --net=host \
+    -v bazel-cache:/root/.cache/bazel \
+    -v "${MY_PROJECT}":/opt/my-project \
+    -w /opt/my-project \
+    keplerc/paranoid-asylo:latest 
+fogrobotics
+
+(four different terminals)
+# start sync server
+bazel run //src:hello_world_sgx_sim -- --mode=7
+
+# start workers 
+bazel run //src:hello_world_sgx_sim  [--copt=-O3] -- --mode=6
+
+# start job dispatcher 
+bazel run //src:hello_world_sgx_sim -- --mode=3
+
+# run benchmark
+apt install python3-pip
+pip3 install zmq
+cd frontend 
+python3 run_lock_benchmark.py
+```
+
 ### Run JS demo with PSL stack
 ```
 MY_PROJECT=~/paranoid-sgx
