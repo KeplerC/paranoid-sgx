@@ -10,9 +10,9 @@ function getRandomInt(max) {
 }
 
 function buyItem(item, numberOfItems) {
-    let currStock = parseInt(psl_get(item), 10);
+    var currStock = parseInt(psl_get(item), 10);
     if (currStock - numberOfItems > 0) {
-        let newStock = currStock - numberOfItems;
+        var newStock = currStock - numberOfItems;
         psl_put(item, newStock.toString());
         return numberOfItems;
     } else {
@@ -28,10 +28,10 @@ psl_put("Item 1", TOTAL_STOCK);
 
 // Purchase items
 print("Starting Test");
-let numBought = 0;
-for (let i = 0; i < 500; i++) {
-    let numToBuy = getRandomInt(5);
-    let numReceived = buyItem("Item 1", numToBuy);
+var numBought = 0;
+for (var i = 0; i < 500; i++) {
+    var numToBuy = getRandomInt(5);
+    var numReceived = buyItem("Item 1", numToBuy);
     numBought += numReceived;
 }
 
