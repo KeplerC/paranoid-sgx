@@ -17,7 +17,7 @@ function buyItem(item, numberOfItems) {
         print("Successfully bought " + numberOfItems.toString() + " items, remaining: " + newStock.toString());
         return numberOfItems;
     } else {
-        print("Failed to buy item, out of stock!");
+        // print("Failed to buy item, out of stock!");
         return 0;
     }
 }
@@ -25,20 +25,30 @@ function buyItem(item, numberOfItems) {
 // Main method
 // Setup store
 var TOTAL_STOCK = "1000";
-psl_put("Item 1", TOTAL_STOCK);
+psl_put("1", TOTAL_STOCK);
+psl_put("2", TOTAL_STOCK);
+psl_put("3", TOTAL_STOCK);
+psl_put("4", TOTAL_STOCK);
+psl_put("5", TOTAL_STOCK);
+psl_put("6", TOTAL_STOCK);
+psl_put("7", TOTAL_STOCK);
+psl_put("8", TOTAL_STOCK);
+psl_put("9", TOTAL_STOCK);
+psl_put("10", TOTAL_STOCK);
 
 // Purchase items
 print("Starting Test");
-var numBought = 0;
-for (var i = 0; i < 500; i++) {
-    var numToBuy = getRandomInt(5);
-    var numReceived = buyItem("Item 1", numToBuy);
-    numBought += numReceived;
+var numBought = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+for (var i = 0; i < 1000; i++) {
+    var numToBuy = getRandomInt(20);
+    var itemToBuy = getRandomInt(10);
+    var numReceived = buyItem(itemToBuy.toString(), numToBuy);
+    numBought[itemToBuy] += numReceived;
 }
 
 print("Number items bought: ");
 print(numBought);
-print("Current stock: ");
-print(psl_get("Item 1").val);
-print("Total original stock: ");
-print(TOTAL_STOCK);
+// print("Current stock: ");
+// print(psl_get("Item 1").val);
+// print("Total original stock: ");
+// print(TOTAL_STOCK);
