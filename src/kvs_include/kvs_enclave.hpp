@@ -36,8 +36,12 @@
 #include <utility>
 #include <unordered_map>
 
+struct duk_run_args {
+    duk_context *ctx;
+    char *code;
+}; 
  
- namespace asylo {
+namespace asylo {
    
    class KVSClient : public asylo::TrustedApplication {
     public:
@@ -51,8 +55,11 @@
         void handle();
 
         // Lock functions
-        void mem_lock_acquire(const std::string &key);
+        /* Waits for lock to not be acquired by another worker. */
+        void mem_lock_wait(const std::string &key);
         void mem_lock_release(const std::string &key);
+        void mem_lock_acquire(const std::string &key);
+        
 
      private:
         MemTable memtable;
@@ -72,8 +79,10 @@
         std::unique_ptr <VerifyingKey> verifying_key;
 
         /* Lock variables */
-        std::mutex m;
+        std::mutex get_m;
+        std::mutex wait_m;
         absl::flat_hash_map<std::string, bool> lock_table;
+        absl::flat_hash_map<std::string, bool> owned_lock_table;
         absl::flat_hash_map<std::string, std::condition_variable*> lock_cv_table;
         absl::flat_hash_map<std::string, unsigned long int> lock_acq_req_time;
         // Counts number of received responses from lock acquire request
@@ -110,18 +119,28 @@
     return response;
     }
 
+
     static duk_ret_t js_print(duk_context *ctx) {
         std::cout << duk_to_string(ctx, 0) << std::endl;
         return 0;  /* no return value (= undefined) */
     }
 
     static duk_ret_t js_put(duk_context *ctx){
+        duk_thread_state st;
         std::string key = duk_to_string(ctx, 0);
         std::string val = duk_to_string(ctx, 1);
 
         duk_eval_string(ctx, "ctx");
         KVSClient *m = (KVSClient *) duk_to_pointer(ctx, -1);
-        m->put(key, val, "");
+        duk_suspend(ctx, &st);
+        if (LOCK_MODE) {
+            m->mem_lock_acquire(key);
+            m->put(key, val, "");
+            m->mem_lock_release(key);
+        } else {
+            m->put(key, val, "");
+        }
+        duk_resume(ctx, &st);
         return 0;           
     }
 
@@ -132,6 +151,12 @@
         KVSClient *m = (KVSClient *) duk_to_pointer(ctx, -1);
 
         duk_idx_t obj_idx = duk_push_object(ctx);
+
+        /* Wait if another worker holds lock of this key. */
+        if (LOCK_MODE) {
+            m->mem_lock_wait(key);
+        }
+
         kvs_payload dc = m->get(key);
 
         duk_push_string(ctx, dc.key.c_str());

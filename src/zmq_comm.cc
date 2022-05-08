@@ -147,6 +147,7 @@
         if (pollitems[0].revents & ZMQ_POLLIN) {
             //Get the address
             std::string msg = this->recv_string(&socket_from_server);
+            LOGI << "Received mcast msg!" ;
             LOGI << "[Client " << m_addr << "]:  " + msg ;
             // this -> send_string(m_port , socket_send);
             this->m_sgx->send_to_sgx(msg);

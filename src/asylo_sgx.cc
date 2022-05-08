@@ -98,18 +98,21 @@ static void *StartOcallResponder( void *arg ) {
                     LOG(INFO) << "Sending PSL_RET " << out_s;
                     socket_ptr_for_result -> send(msg);
                 }
-                else if (in_dc.msgtype() == "LOCK_ACQUIRE") {
-                    // Mcast lock acquire
-                    LOG(INFO) << "Sending LOCK_ACQUIRE " << out_s;
+                else if (in_dc.msgtype() == "LOCK_ACQUIRE" || in_dc.msgtype() == "LOCK_RELEASE") {
+                    // Mcast lock acquire/release
+                    LOG(INFO) << "Sending " << in_dc.msgtype();
                     socket_ptr_mcast->send(msg);
                 }
-                else if (in_dc.msgtype() == "LOCK_RELEASE" || in_dc.msgtype() == "LOCK_DENY") {
-                    // Mcast lock acquire
-                    LOG(INFO) << "Sending lock reply " << out_s;
+                else if (in_dc.msgtype() == "LOCK_ACCEPT" || in_dc.msgtype() == "LOCK_DENY") {
+                    // Directly send back lock accept/deny to requester
+                    LOG(INFO) << "Sending " << in_dc.msgtype();
+                    /* p2p attempt
                     zmq::socket_t* temp_socket = new zmq::socket_t(context, ZMQ_PUSH);
                     temp_socket->connect(in_dc.retaddr());
                     temp_socket->send(msg);
                     delete(temp_socket);
+                    */
+                    socket_ptr_mcast->send(msg);
                 }
                 else {
                     LOG(INFO) << "Sending message to router " << out_s;

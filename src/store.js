@@ -14,6 +14,7 @@ function buyItem(item, numberOfItems) {
     if (currStock - numberOfItems > 0) {
         var newStock = currStock - numberOfItems;
         psl_put(item, newStock.toString());
+        print("Successfully bought " + numberOfItems.toString() + " items, remaining: " + newStock.toString());
         return numberOfItems;
     } else {
         print("Failed to buy item, out of stock!");
