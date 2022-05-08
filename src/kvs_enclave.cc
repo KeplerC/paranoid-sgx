@@ -18,6 +18,7 @@
 
 #include <kvs_enclave.hpp>
 #include "kvs_eapp.hpp"
+#include <assert.h>
 
 #define USE_KEY_MANAGER
 
@@ -41,7 +42,7 @@ namespace asylo {
                 /* Another node already holding the lock. */
                 /* Wait for LOCK_RELEASE */
                 lock_cv_table.at(key)->wait(lk, [this, &key] {
-                    LOG(INFO) << "Waiting for get";
+                    LOG(INFO) << "Waiting for get for " << key;
                     return !lock_table[key];
                 });
             }
@@ -50,7 +51,10 @@ namespace asylo {
 
         void KVSClient::mem_lock_release(const std::string &key) {
             // Update local table
+            assert(owned_lock_table[key] == true);
             owned_lock_table[key] = false;
+            lock_table[key] = false;
+
             if (memtable.contains(key)) {
                 put(key, memtable.get(key).value, "LOCK_RELEASE");
                 LOG(INFO) << "Release val: " << key << ", " << memtable.get(key).value;
@@ -99,6 +103,7 @@ namespace asylo {
             /* Successfully acquire the lock. */
             LOG(INFO) << "Lock acquired for " << key;
             lock_table[key] = true;
+            owned_lock_table[key] = true;
             // Wipe request time
             lock_acq_req_time[key] = 0;
             // TODO: Cleaup the CV if application uses too much memory
@@ -568,6 +573,13 @@ namespace asylo {
                                         if (req_time < lock_acq_req_time[key]) {
                                             lock_table[key] = true;
                                             put(key, "", "LOCK_ACCEPT");
+                                        } else if (req_time == lock_acq_req_time[key]) {
+                                            // Equal time, break by smaller enclave ID
+                                            if (dc->sender < m_enclave_id) {
+                                                put(key, "", "LOCK_ACCEPT");
+                                            } else {
+                                                put(key, "", "LOCK_DENY");
+                                            }
                                         } else {
                                             put(key, "", "LOCK_DENY");
                                         }

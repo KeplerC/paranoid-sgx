@@ -25,7 +25,10 @@
 #define __COMMON_H
 
 
-#define LOCK_MODE false
+
+/* LOCK VARS */
+#define NUM_WORKERS 2
+#define LOCK_MODE true
 
 //#define NET_WORKER_IP "128.32.37.69"
 //#define NET_SEED_ROUTER_IP "128.32.37.46"
@@ -64,9 +67,6 @@
 #define NUM_CRYPTO_ACTORS 2
 #define BATCH_SIZE 1
 // #define RUN_BOTH_CLIENT_AND_SERVER true
-
-/* LOCK VARS */
-#define NUM_WORKERS 2
 
 //router ports
 #define NET_CLIENT_BASE_PORT 5555

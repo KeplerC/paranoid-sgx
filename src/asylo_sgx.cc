@@ -82,7 +82,7 @@ static void *StartOcallResponder( void *arg ) {
             case OCALL_PUT: {
                 // TODO: we do everything inside of the lock, this is slow
                 // we can copy the string and process it after we release the lock
-                LOG(INFO) << "[CICBUF-OCALL] transmitted a data capsule pdu";
+                LOGI << "[CICBUF-OCALL] transmitted a data capsule pdu";
                 asylo::dumpProtoCapsule(&in_dc);
 
                 std::string out_s;
@@ -115,7 +115,7 @@ static void *StartOcallResponder( void *arg ) {
                     socket_ptr_mcast->send(msg);
                 }
                 else {
-                    LOG(INFO) << "Sending message to router " << out_s;
+                    LOGI << "Sending message to router " << out_s;
                     socket_ptr->send(msg);
                 }
                 break;
