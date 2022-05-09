@@ -207,6 +207,8 @@ namespace asylo {
 
         dc_new->timestamp = dc->timestamp;
         dc_new->msgType = dc->msgType;
+
+        dc_new->retAddr = dc->retAddr;
     }
 
     void dumpProtoCapsule(const hello_world::CapsulePDU *dcProto){

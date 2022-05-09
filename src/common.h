@@ -27,7 +27,7 @@
 
 
 /* LOCK VARS */
-#define NUM_WORKERS 2
+#define NUM_WORKERS 4
 #define LOCK_MODE true
 
 //#define NET_WORKER_IP "128.32.37.69"

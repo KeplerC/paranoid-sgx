@@ -33,6 +33,6 @@ typedef struct{
 
 #define DUMP_PAYLOAD_LIST(payload_l) for (int i = 0; i < payload_l->size(); i++) { LOG(INFO) << "payload_l - Payload Key: " << ((*payload_l))[i].key << ", Value: " << ((*payload_l))[i].value << ", Timestamp: " << (int64_t) ((*payload_l))[i].txn_timestamp << ", MsgType: " << ((*payload_l))[i].txn_msgType;}
 
-#define DUMP_CAPSULE(dc) {LOG(INFO) << "DC Sender: "<< dc->sender << ", Timestamp: " << (int64_t) dc->timestamp << ", hash: " << dc->hash  << ", prevHash: " << dc->prevHash << ", signature: " << dc->signature << " payload_in_transit: " << dc->payload_in_transit << " message type: " << dc->msgType << " ret addr: " << dc->retAddr; DUMP_PAYLOAD_LIST((&(dc->payload_l)));}
+#define DUMP_CAPSULE(dc) {LOGI << "DC Sender: "<< dc->sender << ", Timestamp: " << (int64_t) dc->timestamp << ", hash: " << dc->hash  << ", prevHash: " << dc->prevHash << ", signature: " << dc->signature << " payload_in_transit: " << dc->payload_in_transit << " message type: " << dc->msgType << " ret addr: " << dc->retAddr; DUMP_PAYLOAD_LIST((&(dc->payload_l)));}
 
 #endif 

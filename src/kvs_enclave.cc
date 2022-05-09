@@ -97,7 +97,8 @@ namespace asylo {
             lock_cv_table.at(key)->wait(lk, [this, &key, &now_str] {
                 LOG(INFO) << "Checking if lock is acquired for " << key;
                 LOG(INFO) << "lock_table: " << lock_table[key] << ", num_acks: " << num_acks[key];
-                return !lock_table[key] && num_acks[key] == 0;
+                // return !lock_table[key] && num_acks[key] == 0;
+                return num_acks[key] == 0;
             });
 
             /* Successfully acquire the lock. */
@@ -106,6 +107,8 @@ namespace asylo {
             owned_lock_table[key] = true;
             // Wipe request time
             lock_acq_req_time[key] = 0;
+            // Increment lock_ctr
+            lock_ctr += 1;
             // TODO: Cleaup the CV if application uses too much memory
         };
 
@@ -127,8 +130,8 @@ namespace asylo {
             }
             capsule_pdu *dc = new capsule_pdu();
             if (payload_l[0].txn_msgType == "LOCK_ACQUIRE") {
-                std::string dest = "tcp://" + std::string(NET_CLIENT_IP) + std::to_string(NET_CLIENT_BASE_PORT + START_CLIENT_ID + 2);
-                asylo::PayloadListToCapsule(dc, &payload_l, m_enclave_id, dest);
+                std::string ctr = std::to_string(lock_ctr);
+                asylo::PayloadListToCapsule(dc, &payload_l, m_enclave_id, ctr);
             } else {
                 asylo::PayloadListToCapsule(dc, &payload_l, m_enclave_id);
             }
@@ -157,7 +160,7 @@ namespace asylo {
             }
             dc->prevHash = m_prev_hash;
             m_prev_hash = dc->hash;
-            DUMP_CAPSULE(dc);
+            // DUMP_CAPSULE(dc);
             // sign dc
             //TODO: signing stops working for some reason!!!
             success = sign_dc(dc, signing_key);
@@ -226,6 +229,7 @@ namespace asylo {
             m_prev_hash = "init";
             requestedCallID = 0;
             m_lamport_timer = 0;
+            lock_ctr = 0;
 
             // Assign signing and verifying key
             if (input.HasExtension(hello_world::crypto_param)) {
@@ -549,9 +553,12 @@ namespace asylo {
                                     m_eoe_hashes[m_enclave_id] = p;
                                 } else if (dc->msgType == "LOCK_ACQUIRE" && !is_coordinator) {
                                     // Handle incoming lock acquire requests
-                                    LOG(INFO) << "Received LOCK_ACQUIRE " << dc->payload_l[0].key;
+                                    // LOG(INFO) << "Received LOCK_ACQUIRE " << dc->payload_l[0].key;
                                     std::string key = dc->payload_l[0].key;
-                                    
+                                    std::string sender = std::to_string(dc->sender);
+                                    // NOTE: retAddr holds lock_ctr of sender!
+                                    std::string lock_cnt = dc->retAddr;
+
                                     /* Init state if necessary */
                                     if (!lock_table.contains(key)) {
                                         lock_table[key] = false;
@@ -563,7 +570,7 @@ namespace asylo {
                                     if (owned_lock_table[key]) {
                                         // Lock is acquired by this worker
                                         // Deny the request
-                                        put(key, "", "LOCK_DENY");
+                                        put(key, sender + " " + lock_cnt, "LOCK_DENY");
 
                                     } else if (lock_acq_req_time[key] != 0) {
                                         // Pending lock acquire request from this worker
@@ -572,55 +579,68 @@ namespace asylo {
                                         unsigned long int req_time = std::strtoul(req_time_str.c_str(), NULL, 10);
                                         if (req_time < lock_acq_req_time[key]) {
                                             lock_table[key] = true;
-                                            put(key, "", "LOCK_ACCEPT");
+                                            put(key, sender + " " + lock_cnt, "LOCK_ACCEPT");
+                                            LOG(INFO) << "Accept " << sender;
                                         } else if (req_time == lock_acq_req_time[key]) {
                                             // Equal time, break by smaller enclave ID
                                             if (dc->sender < m_enclave_id) {
-                                                put(key, "", "LOCK_ACCEPT");
+                                                lock_table[key] = true;
+                                                put(key, sender + " " + lock_cnt, "LOCK_ACCEPT");
+                                                LOG(INFO) << "Accept " << sender;
                                             } else {
-                                                put(key, "", "LOCK_DENY");
+                                                put(key, sender + " " + lock_cnt, "LOCK_DENY");
                                             }
                                         } else {
-                                            put(key, "", "LOCK_DENY");
+                                            put(key, sender + " " + lock_cnt, "LOCK_DENY");
                                         }
 
                                     } else {
                                         // Lock is not acquired. Notify to sender that it is OK to acquire.
                                         lock_table[key] = true;
-                                        put(key, "", "LOCK_ACCEPT");
+                                        LOG(INFO) << "Accept " << sender;
+                                        put(key, sender + " " + lock_cnt, "LOCK_ACCEPT");
                                     }
                                 } else if (dc->msgType == "LOCK_ACCEPT" && !is_coordinator) {
                                     /* Handle lock acquire success acks */
-                                    LOG(INFO) << "Received LOCK_ACCEPT " << dc->payload_l[0].key;
+                                    LOG(INFO) << "Worker " << std::to_string(m_enclave_id) << " received LOCK_ACCEPT " << dc->payload_l[0].key;
                                     std::string key = dc->payload_l[0].key;
-                                    if (num_acks[key] == 0) {
-                                        // Ignore messages for other nodes
-                                        continue;
-                                    }
+                                    std::string recipient = dc->payload_l[0].value;
 
-                                    num_acks.at(key) -= 1;
-                                    if (num_acks[key] == 0) {
-                                        LOG(INFO) << "Wake up sleeping thread waiting for " << dc->payload_l[0].key;
-                                        // Successfully acquire lock, wake up
-                                        this->lock_cv_table.at(key)->notify_all();
+                                    if (recipient != std::to_string(m_enclave_id) + " " + std::to_string(lock_ctr)) {
+                                        // Ignore messages for other nodes
+                                        LOG(INFO) << "Accept recipient id, cnt: " << recipient << ", worker id, cnt: " << std::to_string(m_enclave_id) << " " << std::to_string(lock_ctr);
+                                    } else {
+                                        num_acks.at(key) -= 1;
+                                        if (num_acks[key] == 0) {
+                                            LOG(INFO) << "Wake up sleeping thread waiting for " << dc->payload_l[0].key;
+                                            // Successfully acquire lock, wake up
+                                            this->lock_cv_table.at(key)->notify_all();
+                                        } else {
+                                            LOG(INFO) << "Worker " << std::to_string(m_enclave_id) << " acks left: " << std::to_string(num_acks[key]);
+                                        }
                                     }
 
                                 } else if (dc->msgType == "LOCK_DENY" && !is_coordinator) {
                                     /* Handle lock acquire failure acks */
-                                    LOG(INFO) << "Received LOCK_DENY " << dc->payload_l[0].key;
+                                    // LOG(INFO) << "Received LOCK_DENY " << dc->payload_l[0].key;
                                     std::string key = dc->payload_l[0].key;
-                                    if (num_acks[key] == 0) {
+                                    std::string recipient = dc->payload_l[0].value;
+                                    
+                                    if (recipient != std::to_string(m_enclave_id) + " " + std::to_string(lock_ctr)) {
                                         // Ignore messages for other nodes
-                                        continue;
+                                        LOG(INFO) << "Deny recipient id, cnt: " << recipient << ", worker id, cnt: " << std::to_string(m_enclave_id) << " " << std::to_string(lock_ctr);
+                                    } else {
+                                        // Reset number of acks needed
+                                        num_acks.at(key) = NUM_WORKERS - 1;
+
+                                        // Resend LOCK_ACQUIRE
+                                        // TODO: test resend delay
+                                        sleep(1);
+                                        LOG(INFO) << "Worker " << std::to_string(m_enclave_id) << "resending LOCK_ACQUIRE " << key;
+                                        std::string now_str = std::to_string(lock_acq_req_time[key]);
+                                        lock_ctr += 1;
+                                        put(key, now_str, "LOCK_ACQUIRE");
                                     }
-
-                                    // Reset number of acks needed
-                                    num_acks.at(key) = NUM_WORKERS - 1;
-
-                                    // Resend LOCK_ACQUIRE
-                                    sleep(1);
-                                    std::string now_str = std::to_string(lock_acq_req_time[key]);
-                                    put(key, now_str, "LOCK_ACQUIRE");
 
                                 } else if (dc->msgType == "LOCK_RELEASE" && !is_coordinator) {
                                     // Handle lock release sync messages

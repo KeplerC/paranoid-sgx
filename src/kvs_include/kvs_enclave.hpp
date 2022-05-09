@@ -81,6 +81,7 @@ namespace asylo {
         /* Lock variables */
         std::mutex get_m;
         std::mutex wait_m;
+        int64_t lock_ctr;
         absl::flat_hash_map<std::string, bool> lock_table;
         absl::flat_hash_map<std::string, bool> owned_lock_table;
         absl::flat_hash_map<std::string, std::condition_variable*> lock_cv_table;

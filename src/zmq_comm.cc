@@ -59,6 +59,9 @@
             socket_ptr -> connect (coordinator_addr + std::to_string(NET_COORDINATOR_RECV_MEMBERSHIP_PORT));
             this->send_string(this->serialize_group_addresses(), socket_ptr);
             this->m_coordinator = coordinator_addr;
+
+            zmq_close(socket_ptr);
+            delete socket_ptr;
         }
 
         if (pollitems[3].revents & ZMQ_POLLIN){
@@ -67,6 +70,10 @@
             zmq::socket_t* socket_ptr  = new  zmq::socket_t( context, ZMQ_PUSH);
             socket_ptr -> connect (this->m_coordinator+ std::to_string(NET_COORDINATOR_RECV_RESULT_PORT));
             this->send_string(result, socket_ptr);
+
+            zmq_close(socket_ptr);
+            delete socket_ptr;
+
         }
     }
 }
