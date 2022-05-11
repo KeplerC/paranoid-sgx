@@ -107,6 +107,13 @@ namespace asylo {
 
             /* Successfully acquire the lock. */
             LOG(INFO) << "Lock acquired for " << key;
+            /* Avg time gogogogo */
+            now = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+            num_acq_reqs += 1;
+            unsigned long int diff = (now - lock_acq_req_time[key]);
+            avg_lock_req_time += diff / num_acq_reqs; 
+            LOG(INFO) << "Worker " << m_enclave_id << " avg acquire time: " << std::to_string(avg_lock_req_time);
+
             lock_table[key] = true;
             owned_lock_table[key] = true;
             // Wipe request time
@@ -234,6 +241,9 @@ namespace asylo {
             requestedCallID = 0;
             m_lamport_timer = 0;
             lock_ctr = 0;
+
+            avg_lock_req_time = 0;
+            num_acq_reqs = 0;
 
             // Assign signing and verifying key
             if (input.HasExtension(hello_world::crypto_param)) {

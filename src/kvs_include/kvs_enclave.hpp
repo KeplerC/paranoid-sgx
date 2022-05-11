@@ -82,6 +82,8 @@ namespace asylo {
         std::mutex get_m;
         std::mutex wait_m;
         int64_t lock_ctr;
+        unsigned long int num_acq_reqs;
+        unsigned long int avg_lock_req_time;
         absl::flat_hash_map<std::string, bool> lock_table;
         absl::flat_hash_map<std::string, bool> owned_lock_table;
         absl::flat_hash_map<std::string, std::condition_variable*> lock_cv_table;
