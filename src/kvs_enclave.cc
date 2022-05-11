@@ -46,7 +46,11 @@ namespace asylo {
                     return !lock_table[key];
                 });
             }
-            LOG(INFO) << "Finish get for " << key << ", " << memtable.get(key).value;
+            if (memtable.contains(key)) {
+                LOG(INFO) << "Finish get for " << key << ", " << memtable.get(key).value;
+            } else {
+                LOG(INFO) << "Finish get for " << key << " (init)";
+            }
         };
 
         void KVSClient::mem_lock_release(const std::string &key) {
