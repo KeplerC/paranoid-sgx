@@ -26,7 +26,7 @@
 #define __COMMON_H
 
 
-#define NET_WORKER_IP "128.32.37.69"
+#define NET_WORKER_IP "128.32.37.46"
 #define NET_SEED_ROUTER_IP "128.32.37.42"
 #define NET_SYNC_SERVER_IP "localhost"
 #define NET_KEY_DIST_SERVER_IP "128.32.37.42"

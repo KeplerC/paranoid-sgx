@@ -18,7 +18,7 @@ asylo::Status start_eapp(asylo::KVSClient *KVS_client, const asylo::EnclaveInput
         homedir = getpwuid(getuid())->pw_dir;
     }
 
-    static const std::string resourceDirectory = std::string(homedir) + "/paranoid-sgx/src/mplambda/resources/";
+    static const std::string resourceDirectory = std::string(homedir) + "/mpl-benchmark/paranoid-sgx/src/mplambda/resources/";
 
     options.setKVSClient(KVS_client);
     options.timeStart = lambda_input.time_start(); 
